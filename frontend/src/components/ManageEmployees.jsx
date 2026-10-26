@@ -8,6 +8,8 @@ export default function ManageEmployees() {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('intern'); // Default changed to intern
+  const [birthDate, setBirthDate] = useState('');
+  const [today] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [joiningDate, setJoiningDate] = useState('');
   const [password, setPassword] = useState('');
   const [photoPreview, setPhotoPreview] = useState(null);
@@ -40,7 +42,16 @@ export default function ManageEmployees() {
     }
   };
 
-  const startEdit = (u) => {
+  const startEdit = async (u) => {
+    let profile;
+    try {
+      const res = await getProfile(u.id);
+      profile = res.data;
+    } catch {
+      alert('Unable to load the birthday. Please try again.');
+      return;
+    }
+    setBirthDate(profile.date_of_birth || '');
     setEditingUser(u);
     setUsername(u.username);
     setEmail(u.email);
@@ -61,8 +72,10 @@ export default function ManageEmployees() {
         email, 
         role, 
         password,
-        joining_date: joiningDate 
+        joining_date: joiningDate,
+        date_of_birth: birthDate || null 
       });
+      window.dispatchEvent(new Event('birthdaysUpdated'));
       setMsg({ text: 'Employee updated successfully.', type: 'success' });
       fetchUsers();
       setTimeout(() => setEditingUser(null), 1500);
@@ -93,7 +106,7 @@ export default function ManageEmployees() {
         <div>
           <span className="text-xs font-bold text-red-600 uppercase tracking-widest">Database</span>
           <h2 className="text-xl font-bold text-zinc-900 mt-0.5">Manage Employees</h2>
-          <p className="text-xs text-slate-500">View profiles, edit credentials, manage joining dates, or remove access.</p>
+          <p className="text-xs text-slate-500">View profiles, edit credentials, manage birthdays and joining dates, or remove access.</p>
         </div>
       </div>
 
@@ -212,7 +225,7 @@ export default function ManageEmployees() {
 
       {editingUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-md border border-slate-200">
+          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-slate-200">
             
             <div className="flex items-center gap-4 mb-6 pb-4 border-b border-slate-100">
               <div className="w-14 h-14 rounded-full bg-slate-200 border border-slate-300 overflow-hidden shrink-0">
@@ -259,6 +272,12 @@ export default function ManageEmployees() {
                 </select>
               </div>
 
+              <div>
+                <label htmlFor="employee-birthday" className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Date of Birth</label>
+                <input id="employee-birthday" type="date" value={birthDate} max={today} onChange={e => setBirthDate(e.target.value)} className="w-full border border-slate-300 p-2 text-sm outline-none focus:border-red-500 rounded" />
+                <p className="mt-1 text-xs text-slate-500">Celebrations appear seven days before their birthday. Clear this field to remove it.</p>
+              </div>
+
               <div className="pt-2 border-t border-slate-100">
                 <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Reset Password (Optional)</label>
                 <input type="password" placeholder="Leave blank to keep current" value={password} onChange={e => setPassword(e.target.value)} className="w-full border border-slate-300 p-2 text-sm outline-none focus:border-red-500 rounded" />
@@ -279,3 +298,4 @@ export default function ManageEmployees() {
     </div>
   );
 }
+
