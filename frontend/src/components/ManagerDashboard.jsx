@@ -1,4 +1,6 @@
+import AttendanceTimeInput from './AttendanceTimeInput';
 import React, { useState, useEffect } from 'react';
+import { formatAttendanceTime, toTimeParts, toApiTime } from '../utils/attendanceTime';
 import { getAttendance, managerCreateUser, getLeaveRequests, getUsers, updateAttendance } from '../services/api';
 
 export default function ManagerDashboard({ setActiveTab }) {
@@ -19,7 +21,7 @@ export default function ManagerDashboard({ setActiveTab }) {
 
   // Edit Modal State
   const [editingRecord, setEditingRecord] = useState(null);
-  const [editData, setEditData] = useState({ check_in: '', check_out: '', status: '' });
+  const [editData, setEditData] = useState({ check_in: toTimeParts(''), check_out: toTimeParts(''), status: '' });
   const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
@@ -74,8 +76,8 @@ export default function ManagerDashboard({ setActiveTab }) {
     setIsUpdating(true);
     try {
       await updateAttendance(editingRecord.id, {
-        check_in: editData.check_in || null,
-        check_out: editData.check_out || null,
+        check_in: toApiTime(editData.check_in),
+        check_out: toApiTime(editData.check_out),
         status: editData.status
       });
       fetchAllData();
@@ -195,8 +197,8 @@ export default function ManagerDashboard({ setActiveTab }) {
                       <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{emp.role}</div>
                     </td>
                     <td className="p-2.5 text-slate-600 font-medium">{item.date}</td>
-                    <td className="p-2.5 text-slate-600">{item.check_in || '-'}</td>
-                    <td className="p-2.5 text-slate-600">{item.check_out || '-'}</td>
+                    <td className="p-2.5 text-slate-600">{formatAttendanceTime(item.check_in)}</td>
+                    <td className="p-2.5 text-slate-600">{formatAttendanceTime(item.check_out)}</td>
                     <td className="p-2.5">
                       <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
                         item.status === 'Present' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
@@ -208,7 +210,7 @@ export default function ManagerDashboard({ setActiveTab }) {
                     <td className="p-2.5 text-right">
                       <button onClick={() => {
                         setEditingRecord(item);
-                        setEditData({ check_in: item.check_in || '', check_out: item.check_out || '', status: item.status });
+                        setEditData({ check_in: toTimeParts(item.check_in), check_out: toTimeParts(item.check_out), status: item.status });
                       }} className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider">
                         Edit
                       </button>
@@ -232,14 +234,8 @@ export default function ManagerDashboard({ setActiveTab }) {
               @{getUserDetails(editingRecord.user).username} • {editingRecord.date}
             </p>
             <form onSubmit={handleEditSubmit} className="space-y-3">
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Check-In Time</label>
-                <input type="time" step="1" value={editData.check_in} onChange={e => setEditData({...editData, check_in: e.target.value})} className="w-full border border-slate-300 p-2 text-xs outline-none focus:border-red-500 rounded" />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Check-Out Time</label>
-                <input type="time" step="1" value={editData.check_out} onChange={e => setEditData({...editData, check_out: e.target.value})} className="w-full border border-slate-300 p-2 text-xs outline-none focus:border-red-500 rounded" />
-              </div>
+              <AttendanceTimeInput label="Check-In Time" value={editData.check_in} onChange={value => setEditData({ ...editData, check_in: value })} />
+              <AttendanceTimeInput label="Check-Out Time" value={editData.check_out} onChange={value => setEditData({ ...editData, check_out: value })} />
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Status</label>
                 <select value={editData.status} onChange={e => setEditData({...editData, status: e.target.value})} className="w-full border border-slate-300 p-2 text-xs outline-none focus:border-red-500 rounded bg-white">
