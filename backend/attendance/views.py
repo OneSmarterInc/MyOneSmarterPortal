@@ -1,6 +1,7 @@
 import string
 import random
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, serializers
+from django.utils import timezone
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth.models import User
@@ -9,6 +10,34 @@ from django.core.mail import send_mail, get_connection, EmailMessage
 from django.conf import settings
 from .models import Attendance, UserProfile, SMTPSettings, CompanySchedule, LeaveRequest, LeaveAllocation
 from .serializers import AttendanceSerializer
+
+
+def validated_birth_date(value):
+    value = serializers.DateField(allow_null=True).run_validation(value or None)
+    if value and value > timezone.localdate():
+        raise serializers.ValidationError({'date_of_birth': 'Birthday cannot be in the future.'})
+    return value
+
+
+@api_view(['GET'])
+def birthdays(request):
+    profiles = UserProfile.objects.select_related('user').filter(
+        user__is_active=True, role__in=['employee', 'intern'],
+        date_of_birth__isnull=False,
+    )
+    return Response([
+        {
+            'id': profile.user_id,
+            'name': profile.user.get_full_name().strip() or profile.user.username,
+            'role': profile.role,
+            'birthday_month': profile.date_of_birth.month,
+            'birthday_day': profile.date_of_birth.day,
+            'profile_photo': request.build_absolute_uri(profile.profile_photo.url)
+                if profile.profile_photo else None,
+        }
+        for profile in profiles
+    ])
+
 
 @api_view(['GET', 'POST'])
 def smtp_settings_view(request):
@@ -68,6 +97,7 @@ def manager_create_user(request):
     email = request.data.get('email')
     role = request.data.get('role', 'intern')
     joining_date = request.data.get('joining_date')
+    date_of_birth = validated_birth_date(request.data.get('date_of_birth'))
 
     if not username or not email:
         return Response({'error': 'Username and email are required.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -87,6 +117,7 @@ def manager_create_user(request):
     # Safely fetch or create the profile and save Employee ID
     profile, created = UserProfile.objects.get_or_create(user=user)
     profile.role = role
+    profile.date_of_birth = date_of_birth
     if joining_date:
         profile.joining_date = joining_date
     if employee_id and hasattr(profile, 'employee_id'):
@@ -267,6 +298,7 @@ def manage_user(request, pk):
         return Response({'message': 'User deleted successfully'}, status=status.HTTP_200_OK)
     
     if request.method == 'PUT':
+        birth_date = validated_birth_date(request.data['date_of_birth']) if 'date_of_birth' in request.data else None
         user.username = request.data.get('username', user.username)
         user.email = request.data.get('email', user.email)
         
@@ -287,6 +319,8 @@ def manage_user(request, pk):
             if joining_date is not None:
                 user.profile.joining_date = joining_date if joining_date != '' else None
                 
+            if 'date_of_birth' in request.data:
+                user.profile.date_of_birth = birth_date
             user.profile.save()
 
         return Response({'message': 'User updated successfully'}, status=status.HTTP_200_OK)
@@ -313,6 +347,7 @@ def employee_profile(request, user_id):
         }, status=status.HTTP_200_OK)
 
     if request.method == 'PUT':
+        birth_date = validated_birth_date(request.data['date_of_birth']) if 'date_of_birth' in request.data else profile.date_of_birth
         user.first_name = request.data.get('first_name', user.first_name)
         user.last_name = request.data.get('last_name', user.last_name)
         
@@ -324,7 +359,7 @@ def employee_profile(request, user_id):
 
         profile.phone = request.data.get('phone', profile.phone)
         profile.address = request.data.get('address', profile.address)
-        profile.date_of_birth = request.data.get('date_of_birth') or None
+        profile.date_of_birth = birth_date
         
         if 'profile_photo' in request.FILES:
             profile.profile_photo = request.FILES['profile_photo']
