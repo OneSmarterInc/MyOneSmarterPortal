@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatAttendanceTime } from '../utils/attendanceTime';
 import { getAttendance } from '../services/api';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
@@ -86,7 +87,7 @@ export default function EmployeeHistory({ user }) {
               {history.length > 0 ? history.map(item => (
                 <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50">
                   <td className="p-3 font-medium text-zinc-900">{item.date}</td>
-                  <td className="p-3 text-slate-600">{item.check_in || '-'}</td>
+                  <td className="p-3 text-slate-600">{formatAttendanceTime(item.check_in)}</td>
                   <td className="p-3">
                     <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                       item.status === 'Present' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
