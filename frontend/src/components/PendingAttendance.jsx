@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatAttendanceTime } from '../utils/attendanceTime';
 import { getAttendance, updateAttendance, getUsers } from '../services/api';
 
 export default function PendingAttendance() {
@@ -61,8 +62,8 @@ export default function PendingAttendance() {
                     </td>
                     <td className="p-3">
                       <div className="text-[11px] font-semibold text-slate-700">{item.date}</div>
-                      <div className="text-[10px] text-slate-500 mt-1">In: <span className="font-bold text-slate-800">{item.check_in || '--:--'}</span></div>
-                      {item.check_out && <div className="text-[10px] text-slate-500">Out: <span className="font-bold text-slate-800">{item.check_out}</span></div>}
+                      <div className="text-[10px] text-slate-500 mt-1">In: <span className="font-bold text-slate-800">{formatAttendanceTime(item.check_in, '--:--')}</span></div>
+                      {item.check_out && <div className="text-[10px] text-slate-500">Out: <span className="font-bold text-slate-800">{formatAttendanceTime(item.check_out)}</span></div>}
                     </td>
                     <td className="p-3 text-right space-x-2">
                       <button onClick={() => handleApproval(item.id, 'Present')} className="bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] uppercase tracking-wider font-bold px-3 py-1.5 rounded transition">Present</button>
