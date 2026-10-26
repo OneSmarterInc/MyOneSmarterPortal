@@ -2,75 +2,26 @@ import React from 'react';
 
 export default function Navbar({ user, onLogout }) {
   return (
-    <nav className="bg-white border-b border-slate-200 shadow-sm sticky top-0 z-50 print:hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16 sm:h-20 items-center">
-          
-          {/* Left Side: Hamburger (Mobile) + Logo and Brand */}
-          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-            
-            {/* Mobile Hamburger Button */}
-            {user && (
-              <button 
-                onClick={() => window.dispatchEvent(new Event('toggleMobileMenu'))}
-                className="md:hidden -ml-2 p-2 text-slate-600 hover:text-zinc-900 focus:outline-none transition-colors rounded-lg hover:bg-slate-50"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                </svg>
-              </button>
-            )}
-
-            <img 
-              src="/logo.png" 
-              alt="MyOnesmarter Logo" 
-              className="h-8 sm:h-10 lg:h-12 w-auto object-contain"
-              onError={(e) => {
-                e.target.onerror = null; 
-                e.target.style.display = 'none';
-              }}
-            />
-            <div className="flex flex-col justify-center">
-              <span className="font-black text-xl sm:text-2xl lg:text-3xl tracking-tight text-zinc-900 leading-none">
-                MyOnesmarter
-              </span>
-              <span className="text-[8px] sm:text-[10px] font-bold uppercase tracking-widest text-slate-500 mt-1">
-                Employee Portal
-              </span>
-            </div>
+    <header className="sticky top-0 z-50 border-b border-zinc-200 bg-white/95 shadow-[0_3px_20px_rgba(0,0,0,0.035)] backdrop-blur-xl print:hidden">
+      <nav aria-label="Top navigation" className="mx-auto flex h-[72px] w-full items-center justify-between gap-3 px-4 sm:px-7 lg:px-10">
+        <div className="flex min-w-0 items-center gap-3">
+          {user && <button type="button" aria-label="Toggle navigation menu" onClick={() => window.dispatchEvent(new Event('toggleMobileMenu'))} className="rounded-xl border border-zinc-200 p-2.5 text-zinc-800 transition hover:border-red-200 hover:bg-red-50 md:hidden">
+            <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
+          </button>}
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-red-100 bg-white p-1 shadow-sm sm:h-11 sm:w-11">
+            <img src="/logo.png" alt="OneSmarter" className="h-full w-full object-contain" onError={e => { e.currentTarget.style.display = 'none'; }} />
           </div>
-
-          {/* Right Side: User Profile & Actions */}
-          <div className="flex items-center gap-3 sm:gap-5">
-            {user ? (
-              <>
-                <div className="hidden md:flex flex-col items-end text-right">
-                  <span className="text-sm font-bold text-zinc-800 leading-tight">
-                    @{user.username}
-                  </span>
-                  <span className="text-[10px] uppercase tracking-widest font-bold text-emerald-600">
-                    {user.role === 'manager' ? 'Administrator' : user.role}
-                  </span>
-                </div>
-                
-                <div className="h-8 w-px bg-slate-200 hidden md:block"></div>
-                
-                <button 
-                  onClick={onLogout}
-                  className="bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 px-4 sm:px-5 py-2 rounded-lg text-[10px] sm:text-xs font-bold uppercase tracking-wider transition-colors shadow-sm whitespace-nowrap"
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <span className="text-[10px] sm:text-xs font-bold uppercase tracking-wider text-slate-400">
-                Secure Login
-              </span>
-            )}
+          <div className="min-w-0">
+            <p className="truncate text-lg font-extrabold leading-tight tracking-[-.045em] text-zinc-950 sm:text-xl">My<span className="text-[#c7192d]">OneSmarter</span></p>
+            <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[.22em] text-zinc-500 sm:text-[10px]">Employee workspace</p>
           </div>
-
         </div>
-      </div>
-    </nav>
+        {user ? <div className="flex shrink-0 items-center gap-3 sm:gap-5">
+          <div className="hidden text-right sm:block"><p className="text-sm font-bold text-zinc-900">{user.username}</p><p className="text-[10px] font-semibold uppercase tracking-widest text-red-600">{user.role === 'manager' ? 'Administrator' : 'Employee'}</p></div>
+          <div aria-hidden="true" className="hidden h-8 w-px bg-zinc-200 sm:block"/>
+          <button type="button" onClick={onLogout} className="rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-xs font-bold text-zinc-800 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 sm:px-5">Sign out</button>
+        </div> : <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-zinc-600"><span className="h-2 w-2 rounded-full bg-[#c7192d]"/>Secure portal</div>}
+      </nav>
+    </header>
   );
 }
