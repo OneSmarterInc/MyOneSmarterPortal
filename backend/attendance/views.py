@@ -416,16 +416,22 @@ def leave_requests_list(request):
         except User.DoesNotExist:
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
     
-@api_view(['PATCH'])
+@api_view(['PATCH', 'DELETE'])
 def update_leave_request(request, pk):
     try:
         leave = LeaveRequest.objects.get(pk=pk)
+        
+        if request.method == 'DELETE':
+            leave.delete()
+            return Response({'message': 'Leave request deleted successfully.'}, status=status.HTTP_200_OK)
+            
+        # Existing PATCH logic
         leave.status = request.data.get('status', leave.status)
         leave.save()
         return Response({'message': 'Leave status updated successfully.'}, status=status.HTTP_200_OK)
     except LeaveRequest.DoesNotExist:
         return Response({'error': 'Leave request not found.'}, status=status.HTTP_404_NOT_FOUND)
-
+    
 @api_view(['GET', 'POST'])
 def leave_allocation_view(request):
     if request.method == 'GET':
@@ -464,3 +470,43 @@ def delete_leave_allocation(request, pk):
         return Response({'message': 'Leave allocation removed.'}, status=status.HTTP_200_OK)
     except LeaveAllocation.DoesNotExist:
         return Response({'error': 'Allocation not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+@api_view(['GET', 'POST'])
+def leave_requests_list(request):
+    if request.method == 'GET':
+        leaves = LeaveRequest.objects.all().order_by('-applied_on')
+        data = [{
+            'id': l.id,
+            'user_id': l.user.id,
+            'username': l.user.username,
+            'request_type': l.request_type,
+            'start_date': str(l.start_date),
+            'end_date': str(l.end_date),
+            'reason': l.reason,
+            'status': l.status,
+            'applied_on': str(l.applied_on)
+        } for l in leaves]
+        return Response(data, status=status.HTTP_200_OK)
+    
+    if request.method == 'POST':
+        user_id = request.data.get('user_id')
+        request_type = request.data.get('request_type', 'Leave')
+        start_date = request.data.get('start_date')
+        end_date = request.data.get('end_date')
+        reason = request.data.get('reason')
+        # ADD THIS LINE to accept custom status (defaulting to 'Pending')
+        status_val = request.data.get('status', 'Pending') 
+        
+        try:
+            user = User.objects.get(id=user_id)
+            LeaveRequest.objects.create(
+                user=user, 
+                request_type=request_type,
+                start_date=start_date, 
+                end_date=end_date, 
+                reason=reason,
+                status=status_val # ADD THIS LINE to save the approved status
+            )
+            return Response({'message': f'{request_type} request submitted successfully!'}, status=status.HTTP_201_CREATED)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)

@@ -8,6 +8,9 @@ export default function EmployeeDashboard({ user }) {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState('');
+  
+  // Notification State
+  const [newAssignmentAlert, setNewAssignmentAlert] = useState(null);
 
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -28,6 +31,22 @@ export default function EmployeeDashboard({ user }) {
       setProfile(profRes.data);
       
       setApprovedLeaves(leaveRes.data.filter(l => l.user_id === user.user_id && l.status === 'Approved' && l.request_type !== 'Work From Home'));
+
+      // Check for Manager-Assigned WFH to show the alert on the dashboard
+      const userWfhRecords = leaveRes.data.filter(item => item.user_id === user.user_id && item.request_type === 'Work From Home');
+      const managerAssigned = userWfhRecords.filter(item => item.reason.toLowerCase().includes('assigned by management'));
+      
+      if (managerAssigned.length > 0) {
+        // Get the most recently created assignment
+        const latestAssignment = managerAssigned.reduce((prev, current) => (prev.id > current.id) ? prev : current);
+        
+        // Check if the user has explicitly dismissed this specific assignment
+        const dismissedId = localStorage.getItem('dismissed_wfh_assignment_id');
+        if (dismissedId !== String(latestAssignment.id)) {
+          setNewAssignmentAlert(latestAssignment);
+        }
+      }
+
     } catch (err) {
       console.error(err);
     }
@@ -137,6 +156,14 @@ export default function EmployeeDashboard({ user }) {
   const netAttendance = totalWorkingDays > 0 ? ((totalPresent / totalWorkingDays) * 100).toFixed(2) : 0.00;
   const totalHoursWorked = history.reduce((acc, curr) => acc + getHoursNum(curr.check_in, curr.check_out), 0).toFixed(2);
 
+  // Handle explicit dismissal of the alert
+  const handleDismissAlert = () => {
+    if (newAssignmentAlert) {
+      localStorage.setItem('dismissed_wfh_assignment_id', String(newAssignmentAlert.id));
+      setNewAssignmentAlert(null);
+    }
+  };
+
   return (
     <div className="w-full max-w-7xl flex flex-col h-full gap-4">
       
@@ -192,6 +219,24 @@ export default function EmployeeDashboard({ user }) {
       {msg && (
         <div className="p-3 rounded-lg text-xs font-bold bg-blue-50 text-blue-700 border border-blue-200 shadow-sm shrink-0">
           {msg}
+        </div>
+      )}
+
+      {/* Notification Banner (Dismissable via cross button) */}
+      {newAssignmentAlert && (
+        <div className="bg-indigo-50 border border-indigo-200 p-4 rounded-xl shadow-sm flex justify-between items-start sm:items-center shrink-0">
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-widest text-indigo-600 block mb-0.5">New Assignment Alert</span>
+            <span className="text-sm font-bold text-indigo-900">
+              Management has assigned you Work From Home for <span className="underline">{newAssignmentAlert.start_date}</span> 
+              {newAssignmentAlert.start_date !== newAssignmentAlert.end_date && <span> to <span className="underline">{newAssignmentAlert.end_date}</span></span>}.
+            </span>
+          </div>
+          <button onClick={handleDismissAlert} className="text-indigo-400 hover:text-indigo-700 transition p-1">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
         </div>
       )}
 

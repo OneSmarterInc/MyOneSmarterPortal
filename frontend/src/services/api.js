@@ -32,5 +32,7 @@ export const updateLeaveRequest = (id, data) => API.patch(`leaves/${id}/`, data)
 export const getLeaveAllocations = () => API.get('leave-allocations/');
 export const createLeaveAllocation = (data) => API.post('leave-allocations/', data);
 export const deleteLeaveAllocation = (id) => API.delete(`leave-allocations/${id}/`);
+export const deleteLeaveRequest = (id) => API.delete(`leaves/${id}/`);
+
 
 export default API;
