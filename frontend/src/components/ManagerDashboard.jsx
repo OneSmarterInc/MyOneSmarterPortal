@@ -13,6 +13,8 @@ export default function ManagerDashboard({ setActiveTab }) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('intern'); 
+  const [birthDate, setBirthDate] = useState('');
+  const [today] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [joiningDate, setJoiningDate] = useState('');
   
   const [success, setSuccess] = useState('');
@@ -55,7 +57,8 @@ export default function ManagerDashboard({ setActiveTab }) {
         username, 
         email, 
         role, 
-        joining_date: joiningDate 
+        joining_date: joiningDate,
+        date_of_birth: birthDate || null 
       });
       setSuccess(res.data.message);
       setEmployeeId(''); 
@@ -63,6 +66,8 @@ export default function ManagerDashboard({ setActiveTab }) {
       setEmail(''); 
       setRole('intern'); 
       setJoiningDate('');
+      setBirthDate('');
+      window.dispatchEvent(new Event('birthdaysUpdated'));
       fetchAllData(); 
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to create account.');
@@ -165,6 +170,10 @@ export default function ManagerDashboard({ setActiveTab }) {
               <option value="intern">Intern</option>
               <option value="employee">Employee</option>
             </select>
+          </div>
+          <div>
+            <label htmlFor="new-employee-birthday" className="block text-[10px] font-bold uppercase text-slate-600 mb-1">Date of Birth (optional)</label>
+            <input id="new-employee-birthday" type="date" value={birthDate} max={today} onChange={e => setBirthDate(e.target.value)} className="w-full border border-slate-300 rounded p-2 text-xs outline-none focus:border-red-500" />
           </div>
           <button type="submit" disabled={loading} className="bg-zinc-900 hover:bg-black disabled:bg-slate-400 text-white py-2 rounded text-[11px] font-bold uppercase tracking-wider transition shadow-sm w-full">
             {loading ? 'Processing...' : 'Create'}
