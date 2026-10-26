@@ -144,7 +144,7 @@ def manager_create_user(request):
                         <span class="credential-value" style="background-color: #e2e8f0; display: inline-block; padding: 4px 10px; border-radius: 6px;">{temp_password}</span>
                     </div>
                 </div>
-                <a href="http://localhost:5173" class="btn">Login to Portal</a>
+                <a href="https://my-one-smarter-portal.vercel.app/" class="btn">Login to Portal</a>
             </div>
             <div class="footer">
                 <p>This is an automated system notification. Please do not reply to this email.</p>
