@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { formatAttendanceTime } from '../utils/attendanceTime';
 import { getAttendance, updateAttendance, getLeaveRequests, updateLeaveRequest, getUsers } from '../services/api';
 
 export default function ManagerApprovals() {
@@ -137,8 +138,8 @@ export default function ManagerApprovals() {
                       </td>
                       <td className="p-3">
                         <div className="text-[10px] font-semibold text-slate-700">{item.date}</div>
-                        <div className="text-[10px] text-slate-500 mt-0.5">In: <span className="font-medium text-slate-800">{item.check_in || '--:--'}</span></div>
-                        {item.check_out && <div className="text-[10px] text-slate-500">Out: <span className="font-medium text-slate-800">{item.check_out}</span></div>}
+                        <div className="text-[10px] text-slate-500 mt-0.5">In: <span className="font-medium text-slate-800">{formatAttendanceTime(item.check_in, '--:--')}</span></div>
+                        {item.check_out && <div className="text-[10px] text-slate-500">Out: <span className="font-medium text-slate-800">{formatAttendanceTime(item.check_out)}</span></div>}
                       </td>
                       <td className="p-3 text-right space-y-1 sm:space-y-0 sm:space-x-1">
                         <button onClick={() => handleApproval(item.id, 'Present')} className="bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] uppercase tracking-wider font-bold px-2 py-1 rounded transition">Present</button>
