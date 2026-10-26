@@ -8,12 +8,29 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Load environment variables from backend/.env file
 load_dotenv(os.path.join(BASE_DIR, '.env'))
 
-# Quick-start development settings - unsuitable for production
-SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-unsafe-default-key')
+def env_list(name, default=""):
+    return [
+        value.strip().rstrip("/")
+        for value in os.getenv(name, default).split(",")
+        if value.strip()
+    ]
 
+
+# Use DEBUG=False and a private SECRET_KEY in the server's backend/.env.
 DEBUG = os.getenv('DEBUG', 'True') == 'True'
+SECRET_KEY = (
+    os.getenv('SECRET_KEY', 'django-insecure-unsafe-default-key')
+    if DEBUG else os.environ['SECRET_KEY']
+)
 
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', 'localhost,127.0.0.1')
+
+# Gunicorn must listen only on loopback; Nginx overwrites this header.
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+SECURE_SSL_REDIRECT = os.getenv("SECURE_SSL_REDIRECT", "False") == "True"
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SECURE_CONTENT_TYPE_NOSNIFF = True
 
 
 # Application definition
@@ -113,7 +130,8 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
-STATIC_URL = 'static/'
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/6.1/ref/settings/#default-auto-field
@@ -121,14 +139,6 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS Settings for React frontend
-def env_list(name, default=""):
-    return [
-        value.strip().rstrip("/")
-        for value in os.getenv(name, default).split(",")
-        if value.strip()
-    ]
-
-
 FRONTEND_ORIGIN = os.getenv(
     "FRONTEND_ORIGIN", "http://localhost:5173"
 ).rstrip("/")
@@ -140,7 +150,7 @@ EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.Email
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.ionos.com')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS', 'True') == 'True'
-EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False') == 'False'
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False') == 'True'
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', '')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'support@onesmarter.com')
@@ -148,6 +158,3 @@ DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'support@onesmarter.com')
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Typically used for port 587 (Gmail/Outlook)
-EMAIL_USE_TLS = True
-EMAIL_USE_SSL = False
