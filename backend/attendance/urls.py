@@ -1,7 +1,8 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    AttendanceViewSet, 
+    AttendanceViewSet,
+    birthdays, 
     register_user, 
     login_user, 
     manager_create_user, 
@@ -23,6 +24,7 @@ router = DefaultRouter()
 router.register(r'attendance', AttendanceViewSet)
 
 urlpatterns = [
+    path('birthdays/', birthdays, name='birthdays'),
 
 # ... keep existing paths ...
     path('leave-allocations/', leave_allocation_view, name='leave_allocation_view'),
