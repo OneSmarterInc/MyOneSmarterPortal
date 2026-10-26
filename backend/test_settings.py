@@ -1,0 +1,10 @@
+SECRET_KEY = 'local-birthday-tests-only'
+INSTALLED_APPS = ['django.contrib.auth', 'django.contrib.contenttypes', 'rest_framework', 'attendance']
+DATABASES = {'default': {'ENGINE': 'django.db.backends.sqlite3', 'NAME': ':memory:'}}
+ROOT_URLCONF = 'attendance.urls'
+USE_TZ = True
+TIME_ZONE = 'UTC'
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+EMAIL_HOST_USER = 'test@example.com'
+EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+MIDDLEWARE = []
