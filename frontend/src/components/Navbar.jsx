@@ -9,10 +9,10 @@ export default function Navbar({ user, onLogout }) {
             <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
           </button>}
           <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-red-100 bg-white p-1 shadow-sm sm:h-11 sm:w-11">
-            <img src="/logo.png" alt="OneSmarter" className="h-full w-full object-contain" onError={e => { e.currentTarget.style.display = 'none'; }} />
+            <img src="/images/logo.png" alt="MyOnesmarterPortal logo" className="h-full w-full object-contain" onError={e => { e.currentTarget.style.display = 'none'; }} />
           </div>
           <div className="min-w-0">
-            <p className="truncate text-lg font-extrabold leading-tight tracking-[-.045em] text-zinc-950 sm:text-xl">My<span className="text-[#c7192d]">OneSmarter</span></p>
+            <p className="truncate text-lg font-extrabold leading-tight tracking-[-.045em] text-zinc-950 sm:text-xl">My<span className="text-[#c7192d]">OnesmarterPortal</span></p>
             <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[.22em] text-zinc-500 sm:text-[10px]">Employee workspace</p>
           </div>
         </div>
