@@ -121,9 +121,19 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # CORS Settings for React frontend
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-]
+def env_list(name, default=""):
+    return [
+        value.strip().rstrip("/")
+        for value in os.getenv(name, default).split(",")
+        if value.strip()
+    ]
+
+
+FRONTEND_ORIGIN = os.getenv(
+    "FRONTEND_ORIGIN", "http://localhost:5173"
+).rstrip("/")
+CORS_ALLOWED_ORIGINS = env_list("CORS_ALLOWED_ORIGINS", FRONTEND_ORIGIN)
+CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS")
 
 # Email Configuration (IONOS SMTP)
 EMAIL_BACKEND = os.getenv('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
