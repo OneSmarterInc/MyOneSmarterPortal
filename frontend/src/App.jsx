@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import BirthdayBanner from './components/BirthdayBanner';
 import Navbar from './components/Navbar';
 import Login from './components/Login';
 import EmployeeLayout from './components/EmployeeLayout';
@@ -29,6 +30,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f7f7f8] text-zinc-900 flex flex-col justify-between font-sans">
       <Navbar user={user} onLogout={handleLogout} />
+      {user && !user.is_first_login && <BirthdayBanner key={user.user_id} />}
 
       <main className="flex-grow flex w-full">
         {!user ? (
