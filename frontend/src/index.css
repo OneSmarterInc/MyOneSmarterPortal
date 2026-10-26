@@ -1,1 +1,32 @@
 @import "tailwindcss";
+
+@theme {
+  --color-brand: #c7192d;
+  --color-brand-dark: #981527;
+  --font-sans: "Inter", "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+}
+:root { font-family: var(--font-sans); color: #18181b; background: #f7f7f8; font-synthesis: none; }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+button:disabled { cursor: not-allowed; }
+::selection { background: #ffe0e3; color: #8d1022; }
+:focus-visible { outline: 3px solid #e45160; outline-offset: 2px; }
+@layer components {
+  .portal-sidebar { background: #111115; color: #e4e4e7; }
+  .portal-nav-item { display: flex; align-items: center; min-height: 44px; border-radius: 12px; padding: 11px 14px; font-size: 13px; font-weight: 600; letter-spacing: .005em; text-align: left; width: 100%; color: #a1a1aa; transition: background .2s, color .2s, transform .2s; }
+  .portal-nav-item:hover { background: #26262d; color: white; transform: translateX(2px); }
+  .portal-nav-item[aria-current="page"] { background: #c7192d; color: white; box-shadow: 0 7px 18px #c7192d33; }
+  .portal-content { background: radial-gradient(ellipse at 90% 0%, #fff0f1 0, #f7f7f8 32%, #f7f7f8 100%); }
+  .portal-content > * { min-width: 0; }
+  .portal-content h1, .portal-content h2 { letter-spacing: -.035em; }
+  .portal-content input:not([type="checkbox"]):not([type="radio"]), .portal-content select, .portal-content textarea { border-radius: 10px; }
+  .portal-content table { border-collapse: separate; border-spacing: 0; }
+  .portal-content button, .portal-content a { transition: background-color .18s, border-color .18s, color .18s, box-shadow .18s, transform .18s; }
+  .portal-content button:active { transform: scale(.985); }
+  .portal-content .bg-white { box-shadow: 0 7px 30px rgba(25,25,30,.035); }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+@media print { .portal-sidebar { display: none !important; } .portal-content { background: #fff !important; } }
