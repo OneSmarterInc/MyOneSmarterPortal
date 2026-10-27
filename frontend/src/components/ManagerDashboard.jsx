@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { formatAttendanceTime, toTimeParts, toApiTime } from '../utils/attendanceTime';
 import { getAttendance, managerCreateUser, getLeaveRequests, getUsers, updateAttendance } from '../services/api';
 
-export default function ManagerDashboard({ setActiveTab, createMode = false, onCreateMode, navigate }) {
+export default function ManagerDashboard({ setActiveTab, createMode = false, onCreateMode, navigate, onSelectEmployee }) {
   const [allRecords, setAllRecords] = useState([]);
   const [leaves, setLeaves] = useState([]);
   const [usersList, setUsersList] = useState([]);
@@ -118,7 +118,7 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
   return (
     <div className="w-full max-w-7xl flex flex-col gap-4 relative">
       
-      <AdminOverview records={allRecords} users={usersList} pendingLeaves={pendingLeaves.length} leaveRequests={pendingLeaves} busy={dataBusy} error={dataError} retry={fetchAllData} navigate={navigate || setActiveTab} addEmployee={()=>onCreateMode(true)} />
+      <AdminOverview records={allRecords} users={usersList} pendingLeaves={pendingLeaves.length} leaveRequests={pendingLeaves} busy={dataBusy} error={dataError} retry={fetchAllData} navigate={navigate || setActiveTab} onSelectEmployee={onSelectEmployee} addEmployee={()=>onCreateMode(true)} />
       {createMode && <>
       {/* Account Creation Block */}
       <div id="create-employee-panel" style={{scrollMarginTop:80}} className="bg-white p-4 sm:px-6 sm:py-4 rounded-xl shadow-none border border-slate-200 shrink-0">
