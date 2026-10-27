@@ -26,6 +26,8 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
   const [tags, setTags] = useState('');
   const [resetPassword, setResetPassword] = useState(false);
   const [password, setPassword] = useState('');
+  const [confirmResetPassword, setConfirmResetPassword] = useState('');
+  const [showResetPassword, setShowResetPassword] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
   
   const [viewingProfile, setViewingProfile] = useState(null);
@@ -89,11 +91,17 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
     setJoiningDate(u.joining_date || '');
     setPhotoPreview(u.profile_photo);
     setPassword('');
+    setConfirmResetPassword('');
+    setShowResetPassword(false);
     setMsg({ text: '', type: '' });
   };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+    if (resetPassword && (password.length < 8 || password !== confirmResetPassword)) {
+      setMsg({ text: password.length < 8 ? 'Temporary password must be at least 8 characters.' : 'Temporary passwords do not match.', type: 'error' });
+      return;
+    }
     setLoading(true);
     try {
       await updateUser(editingUser.id, { 
@@ -107,7 +115,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
         date_of_birth: birthDate || null 
       });
       window.dispatchEvent(new Event('birthdaysUpdated'));
-      setMsg({ text: 'Employee updated successfully.', type: 'success' });
+      setMsg({ text: resetPassword ? 'Password reset saved. The employee must sign in with the new temporary password and change it.' : 'Employee updated successfully.', type: 'success' });
       fetchUsers();
       setTimeout(() => setEditingUser(null), 1500);
     } catch (err) {
@@ -299,11 +307,13 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
               </div>
               <div className="pt-2 border-t border-slate-100">
                 <label className="flex items-center gap-2 text-xs font-bold text-slate-600">
-                  <input type="checkbox" checked={resetPassword} onChange={e => { setResetPassword(e.target.checked); setPassword(''); }} />
+                  <input type="checkbox" checked={resetPassword} onChange={e => { setResetPassword(e.target.checked); setPassword(''); setConfirmResetPassword(''); }} />
                   Reset this person's password
                 </label>
                 {resetPassword && <>
-                  <input aria-label="New temporary password" name="employee-new-password" autoComplete="new-password" type="password" required value={password} onChange={e => setPassword(e.target.value)} className="mt-2 w-full border border-slate-300 p-2 text-sm rounded" />
+                  <input aria-label="New temporary password" name="employee-new-password" autoComplete="new-password" type={showResetPassword ? 'text' : 'password'} minLength={8} required value={password} onChange={e => setPassword(e.target.value)} placeholder="New temporary password" className="mt-2 w-full border border-slate-300 p-2 text-sm rounded" />
+                  <input aria-label="Confirm temporary password" autoComplete="new-password" type={showResetPassword ? 'text' : 'password'} minLength={8} required value={confirmResetPassword} onChange={e => setConfirmResetPassword(e.target.value)} placeholder="Confirm temporary password" className="mt-2 w-full border border-slate-300 p-2 text-sm rounded" />
+                  <label className="mt-2 flex items-center gap-2 text-xs font-medium text-slate-600"><input type="checkbox" checked={showResetPassword} onChange={e => setShowResetPassword(e.target.checked)} /> Show temporary password</label>
                   <p className="mt-1 text-xs text-slate-500">They will be asked to change this temporary password at their next login.</p>
                 </>}
               </div>
