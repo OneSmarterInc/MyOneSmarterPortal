@@ -1,3 +1,4 @@
+import { portalAlert, portalConfirm } from './PortalDialog';
 import { formatAttendanceTime } from '../utils/attendanceTime';
 import React, { useState, useEffect } from 'react';
 import { getSchedules, saveSchedule, deleteSchedule } from '../services/api';
@@ -63,7 +64,7 @@ export default function ManagerSchedule() {
       fetchSchedules();
       setEditingDate(null);
     } catch (err) {
-      alert('Failed to save schedule.');
+      portalAlert('Failed to save schedule.');
     } finally {
       setIsSaving(false);
     }
