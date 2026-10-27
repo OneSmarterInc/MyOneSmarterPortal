@@ -25,7 +25,7 @@ export default function EmployeeLayout({ user }) {
     { id: 'leave', label: 'Leave & time off', icon: 'calendar' },
     { id: 'wfh', label: 'Work from home', icon: 'home' },
     { id: 'profile', label: 'My profile', icon: 'people' },
-    { id: 'policies', label: 'Privacy & security policies', icon: 'shield' }
+    { id: 'policies', label: 'My Policies', icon: 'shield' }
   ];
 
   return (
