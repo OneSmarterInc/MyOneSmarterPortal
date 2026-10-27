@@ -67,7 +67,7 @@ export default function ManagerReport() {
   const period = `${formatDate(startDate || firstDate)} – ${formatDate(endDate || lastDate)}`;
 
   const handlePrint = () => {
-    if (!selectedUserInfo || fetching || fetchError || filteredRecords.length === 0) return;
+    if (fetching || fetchError || filteredRecords.length === 0) return;
     setGeneratedAt(new Date());
     // Let React commit the timestamp before opening the browser print dialog.
     requestAnimationFrame(() => window.print());
@@ -108,7 +108,7 @@ export default function ManagerReport() {
         }
       `}</style>
       <div className="report-screen space-y-6">
-        <header className="admin-page-heading"><div><h1>Attendance reports</h1><p>Filter attendance by person and date. Select a person to print or save a PDF.</p></div></header>
+        <header className="admin-page-heading"><div><h1>Attendance reports</h1><p>Filter attendance by person and date. Print one employee or all employees as a PDF.</p></div></header>
         {fetchError && <div role="alert" className="admin-error">{fetchError} <button type="button" className="ml-2 underline font-semibold" onClick={fetchData}>Retry loading</button></div>}
         {fetching && <p role="status" className="admin-loading">Loading…</p>}
         <div className="bg-white p-6 rounded-xl border border-slate-200">
@@ -121,7 +121,7 @@ export default function ManagerReport() {
             </div>
             <div><label htmlFor="report-start" className="block text-sm mb-1">Start Date</label><input id="report-start" type="date" value={startDate} onChange={e => resetPage(setStartDate)(e.target.value)} className="w-full border border-slate-300 p-2.5 rounded-lg" /></div>
             <div><label htmlFor="report-end" className="block text-sm mb-1">End Date</label><input id="report-end" type="date" min={startDate || undefined} value={endDate} onChange={e => resetPage(setEndDate)(e.target.value)} className="w-full border border-slate-300 p-2.5 rounded-lg" /></div>
-            <button onClick={handlePrint} disabled={!selectedUser || fetching || !!fetchError || !filteredRecords.length || (!!startDate && !!endDate && endDate < startDate)} className="admin-button primary w-full">Print / save PDF</button>
+            <button onClick={handlePrint} disabled={fetching || !!fetchError || !filteredRecords.length || (!!startDate && !!endDate && endDate < startDate)} className="admin-button primary w-full">Print / save PDF</button>
           </div>
         </div>
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
@@ -149,17 +149,17 @@ export default function ManagerReport() {
           </div>
         </div>
       </div>
-      {selectedUserInfo && filteredRecords.length > 0 && <div className="report-print-document" aria-hidden="true">
+      {filteredRecords.length > 0 && <div className="report-print-document" aria-hidden="true">
         {printPages.map((records, index) => <section className="report-sheet" key={index}>
           <div className="report-letterhead"><img src="/images/logo.png" alt="" />One Smarter Inc., USA</div>
           <h1 className="report-title">ATTENDANCE RECORD</h1>
           <div className="report-info"><table><tbody>
-            <tr><td className="report-label">Employee Name:</td><td className="report-value">{selectedUserInfo.username}</td><td className="report-label">Employee ID:</td><td>{selectedUserInfo.employee_id || selectedUserInfo.id}</td></tr>
+            <tr><td className="report-label">{selectedUserInfo ? 'Employee Name:' : 'Report Scope:'}</td><td className="report-value">{selectedUserInfo ? selectedUserInfo.username : 'All employees'}</td><td className="report-label">{selectedUserInfo ? 'Employee ID:' : 'Employees:'}</td><td>{selectedUserInfo ? (selectedUserInfo.employee_id || selectedUserInfo.id) : new Set(filteredRecords.map(record => String(record.user))).size}</td></tr>
             <tr><td className="report-label">Period:</td><td colSpan="3">{period}</td></tr>
           </tbody></table></div>
-          <table className="report-table"><thead><tr><th style={{width:'14%'}}>Sr. No.</th><th>Date</th><th>Start Time</th><th>End Time</th><th>Status</th></tr></thead>
+          <table className="report-table"><thead><tr><th style={{width:'12%'}}>Sr. No.</th>{!selectedUserInfo && <th>Employee</th>}<th>Date</th><th>Start Time</th><th>End Time</th><th>Status</th></tr></thead>
             <tbody>{records.map((record, row) => <tr key={record.id}>
-              <td>{index * PAGE_SIZE + row + 1}</td><td>{formatDate(record.date)}</td><td>{formatTime(record.check_in)}</td><td>{formatTime(record.check_out)}</td><td>{record.status}</td>
+              <td>{index * PAGE_SIZE + row + 1}</td>{!selectedUserInfo && <td>{users.find(u => String(u.id) === String(record.user))?.username || 'Unknown'}</td>}<td>{formatDate(record.date)}</td><td>{formatTime(record.check_in)}</td><td>{formatTime(record.check_out)}</td><td>{record.status}</td>
             </tr>)}</tbody>
           </table>
           <p className="report-generated">Generated on: {generatedAt.toLocaleString('en-US')}</p>
