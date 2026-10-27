@@ -188,7 +188,6 @@ export default function ManagerDashboard({ setActiveTab }) {
               <div>
                 <label htmlFor="new-employee-tags" className="block text-xs font-bold text-slate-600 mb-1">Tags</label>
                 <input id="new-employee-tags" type="text" value={tags} onChange={e => setTags(e.target.value)} placeholder="e.g. Engineering, Remote" className="w-full border border-slate-300 rounded p-2 text-sm" />
-                <p className="mt-1 text-xs text-slate-500">Separate tags with commas. Up to 20 tags, 40 characters each.</p>
               </div>
           <button type="submit" disabled={loading} className="bg-zinc-900 hover:bg-black disabled:bg-slate-400 text-white py-2 rounded text-[11px] font-bold uppercase tracking-wider transition shadow-sm w-full">
             {loading ? 'Processing...' : 'Create'}
