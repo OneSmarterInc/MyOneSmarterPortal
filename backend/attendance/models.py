@@ -79,6 +79,18 @@ class CompanySchedule(models.Model):
     def __str__(self):
         return f"{self.date} - {self.day_type}"
 
+class CalendarAnnouncement(models.Model):
+    date = models.DateField(db_index=True)
+    day_type = models.CharField(max_length=20)
+    description = models.CharField(max_length=255, blank=True, default='')
+    start_time = models.TimeField(null=True, blank=True)
+    end_time = models.TimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at', '-id']
+
+
 class LeaveRequest(models.Model):
     STATUS_CHOICES = [
         ('Pending', 'Pending'),
