@@ -62,12 +62,13 @@ export default function PendingAttendance() {
                     </td>
                     <td className="p-3">
                       <div className="text-[11px] font-semibold text-slate-700">{item.date}</div>
+                      <div className="text-[10px] font-bold text-blue-700 mt-1">{item.check_out ? 'Check-out awaiting approval' : 'Check-in awaiting approval'}</div>
                       <div className="text-[10px] text-slate-500 mt-1">In: <span className="font-bold text-slate-800">{formatAttendanceTime(item.check_in, '--:--')}</span></div>
                       {item.check_out && <div className="text-[10px] text-slate-500">Out: <span className="font-bold text-slate-800">{formatAttendanceTime(item.check_out)}</span></div>}
                     </td>
                     <td className="p-3 text-right space-x-2">
-                      <button onClick={() => handleApproval(item.id, 'Present')} className="bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] uppercase tracking-wider font-bold px-3 py-1.5 rounded transition">Present</button>
-                      <button onClick={() => handleApproval(item.id, 'Late')} className="bg-amber-500 hover:bg-amber-600 text-white text-[9px] uppercase tracking-wider font-bold px-3 py-1.5 rounded transition">Late</button>
+                      <button onClick={() => handleApproval(item.id, 'Present')} className="bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] uppercase tracking-wider font-bold px-3 py-1.5 rounded transition">{item.check_out ? 'Approve Check-Out' : 'Approve Check-In'}</button>
+                      <button onClick={() => handleApproval(item.id, 'Late')} className="bg-amber-500 hover:bg-amber-600 text-white text-[9px] uppercase tracking-wider font-bold px-3 py-1.5 rounded transition">Approve as Late</button>
                       <button onClick={() => handleApproval(item.id, 'Absent')} className="bg-slate-200 hover:bg-slate-300 text-slate-700 text-[9px] uppercase tracking-wider font-bold px-3 py-1.5 rounded transition">Reject</button>
                     </td>
                   </tr>
