@@ -12,7 +12,15 @@ const fields = [
 const errorMessage = error => {
   const data = error.response?.data;
   if (error.response?.status === 401) return 'Please sign out and sign in again to access recommendation letters.';
-  return data?.error || data?.detail || (data && !(data instanceof Blob) ? Object.entries(data).map(([key, value]) => `${key}: ${value}`).join(' · ') : 'Unable to complete the request. Please try again.');
+  if (data && typeof data === 'object' && !(data instanceof Blob)) {
+    if (typeof data.error === 'string') return data.error;
+    if (typeof data.detail === 'string') return data.detail;
+    const messages = Object.entries(data).filter(([, value]) => typeof value === 'string' || Array.isArray(value))
+      .map(([key, value]) => `${key}: ${Array.isArray(value) ? value.join(', ') : value}`);
+    if (messages.length) return messages.join(' · ');
+  }
+  if (error.response?.status >= 500) return 'The server could not complete this request. Your entered details are still here. Please try again, or contact your administrator if the problem continues.';
+  return 'Unable to complete the request. Please check your connection and try again.';
 };
 
 export default function RecommendationLetters({ admin = false }) {

@@ -82,7 +82,7 @@ def draft(request, pk):
     form = DraftInput(data=request.data); form.is_valid(raise_exception=True)
     values = dict(form.validated_data)
     with transaction.atomic():
-        item = get_object_or_404(RecommendationRequest.objects.select_for_update().select_related('user__profile'), pk=pk)
+        item = get_object_or_404(RecommendationRequest.objects.select_for_update(), pk=pk)
         if item.status not in ['Pending', 'Draft', 'Send failed'] or values.pop('revision') != item.revision:
             return Response({'error': 'This request changed. Reload it before saving.'}, status=409)
         start = item.user.profile.joining_date
@@ -126,7 +126,7 @@ def send(request, pk):
     if not manager(request.user):
         return Response({'error': 'Administrator access required.'}, status=403)
     with transaction.atomic():
-        item = get_object_or_404(RecommendationRequest.objects.select_for_update().select_related('user__profile'), pk=pk)
+        item = get_object_or_404(RecommendationRequest.objects.select_for_update(), pk=pk)
         if item.status == 'Sent':
             return Response(details(item, True))
         if item.status not in ['Draft', 'Send failed'] or item.revision != request.data.get('revision') or not item.pdf:

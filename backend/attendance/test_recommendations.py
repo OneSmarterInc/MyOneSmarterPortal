@@ -3,6 +3,8 @@ from unittest.mock import patch
 from django.test import TestCase
 from django.contrib.auth.models import User
 from django.core import mail
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
 from .models import RecommendationRequest, SMTPSettings
 from .letter_auth import issue_letter_token
@@ -99,3 +101,17 @@ class RecommendationTests(TestCase):
         self.auth(self.employee)
         self.employee.set_password('new-password'); self.employee.save()
         self.assertEqual(self.client.get('/recommendations/').status_code, 401)
+
+    def test_draft_and_send_lock_request_without_nullable_profile_join(self):
+        # PostgreSQL rejects FOR UPDATE on the nullable side of a profile LEFT JOIN.
+        # SQLite ignores locks, so explicitly inspect the request fetches as well.
+        pk = self.request_letter()
+        with CaptureQueriesContext(connection) as queries:
+            self.save(pk)
+            response = self.client.post(f'/recommendations/{pk}/send/', {'revision': 1}, format='json')
+            self.assertEqual(response.status_code, 200)
+        request_fetches = [q['sql'] for q in queries if q['sql'].lstrip().startswith('SELECT')
+                           and 'FROM "attendance_recommendationrequest"' in q['sql']]
+        self.assertGreaterEqual(len(request_fetches), 2)
+        for sql in request_fetches:
+            self.assertNotIn('JOIN', sql)
