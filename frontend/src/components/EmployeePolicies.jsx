@@ -1,76 +1,50 @@
-import React, { useEffect, useState } from 'react';
-import API from '../services/api';
+import React, { useState } from 'react';
+import { procedureGuides } from './procedureGuides';
 
-const authorization = () => {
-  try {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    return user.letter_token ? { Authorization: `Bearer ${user.letter_token}` } : {};
-  } catch { return {}; }
-};
+// Bundled frontend reference cards. No server endpoint or private-policy installation required.
+const documents = [{
+  title: 'Information Security Policy',
+  type: 'Policy',
+  version: '1.1',
+  summary: 'The governing One Smarter information security policy describes the framework for protecting confidentiality, integrity and availability.',
+  steps: [
+    'Purpose, scope, security objectives and user responsibilities',
+    'Access control, HR security, assets, change management and acceptable use',
+    'Data classification, communication, code of conduct, encryption and confidentiality',
+    'Backups, incident response, logging, physical security, passwords and risk management',
+    'Software development, vendors, malware, patching, configuration and cloud security',
+    'Data protection, continuity, auditing, ISMS, BYOD, network and environmental controls'
+  ]
+}, ...procedureGuides];
 
 export default function EmployeePolicies() {
-  const [documents, setDocuments] = useState([]);
-  const [selected, setSelected] = useState(null);
   const [query, setQuery] = useState('');
-  const [busy, setBusy] = useState(true);
-  const [loadingDocument, setLoadingDocument] = useState(false);
-  const [error, setError] = useState('');
-
-  useEffect(() => {
-    let active = true;
-    API.get('my-policies/', { headers: authorization() })
-      .then(result => { if (active) setDocuments(result.data); })
-      .catch(e => { if (active) setError(e.response?.data?.error || 'Could not load internal policies. Sign in again if your session has expired.'); })
-      .finally(() => { if (active) setBusy(false); });
-    return () => { active = false; };
-  }, []);
-
-  const openDocument = async id => {
-    setLoadingDocument(true);
-    setError('');
-    try {
-      const result = await API.get('my-policies/', { params: { id }, headers: authorization() });
-      setSelected(result.data);
-    } catch (e) {
-      setError(e.response?.data?.error || 'Unable to open this policy.');
-    } finally {
-      setLoadingDocument(false);
-    }
-  };
-
-  const visible = documents.filter(item => item.title.toLowerCase().includes(query.toLowerCase()));
+  const [selected, setSelected] = useState(null);
+  const visible = documents.filter(doc => [doc.title, doc.summary, ...doc.steps].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
   return <div className="w-full max-w-6xl space-y-5">
-    <header className="admin-page-heading"><div><h1>My Policies</h1><p>One Smarter, Inc. · Internal Policies &amp; Procedures</p></div></header>
-    <section className="rounded-xl border border-slate-200 bg-white p-5">
-      <h2 className="text-base font-semibold text-zinc-900">Company policies &amp; procedures</h2>
-      <p className="mt-2 text-sm leading-6 text-slate-600">Read the complete internal documents with all available paragraphs, headings, and tables. These materials are intended for authorized employees only.</p>
+    <header className="admin-page-heading"><div><h1>My Policies</h1><p>One Smarter, Inc. · Internal Policies &amp; Procedures · Version 1.1</p></div></header>
+    <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6">
+      <h2 className="text-lg font-semibold text-zinc-900">Company policies &amp; procedures</h2>
+      <p className="mt-2 text-sm leading-6 text-slate-600">Browse all {documents.length} policies and procedures directly in your employee workspace.</p>
+      <p className="mt-2 text-xs text-amber-800">These are reference guides, not the complete original documents. They are internal materials and should not be redistributed.</p>
     </section>
-    {error && <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">{error}</p>}
-    <div className="grid gap-5 lg:grid-cols-[260px_minmax(0,1fr)]">
+    <div className="grid gap-5 lg:grid-cols-[300px_minmax(0,1fr)]">
       <aside className="rounded-xl border border-slate-200 bg-white p-3 lg:self-start">
-        <input type="search" aria-label="Search policies" placeholder="Search policies..." value={query} onChange={e => setQuery(e.target.value)} className="mb-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"/>
-        {busy ? <p className="p-3 text-sm text-slate-500">Loading policies…</p> : <nav aria-label="Available policy documents" className="max-h-[70vh] space-y-1 overflow-auto">
-          {visible.map(item => <button type="button" key={item.id} onClick={() => openDocument(item.id)}
-            aria-current={selected?.id === item.id ? 'page' : undefined}
-            className={`w-full rounded-lg px-3 py-3 text-left text-sm hover:bg-red-50 ${selected?.id === item.id ? 'bg-red-50 text-red-800' : 'text-zinc-700'}`}>
-            <strong className="block font-medium">{item.title}</strong><small className="text-slate-500">{item.type}</small>
+        <input type="search" aria-label="Search policies" placeholder="Search policies..." value={query} onChange={e=>setQuery(e.target.value)} className="mb-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+        <nav aria-label="Available policies" className="max-h-[70vh] space-y-1 overflow-auto">
+          {visible.map(doc=><button type="button" key={doc.title} aria-current={selected?.title===doc.title?'page':undefined} onClick={()=>setSelected(doc)} className={`w-full rounded-lg px-3 py-3 text-left text-sm hover:bg-red-50 ${selected?.title===doc.title?'bg-red-50 text-red-800':'text-zinc-700'}`}>
+            <strong className="block font-medium">{doc.title}</strong><small className="text-slate-500">{doc.type}</small>
           </button>)}
-        </nav>}
+          {!visible.length && <p className="p-3 text-sm text-slate-500">No matching policies.</p>}
+        </nav>
       </aside>
       <article className="min-w-0 rounded-xl border border-slate-200 bg-white p-5 sm:p-7">
-        {loadingDocument ? <p className="text-sm text-slate-500">Loading full document…</p> : !selected ? <div className="py-14 text-center text-sm text-slate-500">Select a policy or procedure to read its full content.</div> : <>
-          <div className="border-b border-slate-200 pb-5">
-            <p className="text-xs font-bold uppercase tracking-wider text-red-700">Internal · {selected.type}</p>
-            <h2 className="mt-2 text-2xl font-semibold text-zinc-900">{selected.title}</h2>
-          </div>
-          <div className="mt-6 space-y-4 text-sm leading-7 text-zinc-800">
-            {selected.blocks.map((block, i) => block.type === 'table' ?
-              <div className="overflow-x-auto" key={i}><table className="w-full border-collapse text-left text-xs">
-                <tbody>{block.rows.map((row, ri) => <tr key={ri}>{row.map((cell, ci) => <td key={ci} className="border border-slate-200 p-2 align-top whitespace-pre-wrap">{cell}</td>)}</tr>)}</tbody>
-              </table></div> :
-              <p key={i} className={`whitespace-pre-wrap break-words ${/heading|title/i.test(block.style) ? 'text-base font-bold text-zinc-900' : ''}`}>{block.text}</p>
-            )}
-          </div>
+        {!selected?<div className="py-14 text-center text-sm text-slate-500">Select a policy to read its guidance.</div>:<>
+          <p className="text-xs font-semibold uppercase tracking-widest text-red-700">Internal · {selected.type}</p>
+          <h2 className="mt-2 text-2xl font-semibold text-zinc-900">{selected.title}</h2>
+          <p className="mt-4 text-sm leading-7 text-slate-700">{selected.summary}</p>
+          <h3 className="mt-6 text-sm font-semibold text-zinc-900">Key sections and requirements</h3>
+          <ol className="mt-3 list-decimal space-y-3 pl-5 text-sm leading-7 text-zinc-700">{selected.steps.map((step,i)=><li key={i}>{step}</li>)}</ol>
         </>}
       </article>
     </div>
