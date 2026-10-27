@@ -1,3 +1,4 @@
+import { portalAlert, portalConfirm } from './PortalDialog';
 import React, { useState, useEffect } from 'react';
 import { getUsers, getLeaveAllocations, createLeaveAllocation, deleteLeaveAllocation, getLeaveRequests } from '../services/api';
 
@@ -80,7 +81,7 @@ export default function ManageLeaves() {
     const name = policyForm.name.trim();
     const days = Number(policyForm.days);
     if (!name || !Number.isFinite(days) || days <= 0 || !Number.isInteger(days * 2)) {
-      alert('Enter a leave name and a positive number of days in half-day increments.');
+      portalAlert('Enter a leave name and a positive number of days in half-day increments.');
       return;
     }
     setPolicies(previous => [...previous, {
@@ -90,8 +91,8 @@ export default function ManageLeaves() {
     setPolicyForm({ name: '', description: '', days: '' });
   };
 
-  const handleDeletePolicy = (id) => {
-    if (window.confirm('Delete this leave type?')) {
+  const handleDeletePolicy = async (id) => {
+    if (await portalConfirm('Delete this leave type?', true)) {
       setPolicies(policies.filter(p => p.id !== id));
     }
   };
@@ -144,12 +145,12 @@ export default function ManageLeaves() {
   };
 
   const handleDeleteAllocation = async (id) => {
-    if (!window.confirm('Remove this leave assignment from the employee?')) return;
+    if (!await portalConfirm('Remove this leave assignment from the employee?', true)) return;
     try {
       await deleteLeaveAllocation(id);
       fetchData();
     } catch (err) {
-      alert('Failed to remove assignment.');
+      portalAlert('Failed to remove assignment.');
     }
   };
 
