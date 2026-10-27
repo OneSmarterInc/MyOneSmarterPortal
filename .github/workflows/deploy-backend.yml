@@ -1,0 +1,130 @@
+name: Deploy backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - ".github/workflows/deploy-backend.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: [self-hosted, linux, myonesmarter-backend]
+    timeout-minutes: 20
+
+    defaults:
+      run:
+        shell: bash
+
+    env:
+      APP_DIR: /var/www/MyOneSmarterPortal
+      PYTHONDONTWRITEBYTECODE: "1"
+      PIP_DISABLE_PIP_VERSION_CHECK: "1"
+
+    steps:
+      - name: Check out the deployment commit
+        uses: actions/checkout@v4.4.0
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Test backend in an isolated environment
+        run: |
+          set -euo pipefail
+
+          TEST_ENV="$(mktemp -d "$RUNNER_TEMP/backend-tests.XXXXXX")"
+          trap 'rm -rf -- "$TEST_ENV"' EXIT
+
+          python3.12 -m venv "$TEST_ENV"
+          "$TEST_ENV/bin/python" -m pip install \
+            -r backend/requirements-production.txt
+
+          cd backend
+          "$TEST_ENV/bin/python" manage.py test \
+            attendance.test_checkout_approval \
+            attendance.test_employee_details \
+            attendance.test_birthdays \
+            --settings=test_settings --noinput
+
+      - name: Update application source
+        run: |
+          set -euo pipefail
+          cd "$APP_DIR"
+
+          test "$(git branch --show-current)" = "main"
+          test -f backend/.env
+          test -x backend/.venv/bin/python
+
+          # Restore only generated, tracked Python cache files.
+          git restore --worktree -- \
+            ':(glob)backend/**/__pycache__/*.pyc'
+
+          # Stop if tracked application files have local changes.
+          if ! git diff --quiet HEAD --; then
+            echo "Local application changes found. Deployment stopped."
+            git status --short
+            exit 1
+          fi
+
+          # Fetch from the runner checkout: no interactive GitHub login.
+          git fetch --no-tags "$GITHUB_WORKSPACE" "$GITHUB_SHA"
+
+          # Never overwrite divergent commits or deploy an older revision.
+          if ! git merge-base --is-ancestor HEAD "$GITHUB_SHA"; then
+            echo "Server history diverged or is newer than this run."
+            exit 1
+          fi
+
+          git merge --ff-only "$GITHUB_SHA"
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Install dependencies and apply migrations
+        run: |
+          set -euo pipefail
+          cd "$APP_DIR/backend"
+
+          .venv/bin/python -m pip install \
+            -r requirements-production.txt
+
+          .venv/bin/python manage.py check
+          .venv/bin/python manage.py migrate --noinput
+          .venv/bin/python manage.py collectstatic --noinput
+
+      - name: Restart backend and verify health
+        run: |
+          set -euo pipefail
+
+          sudo -n /usr/bin/systemctl restart \
+            onesmarter-backend.service
+
+          /usr/bin/systemctl is-active --quiet \
+            onesmarter-backend.service
+
+          for attempt in {1..15}; do
+            code="$(curl --silent --output /dev/null \
+              --write-out '%{http_code}' --max-time 5 \
+              -H 'Host: localhost' \
+              -H 'X-Forwarded-Proto: https' \
+              http://127.0.0.1:5896/api/ || true)"
+
+            if [[ "$code" == "200" ]]; then
+              echo "Backend deployed successfully: $GITHUB_SHA"
+              exit 0
+            fi
+
+            sleep 2
+          done
+
+          echo "Backend health check failed."
+          /usr/bin/systemctl status \
+            onesmarter-backend.service --no-pager -l || true
+          exit 1
