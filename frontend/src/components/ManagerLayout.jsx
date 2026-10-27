@@ -61,10 +61,10 @@ export default function ManagerLayout() {
             { id: 'pending-leaves', label: 'Leave requests' },
             { id: 'schedule', label: 'Calendar' },
             { id: 'employees', label: 'People directory' },
-            { id: 'leaves', label: 'Leave Quotas' },
+            { id: 'leaves', label: 'Leave quotas' },
             { id: 'wfh', label: 'Work from home' }, // <-- Added WFH Admin Tab
             { id: 'report', label: 'Reports' },
-            { id: 'email', label: 'Email Settings' }
+            { id: 'email', label: 'Email settings' }
           ].map(tab => (
             <button 
               key={tab.id}
@@ -83,7 +83,7 @@ export default function ManagerLayout() {
       </aside>
 
       {/* Main Content Area */}
-      <div className="flex-grow p-4 sm:p-8 bg-slate-50 print:p-0 print:bg-white flex justify-center w-full min-w-0">
+      <div className="flex-grow p-4 sm:p-8 bg-[#f7f7f8] print:p-0 print:bg-white flex justify-center w-full min-w-0">
         {activeTab === 'dashboard' && <ManagerDashboard setActiveTab={setActiveTab} navigate={navigate} createMode={createMode} onCreateMode={setCreateMode} />}
         {activeTab === 'pending-attendance' && <PendingAttendance key={approvalFilter} initialFilter={approvalFilter} />}
         {activeTab === 'pending-leaves' && <PendingLeaves />}

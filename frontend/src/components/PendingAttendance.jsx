@@ -32,7 +32,7 @@ export default function PendingAttendance({ initialFilter = 'all' }) {
   }
   const visible=records.filter(r=>(filter==='all'||(filter==='out'?!!r.check_out:!r.check_out))&&(!date||r.date===date)&&[person(r.user).username,person(r.user).designation,person(r.user).email].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
   return <div className="w-full max-w-7xl space-y-5">
-    <header className="admin-page-heading"><div><p className="admin-eyebrow">ATTENDANCE MANAGEMENT</p><h1>Attendance approvals</h1><p>Review your team’s check-in and check-out requests.</p></div><button className="admin-button" disabled={busy||saving!==null} onClick={refresh}>Refresh</button></header>
+    <header className="admin-page-heading"><div><h1>Attendance approvals</h1><p>Review your team’s check-in and check-out requests.</p></div><button className="admin-button" disabled={busy||saving!==null} onClick={refresh}>Refresh</button></header>
     {error&&<p className="admin-error" role="alert">{error}</p>}
     {notice&&<p role="status" className="rounded-lg bg-emerald-50 text-emerald-800 p-3 text-sm">{notice}</p>}
     <section className="admin-panel">

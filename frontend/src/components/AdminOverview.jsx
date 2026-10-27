@@ -20,7 +20,7 @@ export default function AdminOverview({ records, users, pendingLeaves, busy, err
     {label:'Leave & WFH requests',value:pendingLeaves,detail:'Pending approval',icon:'calendar',action:()=>navigate('pending-leaves')}
   ];
   return <>
-    <header className="admin-page-heading"><div><p className="admin-eyebrow">YOUR WORKSPACE AT A GLANCE</p><h1>Dashboard</h1><p>Welcome back. Here’s what’s happening with your team.</p></div><button className="admin-button primary" onClick={addEmployee}>+ Add employee</button></header>
+    <header className="admin-page-heading"><div><h1>Dashboard</h1><p>Today’s attendance and requests awaiting review.</p></div><button className="admin-button primary" onClick={addEmployee}>+ Add employee</button></header>
     {error && <div className="admin-error" role="alert">{error} <button onClick={retry}>Try again</button></div>}
     <div className="admin-metrics">{metrics.map(m=><button className="admin-metric" key={m.label} onClick={m.action}><span className="admin-metric-icon"><Icon name={m.icon}/></span><span>{m.label}</span><strong>{busy || error ? '—' : m.value}</strong><small>{m.detail} <span aria-hidden="true">↗</span></small></button>)}</div>
     <div className="admin-overview-grid">
@@ -30,7 +30,7 @@ export default function AdminOverview({ records, users, pendingLeaves, busy, err
         {(busy || error || !todays.length) && <tr><td colSpan="4" className="admin-empty">{busy?'Loading attendance…':error?'Attendance unavailable.':'No attendance recorded today.'}</td></tr>}
         </tbody></table></div>
       </section>
-      <section className="admin-panel"><div className="admin-panel-title"><div><h2>Attendance this week</h2><p>Approved present & late · last 7 days</p></div><Icon name="report"/></div>
+      <section className="admin-panel"><div className="admin-panel-title"><div><h2>Attendance this week</h2><p>Last 7 days · approved attendance</p></div><Icon name="report"/></div>
         {busy || error ? <p className="admin-empty">{busy?'Loading…':'Attendance unavailable.'}</p> : <div className="admin-chart" role="img" aria-label={days.map((d,i)=>d.date+': '+counts[i]+' approved').join(', ')}>{days.map((d,i)=><div className="admin-chart-column" key={d.date}><strong>{counts[i]}</strong><div className="admin-chart-track"><span style={{height:`${counts[i]/maximum*100}%`}} /></div><small>{d.label}</small></div>)}</div>}
       </section>
     </div>
