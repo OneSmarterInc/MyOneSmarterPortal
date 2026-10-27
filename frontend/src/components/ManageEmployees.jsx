@@ -17,6 +17,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
   
   const [editingUser, setEditingUser] = useState(null);
   const [email, setEmail] = useState('');
+  const [employeeId, setEmployeeId] = useState('');
   const [role, setRole] = useState('intern'); // Default changed to intern
   const [birthDate, setBirthDate] = useState('');
   const [today] = useState(() => new Date().toLocaleDateString('en-CA'));
@@ -82,6 +83,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
     setResetPassword(false);
     setEditingUser(u);
     setEmail(u.email);
+    setEmployeeId(profile.employee_id || '');
     // Only map valid roles. If somehow manager exists, default back to intern.
     setRole(u.role === 'employee' ? 'employee' : 'intern'); 
     setJoiningDate(u.joining_date || '');
@@ -95,7 +97,8 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
     setLoading(true);
     try {
       await updateUser(editingUser.id, { 
-        email, 
+        email,
+        employee_id: employeeId,
         role, 
         designation,
         tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
@@ -174,7 +177,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
                 <div>
                   <div className="text-xs font-bold text-red-600 normal-case tracking-normal">{viewingProfile.role}</div>
                   <h3 className="text-2xl font-bold text-zinc-900 mt-1">@{viewingProfile.username}</h3>
-                  <div className="text-sm font-medium text-slate-500 mt-0.5">ID: #{viewingProfile.id}</div>
+                  <div className="text-sm font-medium text-slate-500 mt-0.5">Employee ID: {viewingProfile.employee_id || 'Not assigned'}</div>
                 </div>
               </div>
               <button onClick={() => setViewingProfile(null)} className="admin-button  ">
@@ -262,6 +265,10 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
                 </div>
               </div>
 
+              <div>
+                <label htmlFor="manageemployee-employee-id" className="block text-xs font-bold text-slate-600 mb-1">Employee ID</label>
+                <input id="manageemployee-employee-id" type="text" maxLength={60} value={employeeId} onChange={e => setEmployeeId(e.target.value)} placeholder="Enter actual employee ID" className="w-full border border-slate-300 p-2 text-sm rounded" />
+              </div>
               <div>
                 <label htmlFor="manageemployees-field-3" className="block text-xs font-bold normal-case tracking-normal text-slate-600 mb-1">Email</label>
                 <input id="manageemployees-field-3" type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border border-slate-300 p-2 text-sm outline-none focus:border-red-500 rounded" required />
