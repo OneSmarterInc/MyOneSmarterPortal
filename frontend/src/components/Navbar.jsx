@@ -68,6 +68,13 @@ export default function Navbar({ user, onLogout }) {
     try { localStorage.setItem(storageKey, JSON.stringify(keys)); } catch { /* storage unavailable */ }
   };
   const openNotifications = () => {
+    if (!notificationsOpen) {
+      const keys = [...new Set([...readStorage(), ...notifications.map(n => n.key)])].slice(-500);
+      setReadKeys(keys);
+      try { localStorage.setItem(storageKey, JSON.stringify(keys)); } catch { /* storage unavailable */ }
+    } else {
+      setNotifications([]);
+    }
     setNotificationsOpen(value => !value);
   };
   useEffect(() => {
