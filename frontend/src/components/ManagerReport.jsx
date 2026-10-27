@@ -1,7 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { getUsers, getAttendance } from '../services/api';
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE = 10; // On-screen pagination only
+// Print capacities are based on usable A4 height and leave room for the final signature.
+const FIRST_PRINT_ROWS = 14;
+const CONTINUATION_PRINT_ROWS = 24;
+const FINAL_PRINT_ROWS = 18;
+function paginateForPrint(records) {
+  if (!records.length) return [];
+  const pages = [];
+  let offset = 0;
+  while (offset < records.length) {
+    const remaining = records.length - offset;
+    const isFirst = pages.length === 0;
+    const capacity = isFirst ? FIRST_PRINT_ROWS : CONTINUATION_PRINT_ROWS;
+    // Reserve extra space for the signature on whichever page is last.
+    const lastCapacity = isFirst ? FIRST_PRINT_ROWS - 4 : FINAL_PRINT_ROWS;
+    const count = remaining <= lastCapacity ? remaining : Math.min(capacity, remaining);
+    pages.push({ rows: records.slice(offset, offset + count), start: offset });
+    offset += count;
+  }
+  return pages;
+}
 const formatDate = value => {
   if (!value) return '—';
   const [year, month, day] = value.slice(0, 10).split('-').map(Number);
@@ -60,8 +80,7 @@ export default function ManagerReport() {
   const totalPages = Math.max(1, Math.ceil(filteredRecords.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const visibleRecords = filteredRecords.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
-  const printPages = Array.from({ length: totalPages }, (_, index) =>
-    filteredRecords.slice(index * PAGE_SIZE, (index + 1) * PAGE_SIZE));
+  const printPages = paginateForPrint(filteredRecords);
   const firstDate = filteredRecords.length ? filteredRecords[filteredRecords.length - 1].date : '';
   const lastDate = filteredRecords.length ? filteredRecords[0].date : '';
   const period = `${formatDate(startDate || firstDate)} – ${formatDate(endDate || lastDate)}`;
@@ -99,7 +118,7 @@ export default function ManagerReport() {
           .attendance-report .report-info .report-value { width: 33%; }
           .attendance-report .report-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12px; text-align: center; }
           .attendance-report .report-table th { padding: 13px 7px; background: #c40013 !important; color: white !important; border: 1px solid #aaa; font-weight: 700; }
-          .attendance-report .report-table td { border: 1px solid #a2a9b1; padding: 13px 7px; overflow-wrap: anywhere; }
+          .attendance-report .report-table td { border: 1px solid #a2a9b1; padding: 8px 7px; overflow-wrap: anywhere; }
           .attendance-report .report-generated { text-align: right; font-size: 11px; font-weight: 700; margin-top: 28px; }
           .attendance-report .report-signature { margin-top: auto; align-self: flex-end; width: 255px; text-align: center; font-size: 12px; padding-bottom: 24px; }
           .attendance-report .report-signature .line { border-top: 2px solid #111; padding-top: 8px; }
@@ -152,7 +171,7 @@ export default function ManagerReport() {
         </div>
       </div>
       {filteredRecords.length > 0 && <div className="report-print-document" aria-hidden="true">
-        {printPages.map((records, index) => <section className="report-sheet" key={index}>
+        {printPages.map(({ rows: records, start }, index) => <section className="report-sheet" key={index}>
           {index === 0 && <>
           <div className="report-letterhead"><img src="/images/logo.png" alt="" />One Smarter Inc., USA</div>
           <h1 className="report-title">ATTENDANCE RECORD</h1>
@@ -163,7 +182,7 @@ export default function ManagerReport() {
           </>}
           <table className="report-table"><thead><tr><th style={{width:'12%'}}>Sr. No.</th>{!selectedUserInfo && <th>Employee</th>}<th>Date</th><th>Start Time</th><th>End Time</th><th>Status</th></tr></thead>
             <tbody>{records.map((record, row) => <tr key={record.id}>
-              <td>{index * PAGE_SIZE + row + 1}</td>{!selectedUserInfo && <td>{users.find(u => String(u.id) === String(record.user))?.username || 'Unknown'}</td>}<td>{formatDate(record.date)}</td><td>{formatTime(record.check_in)}</td><td>{formatTime(record.check_out)}</td><td>{record.status}</td>
+              <td>{start + row + 1}</td>{!selectedUserInfo && <td>{users.find(u => String(u.id) === String(record.user))?.username || 'Unknown'}</td>}<td>{formatDate(record.date)}</td><td>{formatTime(record.check_in)}</td><td>{formatTime(record.check_out)}</td><td>{record.status}</td>
             </tr>)}</tbody>
           </table>
           {index === printPages.length - 1 && <>
