@@ -6,6 +6,7 @@ import { getAttendance, managerCreateUser, getLeaveRequests, getUsers, updateAtt
 
 export default function ManagerDashboard({ setActiveTab, createMode = false, onCreateMode, navigate, onSelectEmployee }) {
   const [allRecords, setAllRecords] = useState([]);
+  const [historyPage, setHistoryPage] = useState(1);
   const [leaves, setLeaves] = useState([]);
   const [usersList, setUsersList] = useState([]);
   
@@ -109,6 +110,11 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
   };
 
   const historicalLogs = allRecords.filter(r => r.status !== 'Pending');
+  const historyPageSize = 10;
+  const historyTotalPages = Math.max(1, Math.ceil(historicalLogs.length / historyPageSize));
+  const currentHistoryPage = Math.min(historyPage, historyTotalPages);
+  const historyStart = (currentHistoryPage - 1) * historyPageSize;
+  const visibleHistory = historicalLogs.slice(historyStart, historyStart + historyPageSize);
   const pendingLeaves = leaves.filter(l => l.status === 'Pending');
 
   const getUserDetails = (userId) => {
@@ -191,7 +197,7 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
               </tr>
             </thead>
             <tbody>
-              {historicalLogs.length > 0 ? historicalLogs.map(item => {
+              {visibleHistory.length > 0 ? visibleHistory.map(item => {
                 const emp = getUserDetails(item.user);
                 return (
                   <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50">
@@ -225,6 +231,14 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
               )}
             </tbody>
           </table>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4 mt-4 text-sm">
+          <span className="text-slate-600">Showing {historicalLogs.length ? historyStart + 1 : 0}–{Math.min(historyStart + historyPageSize, historicalLogs.length)} of {historicalLogs.length} records</span>
+          <nav aria-label="Attendance history pages" className="flex items-center gap-3">
+            <button type="button" className="admin-button" disabled={currentHistoryPage === 1} onClick={() => setHistoryPage(currentHistoryPage - 1)}>Previous</button>
+            <span aria-live="polite">Page {currentHistoryPage} of {historyTotalPages}</span>
+            <button type="button" className="admin-button" disabled={currentHistoryPage === historyTotalPages} onClick={() => setHistoryPage(currentHistoryPage + 1)}>Next</button>
+          </nav>
         </div>
       </div>
 
