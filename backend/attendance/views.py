@@ -12,6 +12,29 @@ from .models import Attendance, UserProfile, SMTPSettings, CompanySchedule, Leav
 from .serializers import AttendanceSerializer
 
 
+class EmployeeDetailsSerializer(serializers.Serializer):
+    designation = serializers.CharField(max_length=120, allow_blank=True, required=False)
+    tags = serializers.ListField(
+        child=serializers.CharField(max_length=40, allow_blank=False),
+        max_length=20, required=False,
+    )
+
+    def validate_tags(self, values):
+        seen = set()
+        result = []
+        for value in values:
+            if value.casefold() not in seen:
+                seen.add(value.casefold())
+                result.append(value)
+        return result
+
+
+def employee_details(data):
+    details = EmployeeDetailsSerializer(data=data)
+    details.is_valid(raise_exception=True)
+    return details.validated_data
+
+
 def validated_birth_date(value):
     value = serializers.DateField(allow_null=True).run_validation(value or None)
     if value and value > timezone.localdate():
@@ -92,6 +115,7 @@ def register_user(request):
 
 @api_view(['POST'])
 def manager_create_user(request):
+    details = employee_details(request.data)
     employee_id = request.data.get('employee_id')
     username = request.data.get('username')
     email = request.data.get('email')
@@ -118,6 +142,8 @@ def manager_create_user(request):
     profile, created = UserProfile.objects.get_or_create(user=user)
     profile.role = role
     profile.date_of_birth = date_of_birth
+    profile.designation = details.get('designation', '')
+    profile.tags = details.get('tags', [])
     if joining_date:
         profile.joining_date = joining_date
     if employee_id and hasattr(profile, 'employee_id'):
@@ -282,6 +308,8 @@ def get_all_users(request):
             'email': u.email,
             'role': role,
             'joining_date': joining_date,
+            'designation': profile.designation if profile else '',
+            'tags': profile.tags if profile else [],
             'profile_photo': photo_url
         })
     return Response(data, status=status.HTTP_200_OK)
@@ -298,12 +326,17 @@ def manage_user(request, pk):
         return Response({'message': 'User deleted successfully'}, status=status.HTTP_200_OK)
     
     if request.method == 'PUT':
+        details = employee_details(request.data)
+        reset_password = request.data.get('reset_password') is True
+        new_password = request.data.get('password')
+        if reset_password and (not isinstance(new_password, str) or not new_password.strip()):
+            return Response({'error': 'Enter a new password to reset it.'}, status=status.HTTP_400_BAD_REQUEST)
         birth_date = validated_birth_date(request.data['date_of_birth']) if 'date_of_birth' in request.data else None
         user.username = request.data.get('username', user.username)
         user.email = request.data.get('email', user.email)
         
-        new_password = request.data.get('password')
-        if new_password:
+        # Profile edits (including autofilled passwords) never reset credentials.
+        if reset_password:
             user.set_password(new_password)
             if hasattr(user, 'profile'):
                 user.profile.is_first_login = True
@@ -319,6 +352,8 @@ def manage_user(request, pk):
             if joining_date is not None:
                 user.profile.joining_date = joining_date if joining_date != '' else None
                 
+            for field, value in details.items():
+                setattr(user.profile, field, value)
             if 'date_of_birth' in request.data:
                 user.profile.date_of_birth = birth_date
             user.profile.save()
@@ -343,6 +378,8 @@ def employee_profile(request, user_id):
             'address': profile.address,
             'joining_date': profile.joining_date,
             'date_of_birth': profile.date_of_birth,
+            'designation': profile.designation,
+            'tags': profile.tags,
             'profile_photo': photo_url
         }, status=status.HTTP_200_OK)
 
