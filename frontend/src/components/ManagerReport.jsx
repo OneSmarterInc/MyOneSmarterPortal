@@ -1,146 +1,163 @@
 import React, { useState, useEffect } from 'react';
 import { getUsers, getAttendance } from '../services/api';
 
+const PAGE_SIZE = 10;
+const formatDate = value => {
+  if (!value) return '—';
+  const [year, month, day] = value.slice(0, 10).split('-').map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+const formatTime = value => {
+  if (!value) return '—';
+  const [hour, minute] = value.split(':').map(Number);
+  const d = new Date();
+  d.setHours(hour, minute, 0, 0);
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+};
+
 export default function ManagerReport() {
   const [users, setUsers] = useState([]);
   const [allRecords, setAllRecords] = useState([]);
-  
   const [selectedUser, setSelectedUser] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [page, setPage] = useState(1);
+  const [fetchError, setFetchError] = useState('');
+  const [fetching, setFetching] = useState(true);
+  const [generatedAt, setGeneratedAt] = useState(() => new Date());
 
-  const [fetchError,setFetchError] = useState('');
-  const [fetching,setFetching] = useState(true);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
+  useEffect(() => { fetchData(); }, []);
   async function fetchData() {
-    setFetching(true);setFetchError('');
+    setFetching(true);
+    setFetchError('');
     try {
-      const [userRes, attRes] = await Promise.all([
-        getUsers(),
-        getAttendance()
-      ]);
-      // Filter out managers so only employees/students can be selected for reports
+      const [userRes, attRes] = await Promise.all([getUsers(), getAttendance()]);
       setUsers(userRes.data.filter(u => u.role !== 'manager'));
       setAllRecords(attRes.data);
-    } catch (err) {
+    } catch {
       setFetchError('Unable to load this page. Please try again.');
-    } finally {setFetching(false);}
-  };
-
-  const handlePrint = () => {
-    if (!selectedUser) {
-      alert('Please select an employee before printing.');
-      return;
+    } finally {
+      setFetching(false);
     }
-    window.print();
-  };
+  }
 
-  const formatTime = (timeStr) => {
-    if (!timeStr) return '-';
-    const [h, m] = timeStr.split(':');
-    const d = new Date();
-    d.setHours(parseInt(h, 10), parseInt(m, 10));
-    return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-  };
-
-  // Filter Records
   const filteredRecords = allRecords.filter(record => {
-    if (selectedUser && record.user.toString() !== selectedUser) return false;
+    if (selectedUser && String(record.user) !== selectedUser) return false;
     if (startDate && record.date < startDate) return false;
     if (endDate && record.date > endDate) return false;
     return true;
-  }).sort((a, b) => new Date(b.date) - new Date(a.date));
+  }).sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+  const selectedUserInfo = users.find(u => String(u.id) === selectedUser);
+  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const visibleRecords = filteredRecords.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const printPages = Array.from({ length: totalPages }, (_, index) =>
+    filteredRecords.slice(index * PAGE_SIZE, (index + 1) * PAGE_SIZE));
+  const firstDate = filteredRecords.length ? filteredRecords[filteredRecords.length - 1].date : '';
+  const lastDate = filteredRecords.length ? filteredRecords[0].date : '';
+  const period = `${formatDate(startDate || firstDate)} – ${formatDate(endDate || lastDate)}`;
 
-  const selectedUserInfo = users.find(u => u.id.toString() === selectedUser);
+  const handlePrint = () => {
+    if (!selectedUserInfo || fetching || fetchError || filteredRecords.length === 0) return;
+    setGeneratedAt(new Date());
+    // Let React commit the timestamp before opening the browser print dialog.
+    requestAnimationFrame(() => window.print());
+  };
+  const resetPage = setter => value => { setter(value); setPage(1); };
 
   return (
-    <div className="admin-legacy w-full max-w-6xl space-y-6 print:m-0 print:w-full print:max-w-none print:space-y-4">
-      
-      <header className="admin-page-heading print:hidden"><div><h1>Attendance reports</h1><p>Filter attendance by person and date. Select a person to print or save a PDF.</p></div></header>
-      {fetchError && <div className="admin-error" role="alert">{fetchError} <button onClick={fetchData}>Try again</button></div>}
-      {fetching && <p role="status" className="admin-loading">Loading…</p>}
-      {/* Controls - Hidden during printing */}
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-none print:hidden">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
-          <div>
-            <label htmlFor="managerreport-field-1" className="block text-xs font-bold normal-case tracking-normal text-slate-600 mb-1">Select Employee</label>
-            <select id="managerreport-field-1" value={selectedUser} onChange={e => setSelectedUser(e.target.value)} className="w-full border border-slate-300 p-2.5 text-sm outline-none focus:border-red-500 rounded-lg bg-white">
-              <option value="">All employees</option>
-              {users.map(u => (
-                <option key={u.id} value={u.id}>@{u.username} ({u.email})</option>
-              ))}
-            </select>
+    <div className="attendance-report admin-legacy w-full max-w-6xl space-y-6">
+      <style>{`
+        .attendance-report .report-print-document { display: none; }
+        @page { size: A4 portrait; margin: 12mm; }
+        @media print {
+          html, body, #root { background: #fff !important; }
+          body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+          body > #root > div > footer { display: none !important; }
+          .admin-workspace .attendance-report { max-width: none !important; padding: 0 !important; margin: 0 !important; }
+          .attendance-report .report-screen { display: none !important; }
+          .attendance-report .report-print-document { display: block !important; }
+          .attendance-report .report-sheet { width: 100%; min-height: 270mm; box-sizing: border-box; display: flex; flex-direction: column; break-after: page; page-break-after: always; font-family: Arial, sans-serif; color: #10141a; }
+          .attendance-report .report-sheet:last-child { break-after: auto; page-break-after: auto; }
+          .attendance-report .report-letterhead { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #111; padding: 0 0 9px; font-size: 11px; font-weight: 600; }
+          .attendance-report .report-letterhead img { height: 32px; width: 32px; object-fit: contain; }
+          .attendance-report .report-title { margin: 38px 0 45px; text-align: center; font-size: 23px; font-weight: 750; }
+          .attendance-report .report-title::after { content: ''; display: block; height: 3px; width: 155px; background: #cb0015; margin: 14px auto 0; }
+          .attendance-report .report-info { border: 1px solid #444; padding: 9px; margin-bottom: 16px; }
+          .attendance-report .report-info table { width: 100%; border-collapse: collapse; font-size: 12px; }
+          .attendance-report .report-info td { padding: 11px 12px; border: 1px solid #c2c7cd; }
+          .attendance-report .report-info .report-label { width: 19%; background: #f7e2e2 !important; font-weight: 700; }
+          .attendance-report .report-info .report-value { width: 33%; }
+          .attendance-report .report-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 12px; text-align: center; }
+          .attendance-report .report-table th { padding: 13px 7px; background: #c40013 !important; color: white !important; border: 1px solid #aaa; font-weight: 700; }
+          .attendance-report .report-table td { border: 1px solid #a2a9b1; padding: 13px 7px; overflow-wrap: anywhere; }
+          .attendance-report .report-generated { text-align: right; font-size: 11px; font-weight: 700; margin-top: 28px; }
+          .attendance-report .report-signature { margin-top: auto; align-self: flex-end; width: 255px; text-align: center; font-size: 12px; padding-bottom: 24px; }
+          .attendance-report .report-signature .line { border-top: 2px solid #111; padding-top: 8px; }
+          .attendance-report .report-signature strong { display: block; font-size: 14px; margin-bottom: 3px; }
+          .attendance-report .report-footer { display: flex; justify-content: space-between; gap: 10px; border-top: 2px solid #111; padding-top: 15px; font-size: 10px; }
+        }
+      `}</style>
+      <div className="report-screen space-y-6">
+        <header className="admin-page-heading"><div><h1>Attendance reports</h1><p>Filter attendance by person and date. Select a person to print or save a PDF.</p></div></header>
+        {fetchError && <div role="alert" className="admin-error">{fetchError} <button onClick={fetchData}>Try again</button></div>}
+        {fetching && <p role="status" className="admin-loading">Loading…</p>}
+        <div className="bg-white p-6 rounded-xl border border-slate-200">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+            <div><label htmlFor="report-employee" className="block text-sm mb-1">Select Employee</label>
+              <select id="report-employee" value={selectedUser} onChange={resetPage(setSelectedUser)} className="w-full border border-slate-300 p-2.5 rounded-lg bg-white">
+                <option value="">All employees</option>
+                {users.map(u => <option key={u.id} value={u.id}>@{u.username} ({u.email})</option>)}
+              </select>
+            </div>
+            <div><label htmlFor="report-start" className="block text-sm mb-1">Start Date</label><input id="report-start" type="date" value={startDate} onChange={e => resetPage(setStartDate)(e.target.value)} className="w-full border border-slate-300 p-2.5 rounded-lg" /></div>
+            <div><label htmlFor="report-end" className="block text-sm mb-1">End Date</label><input id="report-end" type="date" min={startDate || undefined} value={endDate} onChange={e => resetPage(setEndDate)(e.target.value)} className="w-full border border-slate-300 p-2.5 rounded-lg" /></div>
+            <button onClick={handlePrint} disabled={!selectedUser || fetching || !!fetchError || !filteredRecords.length || (!!startDate && !!endDate && endDate < startDate)} className="admin-button primary w-full">Print / save PDF</button>
           </div>
-          <div>
-            <label htmlFor="managerreport-field-2" className="block text-xs font-bold normal-case tracking-normal text-slate-600 mb-1">Start Date</label>
-            <input id="managerreport-field-2" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="w-full border border-slate-300 p-2.5 text-sm outline-none focus:border-red-500 rounded-lg" />
+        </div>
+        <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead><tr className="bg-slate-50 border-b border-slate-200 text-slate-600">
+                <th className="p-4">Employee</th><th className="p-4">Date</th><th className="p-4">Start Time</th><th className="p-4">End Time</th><th className="p-4">Status</th>
+              </tr></thead>
+              <tbody>{visibleRecords.length ? visibleRecords.map(item => <tr key={item.id} className="border-b border-slate-100">
+                <td className="p-4">{users.find(u => String(u.id) === String(item.user))?.username || 'Unknown'}</td>
+                <td className="p-4 font-semibold">{item.date}</td>
+                <td className="p-4">{formatTime(item.check_in)}</td>
+                <td className="p-4">{formatTime(item.check_out)}</td>
+                <td className="p-4"><span className={`px-3 py-1 rounded-full text-xs font-semibold border ${item.status === 'Present' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : item.status === 'Late' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>{item.status}</span></td>
+              </tr>) : <tr><td colSpan="5" className="p-8 text-center text-slate-500">No attendance records found for the selected criteria.</td></tr>}</tbody>
+            </table>
           </div>
-          <div>
-            <label htmlFor="managerreport-field-3" className="block text-xs font-bold normal-case tracking-normal text-slate-600 mb-1">End Date</label>
-            <input id="managerreport-field-3" type="date" min={startDate || undefined} value={endDate} onChange={e => setEndDate(e.target.value)} className="w-full border border-slate-300 p-2.5 text-sm outline-none focus:border-red-500 rounded-lg" />
-          </div>
-          <div>
-            <button onClick={handlePrint} disabled={!selectedUser || fetching || !!fetchError || (!!startDate && !!endDate && endDate < startDate)} className="admin-button primary w-full">
-              Print / save PDF
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-t border-slate-200 text-sm">
+            <span className="text-slate-600">Showing {filteredRecords.length ? (currentPage - 1) * PAGE_SIZE + 1 : 0}–{Math.min(currentPage * PAGE_SIZE, filteredRecords.length)} of {filteredRecords.length} records</span>
+            <nav aria-label="Attendance report pages" className="flex items-center gap-3">
+              <button type="button" className="admin-button" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>Previous</button>
+              <span aria-live="polite">Page {currentPage} of {totalPages}</span>
+              <button type="button" className="admin-button" disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)}>Next</button>
+            </nav>
           </div>
         </div>
       </div>
-
-      {/* Print-Only Header - Visible only on PDF */}
-      <div className="hidden print:block text-center mb-8 border-b-2 border-slate-800 pb-4">
-        <h1 className="text-2xl font-semibold normal-case tracking-normal text-slate-900">Attendance Record</h1>
-        {selectedUserInfo && (
-          <div className="mt-2 text-sm font-semibold text-slate-600">
-            Employee: <span className="text-black normal-case">@{selectedUserInfo.username}</span> | ID: #{selectedUserInfo.id} <br/>
-            Period: {startDate || 'Beginning'} to {endDate || 'Present'}
-          </div>
-        )}
-      </div>
-
-      {/* Table Section - Shared between UI and Print */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-none overflow-auto print:border-none print:shadow-none print:rounded-none">
-        <table className="w-full text-left border-collapse text-sm print:text-xs">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs normal-case print:bg-white print:border-b-2 print:border-slate-800 print:text-black">
-              <th className="p-4 font-bold">Employee</th><th className="p-4 font-bold">Date</th>
-              <th className="p-4 font-bold">Start Time</th>
-              <th className="p-4 font-bold">End Time</th>
-              <th className="p-4 font-bold">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredRecords.length > 0 ? filteredRecords.map(item => (
-              <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50 print:border-slate-300 print:break-inside-avoid">
-                <td className="p-4 font-medium">{users.find(u=>u.id===item.user)?.username || 'Unknown'}</td><td className="p-4 font-semibold text-slate-700 print:text-black">{item.date}</td>
-                <td className="p-4 text-slate-600 print:text-black">{formatTime(item.check_in)}</td>
-                <td className="p-4 text-slate-600 print:text-black">{formatTime(item.check_out)}</td>
-                <td className="p-4">
-                  <span className={`px-2.5 py-1 rounded-full text-xs font-bold normal-case tracking-normal print:p-0 print:bg-transparent print:border-none ${
-                    item.status === 'Present' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 print:text-black' :
-                    item.status === 'Late' ? 'bg-amber-50 text-amber-700 border border-amber-200 print:text-black' : 
-                    item.status === 'Pending' ? 'bg-blue-50 text-blue-700 border border-blue-200 print:text-black' : 'bg-red-50 text-red-700 border border-red-200 print:text-black'
-                  }`}>
-                    {item.status}
-                  </span>
-                </td>
-              </tr>
-            )) : (
-              <tr><td colSpan="5" className="p-8 text-center text-slate-400 text-sm">No attendance records found for the selected criteria.</td></tr>
-            )}
-          </tbody>
-        </table>
-        
-        {/* Print-Only Footer */}
-        <div className="hidden print:block mt-8 pt-4 border-t border-slate-300 text-right text-xs font-semibold text-slate-500">
-          Generated on: {new Date().toLocaleString()}
-        </div>
-      </div>
-      
+      {selectedUserInfo && filteredRecords.length > 0 && <div className="report-print-document" aria-hidden="true">
+        {printPages.map((records, index) => <section className="report-sheet" key={index}>
+          <div className="report-letterhead"><img src="/images/logo.png" alt="" />One Smarter Inc., USA</div>
+          <h1 className="report-title">ATTENDANCE RECORD</h1>
+          <div className="report-info"><table><tbody>
+            <tr><td className="report-label">Employee Name:</td><td className="report-value">{selectedUserInfo.username}</td><td className="report-label">Employee ID:</td><td>{selectedUserInfo.employee_id || selectedUserInfo.id}</td></tr>
+            <tr><td className="report-label">Period:</td><td colSpan="3">{period}</td></tr>
+          </tbody></table></div>
+          <table className="report-table"><thead><tr><th style={{width:'14%'}}>Sr. No.</th><th>Date</th><th>Start Time</th><th>End Time</th><th>Status</th></tr></thead>
+            <tbody>{records.map((record, row) => <tr key={record.id}>
+              <td>{index * PAGE_SIZE + row + 1}</td><td>{formatDate(record.date)}</td><td>{formatTime(record.check_in)}</td><td>{formatTime(record.check_out)}</td><td>{record.status}</td>
+            </tr>)}</tbody>
+          </table>
+          <p className="report-generated">Generated on: {generatedAt.toLocaleString('en-US')}</p>
+          <div className="report-signature"><div className="line"><strong>Akshay Agrawal</strong>Global Service and Delivery Manager</div></div>
+          <div className="report-footer"><span>© 2026 One Smarter Inc., USA. All rights reserved. Secure Compliance &amp; Systems.</span><span>{index + 1} / {totalPages}</span></div>
+        </section>)}
+      </div>}
     </div>
   );
 }
