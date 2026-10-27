@@ -1,3 +1,4 @@
+import { portalAlert, portalConfirm } from './PortalDialog';
 import React, { useState, useEffect } from 'react';
 import { getUsers, getLeaveRequests, updateLeaveRequest } from '../services/api';
 
@@ -39,7 +40,7 @@ export default function ManageWFH() {
       await updateLeaveRequest(id, { status });
       fetchData();
     } catch (err) {
-      alert('Failed to update status.');
+      portalAlert('Failed to update status.');
     }
   };
 
@@ -194,14 +195,14 @@ export default function ManageWFH() {
                               
                               {/* Action: Reject an Approved Request */}
                               {displayStatus === 'Approved' && !isPast && (
-                                <button onClick={() => { if(window.confirm('Reject this WFH request?')) handleStatusUpdate(item.id, 'Rejected') }} className="admin-button danger " title="Reject Request">
+                                <button onClick={async () => { if (await portalConfirm('Reject this WFH request?')) handleStatusUpdate(item.id, 'Rejected'); }} className="admin-button danger " title="Reject Request">
                                   Reject
                                 </button>
                               )}
 
                               {/* Action: Approve a Rejected Request */}
                               {displayStatus === 'Rejected' && !isPast && (
-                                <button onClick={() => { if(window.confirm('Approve this WFH request?')) handleStatusUpdate(item.id, 'Approved') }} className="admin-button  " title="Approve Request">
+                                <button onClick={async () => { if (await portalConfirm('Approve this WFH request?')) handleStatusUpdate(item.id, 'Approved'); }} className="admin-button  " title="Approve Request">
                                   Approve
                                 </button>
                               )}
