@@ -14,7 +14,7 @@ import ManageWFH from './ManageWFH'; // <-- Import the new component
 export default function ManagerLayout() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [desktopSidebarVisible, setDesktopSidebarVisible] = useState(true);
+  const [desktopSidebarVisible, setDesktopSidebarVisible] = useState(false);
   const [createMode,setCreateMode] = useState(false);
   const [approvalFilter,setApprovalFilter] = useState('all');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
