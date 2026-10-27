@@ -356,6 +356,11 @@ def manage_user(request, pk):
             if joining_date is not None:
                 user.profile.joining_date = joining_date if joining_date != '' else None
                 
+            if 'employee_id' in request.data:
+                employee_id = str(request.data.get('employee_id') or '').strip()
+                if len(employee_id) > 60:
+                    return Response({'error': 'Employee ID must be 60 characters or fewer.'}, status=status.HTTP_400_BAD_REQUEST)
+                user.profile.employee_id = employee_id
             for field, value in details.items():
                 setattr(user.profile, field, value)
             if 'date_of_birth' in request.data:
