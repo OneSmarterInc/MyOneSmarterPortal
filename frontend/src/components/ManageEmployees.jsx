@@ -1,3 +1,4 @@
+import { portalAlert, portalConfirm } from './PortalDialog';
 import { Avatar, Status } from './AdminUI';
 import React, { useState, useEffect } from 'react';
 import { getUsers, updateUser, deleteUser, getProfile } from '../services/api';
@@ -57,12 +58,12 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
   };
 
   const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to permanently delete this employee?')) return;
+    if (!await portalConfirm('Are you sure you want to permanently delete this employee?', true)) return;
     try {
       await deleteUser(id);
       fetchUsers();
     } catch {
-      alert('Failed to delete user.');
+      portalAlert('Failed to delete user.');
     }
   };
 
@@ -72,7 +73,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
       const res = await getProfile(u.id);
       profile = res.data;
     } catch {
-      alert('Unable to load the profile. Please try again.');
+      portalAlert('Unable to load the profile. Please try again.');
       return;
     }
     setBirthDate(profile.date_of_birth || '');
@@ -123,7 +124,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
         id: u.id
       });
     } catch {
-      alert('Failed to load employee profile.');
+      portalAlert('Failed to load employee profile.');
     }
   };
 
