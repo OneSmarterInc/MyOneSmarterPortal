@@ -8,6 +8,7 @@ from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
+from .letter_auth import issue_letter_token
 from django.core.mail import send_mail, get_connection, EmailMessage
 from django.conf import settings
 from .models import Attendance, UserProfile, SMTPSettings, CompanySchedule, CalendarAnnouncement, LeaveRequest, LeaveAllocation
@@ -271,6 +272,7 @@ def login_user(request):
         return Response({
             'message': 'Login successful', 
             'user_id': user.id, 
+            'letter_token': issue_letter_token(user),
             'username': user.username, 
             'role': role,
             'is_first_login': is_first_login

@@ -1,0 +1,15 @@
+.lor-page{display:flex;flex-direction:column;gap:20px}
+.lor-form{padding:24px;display:flex;flex-direction:column;gap:18px}
+.lor-form h2{font-size:17px;font-weight:600}
+.lor-form label{display:flex;flex-direction:column;gap:7px;font-size:13px;color:#4b515c}
+.lor-form input,.lor-form textarea{border:1px solid #cfd2d7;padding:10px;width:100%;background:white}
+.lor-form textarea{min-height:94px;resize:vertical}
+.lor-form p{font-size:13px;line-height:1.7;color:#646b76;overflow-wrap:anywhere}
+.lor-fields{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:18px}
+.lor-section-heading{display:flex;align-items:center;gap:12px;flex-wrap:wrap;justify-content:space-between}
+.lor-preview{display:flex;flex-direction:column;gap:16px;border-top:1px solid #eee;padding-top:20px}
+.lor-preview iframe{width:100%;height:740px;border:1px solid #ddd;background:#f3f3f3}
+.lor-reject{border-top:1px solid #eee;padding-top:20px;display:flex;gap:12px;align-items:flex-end}
+.lor-reject label{flex:1}
+.lor-purpose{white-space:normal;min-width:180px;max-width:360px;overflow-wrap:anywhere}
+@media(max-width:640px){.lor-fields{grid-template-columns:1fr}.lor-form{padding:16px}.lor-reject{flex-direction:column;align-items:stretch}.lor-preview iframe{height:500px}}

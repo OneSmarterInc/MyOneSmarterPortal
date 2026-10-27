@@ -1,4 +1,5 @@
 from django.urls import path, include
+from . import recommendations
 from rest_framework.routers import DefaultRouter
 from .views import (
     AttendanceViewSet,
@@ -25,6 +26,11 @@ router = DefaultRouter()
 router.register(r'attendance', AttendanceViewSet)
 
 urlpatterns = [
+    path('recommendations/', recommendations.requests),
+    path('recommendations/<int:pk>/draft/', recommendations.draft),
+    path('recommendations/<int:pk>/pdf/', recommendations.document),
+    path('recommendations/<int:pk>/send/', recommendations.send),
+    path('recommendations/<int:pk>/reject/', recommendations.reject),
     path('birthdays/', birthdays, name='birthdays'),
 
 # ... keep existing paths ...

@@ -1,3 +1,4 @@
+import RecommendationLetters from './RecommendationLetters';
 import React, { useState } from 'react';
 import { useWorkspacePage } from '../utils/useWorkspacePage';
 import WorkspaceNavigation from './WorkspaceNavigation';
@@ -10,7 +11,7 @@ import EmployeeWFH from './EmployeeWFH';
 import EmployeePolicies from './EmployeePolicies';
 
 export default function EmployeeLayout({ user }) {
-  const [activeTab, navigatePage] = useWorkspacePage('employee', ['dashboard', 'leave', 'wfh', 'profile', 'policies']);
+  const [activeTab, navigatePage] = useWorkspacePage('employee', ['dashboard', 'leave', 'wfh', 'profile', 'policies', 'recommendations']);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const navigate = tab => {
@@ -19,6 +20,7 @@ export default function EmployeeLayout({ user }) {
   };
 
   const navigation = [
+    { id: 'recommendations', label: 'Recommendation letters', icon: 'mail' },
     { id: 'dashboard', label: 'My overview', icon: 'dashboard' },
     { id: 'leave', label: 'Leave & time off', icon: 'calendar' },
     { id: 'wfh', label: 'Work from home', icon: 'home' },
@@ -39,6 +41,7 @@ export default function EmployeeLayout({ user }) {
         </nav>
       </WorkspaceNavigation>
       <div className="flex-grow p-4 sm:p-8 bg-[#f7f7f8] print:p-0 print:bg-white flex justify-center w-full min-w-0">
+        {activeTab === 'recommendations' && <RecommendationLetters />}
         {activeTab === 'dashboard' && <EmployeeDashboard user={user} onNavigate={navigate} />}
         {activeTab === 'profile' && <EmployeeProfile user={user} />}
         {activeTab === 'leave' && <EmployeeLeave user={user} />}

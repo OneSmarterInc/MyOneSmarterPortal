@@ -118,3 +118,22 @@ class LeaveAllocation(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.leave_type} ({self.total_days} days)"
+
+
+class RecommendationRequest(models.Model):
+    user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='recommendation_requests')
+    purpose = models.CharField(max_length=500)
+    notes = models.TextField(blank=True, default='')
+    status = models.CharField(max_length=20, default='Pending')
+    draft = models.JSONField(default=dict)
+    pdf = models.BinaryField(null=True, editable=False)
+    revision = models.PositiveIntegerField(default=0)
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='reviewed_recommendations')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    sent_at = models.DateTimeField(null=True)
+    sent_to = models.EmailField(blank=True, default='')
+    rejection_reason = models.CharField(max_length=500, blank=True, default='')
+
+    class Meta:
+        ordering = ['-created_at', '-id']

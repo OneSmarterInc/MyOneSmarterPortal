@@ -5,3 +5,5 @@ python-dotenv==1.2.4
 psycopg2-binary==2.9.13
 Pillow==13.0.0
 gunicorn
+
+reportlab>=4.2,<5

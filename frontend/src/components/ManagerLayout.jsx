@@ -1,3 +1,4 @@
+import RecommendationLetters from './RecommendationLetters';
 import './AdminUI.css';
 import React, { useState } from 'react';
 import { useWorkspacePage } from '../utils/useWorkspacePage';
@@ -14,7 +15,7 @@ import PendingLeaves from './PendingLeaves';
 import ManageWFH from './ManageWFH'; // <-- Import the new component
 
 export default function ManagerLayout() {
-  const [activeTab, navigatePage] = useWorkspacePage('manager', ['dashboard', 'pending-attendance', 'pending-leaves', 'schedule', 'employees', 'leaves', 'wfh', 'report', 'email']);
+  const [activeTab, navigatePage] = useWorkspacePage('manager', ['dashboard', 'pending-attendance', 'pending-leaves', 'schedule', 'employees', 'leaves', 'wfh', 'report', 'email', 'recommendations']);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [createMode,setCreateMode] = useState(false);
   const [approvalFilter,setApprovalFilter] = useState('all');
@@ -24,6 +25,7 @@ export default function ManagerLayout() {
   const addEmployee = () => {navigatePage('dashboard');setCreateMode(true);};
 
   const navigation = [
+    { id: 'recommendations', label: 'Recommendation letters', icon: 'mail' },
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
     { id: 'pending-attendance', label: 'Attendance approvals', icon: 'clock' },
     { id: 'pending-leaves', label: 'Leave requests', icon: 'check' },
@@ -50,6 +52,7 @@ export default function ManagerLayout() {
 
       {/* Main Content Area */}
       <div className="flex-grow p-4 sm:p-8 bg-[#f7f7f8] print:p-0 print:bg-white flex justify-center w-full min-w-0">
+        {activeTab === 'recommendations' && <RecommendationLetters admin />}
         {activeTab === 'dashboard' && <ManagerDashboard setActiveTab={navigatePage} navigate={navigate} createMode={createMode} onCreateMode={setCreateMode} onSelectEmployee={openEmployee} />}
         {activeTab === 'pending-attendance' && <PendingAttendance key={approvalFilter} initialFilter={approvalFilter} />}
         {activeTab === 'pending-leaves' && <PendingLeaves />}

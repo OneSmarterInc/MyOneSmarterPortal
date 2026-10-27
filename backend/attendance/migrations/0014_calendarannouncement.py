@@ -13,7 +13,6 @@ def seed_existing_calendar(apps, schema_editor):
 class Migration(migrations.Migration):
     dependencies = [
         ('attendance', '0013_userprofile_designation_tags'),
-        migrations.RunPython(seed_existing_calendar, migrations.RunPython.noop),
     ]
 
     operations = [
@@ -30,4 +29,5 @@ class Migration(migrations.Migration):
             ],
             options={'ordering': ['-created_at', '-id']},
         ),
+        migrations.RunPython(seed_existing_calendar, migrations.RunPython.noop),
     ]
