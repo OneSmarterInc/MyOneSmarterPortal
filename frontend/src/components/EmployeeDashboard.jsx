@@ -191,7 +191,7 @@ export default function EmployeeDashboard({ user, onNavigate }) {
       <div className="bg-white p-5 sm:px-6 sm:py-6 rounded-xl border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center relative overflow-hidden shrink-0">
         
         <div className="relative z-10 mb-4 md:mb-0">
-          <span className="text-[9px] font-bold text-red-600 uppercase tracking-widest">Employee workspace</span>
+          <span className="text-[9px] font-bold text-red-600 uppercase tracking-widest">{user.role === 'intern' ? 'Intern workspace' : 'Employee workspace'}</span>
           <h2 className="text-2xl sm:text-[26px] font-semibold text-zinc-900 mt-1 tracking-tight">Welcome, {user.username}</h2>
           <p className="text-xs text-slate-500 mt-0.5 font-medium">Start your workday, track your hours, and manage your attendance.</p>
         </div>
