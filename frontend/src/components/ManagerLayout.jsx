@@ -84,9 +84,6 @@ export default function ManagerLayout() {
         }}>
         <div className="flex items-center justify-between p-5 border-b border-slate-100 shrink-0">
           <span className="font-bold text-zinc-900 uppercase tracking-widest text-xs">Administration</span>
-          <button type="button" autoFocus aria-label="Close navigation menu" onClick={() => setIsSidebarOpen(false)} className="p-2 text-slate-500 hover:text-red-600">
-            <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
-          </button>
         </div>
         <nav className="flex flex-col gap-1 px-4 py-4 overflow-y-auto">
           {[

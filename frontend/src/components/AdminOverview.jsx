@@ -54,13 +54,13 @@ export default function AdminOverview({ records, users, pendingLeaves, leaveRequ
           {unavailable ? <p className="admin-empty">{busy ? 'Loading…' : 'Attendance unavailable.'}</p> : <div className="admin-chart" role="img" aria-label={days.map((d, i) => `${d.date}: ${counts[i]} approved`).join(', ')}>{days.map((d, i) => <div className="admin-chart-column" key={d.date}><strong>{counts[i]}</strong><div className="admin-chart-track"><span style={{ height: `${counts[i] / maximum * 100}%` }}/></div><small>{d.label}</small></div>)}</div>}
         </section>
       </div>
-      <div className="calm-column">
+      <div className="calm-column calm-team-column">
         <section className="admin-panel"><div className="admin-panel-title"><h2>Needs your review <span className="calm-count">{unavailable ? '—' : requests.length}</span></h2></div>
           {unavailable || !requests.length ? <p className="admin-empty">{busy ? 'Loading requests…' : error ? 'Requests unavailable.' : 'You’re all caught up. No requests waiting.'}</p> : <div className="calm-requests">{requests.slice(0, 5).map(r => <div className="calm-request" key={r.key}><div><Person person={r.person}/><p>{r.label}<small>{r.date}</small></p></div><button className="admin-button" onClick={r.action} aria-label={`Review ${r.label.toLowerCase()} for ${r.person.username || 'team member'}`}>Review</button></div>)}</div>}
           <div className="calm-review-links"><button className="admin-link" onClick={() => navigate('pending-attendance')}>Attendance requests →</button><button className="admin-link" onClick={() => navigate('pending-leaves')}>Leave & WFH requests →</button></div>
         </section>
-        <section className="admin-panel"><div className="admin-panel-title"><div><h2>Your team</h2><p>{unavailable ? 'Team overview' : `${team.length} employees and interns`}</p></div><button className="admin-link" onClick={() => navigate('employees')}>View all →</button></div>
-          {unavailable || !team.length ? <p className="admin-empty">{busy ? 'Loading team…' : error ? 'Team unavailable.' : 'Add your first team member to get started.'}</p> : <div className="calm-team">{team.slice(0, 6).map(u => <div key={u.id}><Avatar person={u}/><strong>{u.username}</strong><small>{u.role}</small></div>)}</div>}
+        <section className="admin-panel calm-team-panel"><div className="admin-panel-title"><div><h2>Your team</h2><p>{unavailable ? 'Team overview' : `${team.length} employees and interns`}</p></div><button className="admin-link" onClick={() => navigate('employees')}>View all →</button></div>
+          {unavailable || !team.length ? <p className="admin-empty">{busy ? 'Loading team…' : error ? 'Team unavailable.' : 'Add your first team member to get started.'}</p> : <div className="calm-team" tabIndex={0} role="region" aria-label="Employees and interns">{team.map(u => <div key={u.id}><Avatar person={u}/><strong>{u.username}</strong><small>{u.role}</small></div>)}</div>}
         </section>
       </div>
     </div>
