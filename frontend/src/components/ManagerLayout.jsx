@@ -21,15 +21,44 @@ export default function ManagerLayout() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const menuRef = useRef(null);
+  const scrollLock = useRef(null);
+  const unlockPage = () => {
+    if (!scrollLock.current) return;
+    document.body.style.overflow = scrollLock.current.overflow;
+    document.body.style.paddingRight = scrollLock.current.paddingRight;
+    scrollLock.current = null;
+  };
   useEffect(() => {
     const menu = menuRef.current;
     window.dispatchEvent(new CustomEvent('adminMenuState', { detail: isSidebarOpen }));
-    if (!isSidebarOpen) { if (menu.open) menu.close(); return; }
-    menu.showModal();
-    const overflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => { document.body.style.overflow = overflow; if (menu.open) menu.close(); };
+    if (!menu.open && !isSidebarOpen) return;
+    const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 260;
+    if (isSidebarOpen) {
+      if (!scrollLock.current) {
+        const scrollbar = window.innerWidth - document.documentElement.clientWidth;
+        scrollLock.current = { overflow: document.body.style.overflow, paddingRight: document.body.style.paddingRight };
+        const padding = parseFloat(getComputedStyle(document.body).paddingRight) || 0;
+        document.body.style.paddingRight = `${padding + scrollbar}px`;
+        document.body.style.overflow = 'hidden';
+      }
+      if (!menu.open) menu.showModal();
+    }
+    menu.dataset.motion = isSidebarOpen ? 'opening' : 'closing';
+    const animation = menu.animate(
+      isSidebarOpen ? [{ transform: 'translateX(-100%)' }, { transform: 'translateX(0)' }]
+        : [{ transform: 'translateX(0)' }, { transform: 'translateX(-100%)' }],
+      { duration, easing: 'cubic-bezier(.22, 1, .36, 1)', fill: 'forwards' }
+    );
+    let cancelled = false;
+    animation.finished.then(() => {
+      if (cancelled || isSidebarOpen) return;
+      menu.close();
+      unlockPage();
+    }).catch(() => {});
+    return () => { cancelled = true; animation.cancel(); };
   }, [isSidebarOpen]);
+
+  useEffect(() => () => { unlockPage(); }, []);
 
   useEffect(() => {
     const toggleMenu = () => setIsSidebarOpen(prev => !prev);
@@ -47,7 +76,7 @@ export default function ManagerLayout() {
       
       <dialog ref={menuRef} id="admin-navigation" className="admin-sidebar admin-navigation print:hidden"
         aria-label="Administration navigation"
-        onCancel={() => setIsSidebarOpen(false)}
+        onCancel={event => { event.preventDefault(); setIsSidebarOpen(false); }}
         onClick={event => {
           if (event.target !== event.currentTarget) return;
           const rect = event.currentTarget.getBoundingClientRect();
