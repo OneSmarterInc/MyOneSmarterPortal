@@ -18,6 +18,7 @@ class UserProfile(models.Model):
     profile_photo = models.ImageField(upload_to='profiles/', blank=True, null=True)
     
     # Employee Data
+    employee_id = models.CharField(max_length=60, blank=True, default='', db_index=True)
     designation = models.CharField(max_length=120, blank=True, default='')
     tags = models.JSONField(default=list, blank=True)
     joining_date = models.DateField(null=True, blank=True)
