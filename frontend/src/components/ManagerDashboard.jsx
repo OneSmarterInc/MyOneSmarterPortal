@@ -1,3 +1,4 @@
+import { portalAlert, portalConfirm } from './PortalDialog';
 import AdminOverview from './AdminOverview';
 import AttendanceTimeInput from './AttendanceTimeInput';
 import React, { useState, useEffect } from 'react';
@@ -103,7 +104,7 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
       fetchAllData();
       setEditingRecord(null);
     } catch {
-      alert('Failed to update record.');
+      portalAlert('Failed to update record.');
     } finally {
       setIsUpdating(false);
     }
