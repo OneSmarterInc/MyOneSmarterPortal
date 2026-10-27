@@ -8,23 +8,26 @@ export default function ManageLeaves() {
   
   // -- POLICY MANAGEMENT STATE --
   const [policies, setPolicies] = useState([
-    { id: '1', name: 'Permanent Annual Leave', type: 'Fixed Quota', days: 12, details: '12 Days / Year' },
-    { id: '2', name: 'Casual Half-Day', type: 'Half-Day', days: 0.5, details: 'Flexible Half-Day' }
+    { id: '1', name: 'Permanent Annual Leave', days: 12, description: '12 days per year' },
+    { id: '2', name: 'Casual Half-Day', days: 0.5, description: 'Flexible half-day leave' }
   ]);
   
   const [isCreatingPolicy, setIsCreatingPolicy] = useState(false);
-  const [policyForm, setPolicyForm] = useState({
-    name: '',
-    type: 'Fixed Quota',
-    days: '',
-    singleDate: '',
-    startDate: '',
-    endDate: ''
-  });
+  const [policyForm, setPolicyForm] = useState({ name: '', description: '', days: '' });
 
   // -- ASSIGNMENT MODAL STATE --
   const [assignModal, setAssignModal] = useState({ isOpen: false, policy: null });
   const [selectedUsers, setSelectedUsers] = useState([]);
+  const [assignmentSearch, setAssignmentSearch] = useState('');
+  const [assignmentRole, setAssignmentRole] = useState('');
+  const [assignmentTag, setAssignmentTag] = useState('');
+  const tagOptions = [...new Set(users.flatMap(user => user.tags || []))].sort();
+  const filteredUsers = users.filter(user =>
+    (user.username || '').toLowerCase().includes(assignmentSearch.trim().toLowerCase()) &&
+    (!assignmentRole || user.role === assignmentRole) &&
+    (!assignmentTag || (user.tags || []).includes(assignmentTag))
+  );
+  const allVisibleSelected = filteredUsers.length > 0 && filteredUsers.every(user => selectedUsers.includes(user.id));
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ text: '', type: '' });
 
@@ -72,57 +75,23 @@ export default function ManageLeaves() {
   };
 
   // --- 1. POLICY CREATION LOGIC ---
-  const calculateDateRangeDays = (start, end) => {
-    if (!start || !end) return 0;
-    const d1 = new Date(start);
-    const d2 = new Date(end);
-    const diffTime = Math.abs(d2 - d1);
-    return Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; 
-  };
-
   const handleCreatePolicy = (e) => {
     e.preventDefault();
-    let finalDays = 0;
-    let details = '';
-    let finalName = policyForm.name;
-
-    if (policyForm.type === 'Fixed Quota') {
-      finalDays = parseFloat(policyForm.days);
-      details = `${finalDays} Days Quota`;
-    } else if (policyForm.type === 'Single Date') {
-      finalDays = 1;
-      details = `Date: ${policyForm.singleDate}`;
-      finalName = `${finalName} (${policyForm.singleDate})`;
-    } else if (policyForm.type === 'Half-Day') {
-      finalDays = 0.5;
-      details = policyForm.singleDate ? `Date: ${policyForm.singleDate}` : 'Flexible';
-      finalName = `${finalName} [Half-Day]`;
-    } else if (policyForm.type === 'Date Range') {
-      finalDays = calculateDateRangeDays(policyForm.startDate, policyForm.endDate);
-      details = `${policyForm.startDate} to ${policyForm.endDate}`;
-      finalName = `${finalName} (${finalDays} Days)`;
-    }
-
-    if (finalDays <= 0) {
-      alert("Invalid days calculated. Please check your dates.");
+    const name = policyForm.name.trim();
+    const days = Number(policyForm.days);
+    if (!name || !Number.isFinite(days) || days <= 0 || !Number.isInteger(days * 2)) {
+      alert('Enter a leave name and a positive number of days in half-day increments.');
       return;
     }
-
-    const newPolicy = {
-      id: Date.now().toString(),
-      name: finalName,
-      type: policyForm.type,
-      days: finalDays,
-      details: details
-    };
-
-    setPolicies([newPolicy, ...policies]);
+    setPolicies(previous => [...previous, {
+      id: crypto.randomUUID(), name, days, description: policyForm.description.trim()
+    }]);
     setIsCreatingPolicy(false);
-    setPolicyForm({ name: '', type: 'Fixed Quota', days: '', singleDate: '', startDate: '', endDate: '' });
+    setPolicyForm({ name: '', description: '', days: '' });
   };
 
   const handleDeletePolicy = (id) => {
-    if (window.confirm('Delete this policy template?')) {
+    if (window.confirm('Delete this leave type?')) {
       setPolicies(policies.filter(p => p.id !== id));
     }
   };
@@ -131,6 +100,9 @@ export default function ManageLeaves() {
   const openAssignModal = (policy) => {
     setAssignModal({ isOpen: true, policy });
     setSelectedUsers([]);
+    setAssignmentSearch('');
+    setAssignmentRole('');
+    setAssignmentTag('');
     setMsg({ text: '', type: '' });
   };
 
@@ -139,8 +111,10 @@ export default function ManageLeaves() {
   };
 
   const toggleAllUsers = () => {
-    if (selectedUsers.length === users.length) setSelectedUsers([]);
-    else setSelectedUsers(users.map(u => u.id));
+    const visibleIds = new Set(filteredUsers.map(user => user.id));
+    setSelectedUsers(previous => allVisibleSelected
+      ? previous.filter(id => !visibleIds.has(id))
+      : [...new Set([...previous, ...visibleIds])]);
   };
 
   const submitAssignment = async () => {
@@ -194,10 +168,10 @@ export default function ManageLeaves() {
         {/* LEFT COLUMN: LEAVE POLICIES */}
         <div className="bg-slate-50 rounded-lg border border-slate-200 flex flex-col max-h-[720px]">
           <div className="p-5 flex justify-between items-center shrink-0">
-            <h3 className="text-xs font-semibold normal-case tracking-normal text-zinc-900">Leave templates</h3>
+            <h3 className="text-xs font-semibold normal-case tracking-normal text-zinc-900">Leave types</h3>
             {!isCreatingPolicy && (
               <button onClick={() => setIsCreatingPolicy(true)} className="admin-button primary ">
-                New template
+                Create leave
               </button>
             )}
           </div>
@@ -206,53 +180,25 @@ export default function ManageLeaves() {
             
             {isCreatingPolicy && (
               <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-none mb-2 animate-fade-in">
-                <h4 className="text-xs font-semibold normal-case text-slate-800 mb-4 border-b border-slate-100 pb-2">Create template</h4>
+                <h4 className="text-xs font-semibold normal-case text-slate-800 mb-4 border-b border-slate-100 pb-2">Create leave</h4>
                 <form onSubmit={handleCreatePolicy} className="space-y-4">
                   <div>
-                    <label htmlFor="manageleaves-field-1" className="block text-xs font-bold normal-case text-slate-500 mb-1.5">Policy Name</label>
+                    <label htmlFor="manageleaves-field-1" className="block text-xs font-bold normal-case text-slate-500 mb-1.5">Leave name</label>
                     <input id="manageleaves-field-1" type="text" required placeholder="e.g. Summer Break, Maternity" value={policyForm.name} onChange={e => setPolicyForm({...policyForm, name: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded-lg" />
                   </div>
                   
                   <div>
-                    <label htmlFor="manageleaves-field-2" className="block text-xs font-bold normal-case text-slate-500 mb-1.5">Policy Type</label>
-                    <select id="manageleaves-field-2" value={policyForm.type} onChange={e => setPolicyForm({...policyForm, type: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded-lg bg-white">
-                      <option value="Fixed Quota">Fixed Annual/Monthly Quota</option>
-                      <option value="Single Date">Single Specific Date</option>
-                      <option value="Date Range">Date Range (Multiple Days)</option>
-                      <option value="Half-Day">Half-Day Leave</option>
-                    </select>
+                    <label htmlFor="leave-description" className="block text-sm text-slate-600 mb-1.5">Description</label>
+                    <textarea id="leave-description" rows={3} maxLength={1000} value={policyForm.description} onChange={e => setPolicyForm({...policyForm, description: e.target.value})} placeholder="Describe when this leave can be used" className="w-full border border-slate-300 p-2.5 rounded-lg resize-y" />
                   </div>
-
-                  {policyForm.type === 'Fixed Quota' && (
-                    <div>
-                      <label htmlFor="manageleaves-field-3" className="block text-xs font-bold normal-case text-slate-500 mb-1.5">Total Days</label>
-                      <input id="manageleaves-field-3" type="number" required min="0.5" step="0.5" value={policyForm.days} onChange={e => setPolicyForm({...policyForm, days: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded-lg" />
-                    </div>
-                  )}
-
-                  {(policyForm.type === 'Single Date' || policyForm.type === 'Half-Day') && (
-                    <div>
-                      <label className="block text-xs font-bold normal-case text-slate-500 mb-1.5">Select Date {policyForm.type === 'Half-Day' && '(Optional)'}</label>
-                      <input type="date" required={policyForm.type === 'Single Date'} value={policyForm.singleDate} onChange={e => setPolicyForm({...policyForm, singleDate: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded-lg" />
-                    </div>
-                  )}
-
-                  {policyForm.type === 'Date Range' && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label htmlFor="manageleaves-field-4" className="block text-xs font-bold normal-case text-slate-500 mb-1.5">Start Date</label>
-                        <input id="manageleaves-field-4" type="date" required value={policyForm.startDate} onChange={e => setPolicyForm({...policyForm, startDate: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded-lg" />
-                      </div>
-                      <div>
-                        <label htmlFor="manageleaves-field-5" className="block text-xs font-bold normal-case text-slate-500 mb-1.5">End Date</label>
-                        <input id="manageleaves-field-5" type="date" required value={policyForm.endDate} onChange={e => setPolicyForm({...policyForm, endDate: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded-lg" />
-                      </div>
-                    </div>
-                  )}
+                  <div>
+                    <label htmlFor="leave-total-days" className="block text-sm text-slate-600 mb-1.5">Total days</label>
+                    <input id="leave-total-days" type="number" required min="0.5" step="0.5" value={policyForm.days} onChange={e => setPolicyForm({...policyForm, days: e.target.value})} className="w-full border border-slate-300 p-2.5 rounded-lg" />
+                  </div>
 
                   <div className="flex justify-end gap-2 pt-3 border-t border-slate-100 mt-2">
                     <button type="button" onClick={() => setIsCreatingPolicy(false)} className="admin-button  ">Cancel</button>
-                    <button type="submit" className="admin-button primary ">Save template</button>
+                    <button type="submit" className="admin-button primary ">Save leave</button>
                   </div>
                 </form>
               </div>
@@ -264,10 +210,7 @@ export default function ManageLeaves() {
                 <div className="flex justify-between items-start">
                   <div>
                     <h4 className="text-sm font-semibold text-zinc-900">{p.name}</h4>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-xs font-semibold normal-case tracking-normal">{p.type}</span>
-                      <span className="text-xs font-semibold text-slate-500">{p.details}</span>
-                    </div>
+                    {p.description && <p className="text-sm text-slate-500 mt-2 whitespace-pre-wrap break-words">{p.description}</p>}
                   </div>
                   <span className="text-sm font-semibold text-emerald-600">{p.days} Day{p.days !== 1 ? 's' : ''}</span>
                 </div>
@@ -284,7 +227,7 @@ export default function ManageLeaves() {
             ))}
             
             {policies.length === 0 && !isCreatingPolicy && (
-              <div className="text-center p-8 text-slate-400 text-xs font-medium bg-white rounded-xl border border-slate-200 border-dashed">No policies created yet. Create one to assign it.</div>
+              <div className="text-center p-8 text-slate-400 text-xs font-medium bg-white rounded-xl border border-slate-200 border-dashed">No leave types created yet. Create leave to get started.</div>
             )}
           </div>
         </div>
@@ -327,7 +270,7 @@ export default function ManageLeaves() {
                       <div className="flex flex-col items-end gap-3">
                         {userPoliciesCount > 0 ? (
                           <span className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded text-xs font-semibold normal-case tracking-normal border border-emerald-200">
-                            {userPoliciesCount} Active Policies
+                            {userPoliciesCount} Assigned leaves
                           </span>
                         ) : (
                           <span className="h-4"></span>
@@ -378,7 +321,7 @@ export default function ManageLeaves() {
                       })}
                     </div>
                   ) : (
-                    <div className="text-xs font-medium text-slate-400 p-6 bg-slate-50 rounded-xl border border-slate-200 border-dashed text-center">No active leave policies assigned to this employee.</div>
+                    <div className="text-xs font-medium text-slate-400 p-6 bg-slate-50 rounded-xl border border-slate-200 border-dashed text-center">No active leaves assigned to this employee.</div>
                   )}
                 </div>
 
@@ -436,7 +379,7 @@ export default function ManageLeaves() {
       {/* ASSIGNMENT MODAL */}
       {assignModal.isOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[80] p-4 backdrop-blur-sm">
-          <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-md border border-slate-200 flex flex-col max-h-[90vh]">
+          <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-xl border border-slate-200 flex flex-col max-h-[90vh] overflow-y-auto">
             
             <div className="mb-5 shrink-0">
               <h3 className="text-base font-semibold text-zinc-900 normal-case tracking-normal">Assign leave</h3>
@@ -454,18 +397,31 @@ export default function ManageLeaves() {
               </div>
             )}
 
+            <div className="space-y-3 mb-4 shrink-0">
+              <input type="search" aria-label="Search employees by name" placeholder="Search by name" value={assignmentSearch} onChange={e => setAssignmentSearch(e.target.value)} className="w-full border border-slate-300 p-2.5 rounded-lg" />
+              <div className="grid grid-cols-2 gap-3">
+                <select aria-label="Filter assignment by role" value={assignmentRole} onChange={e => setAssignmentRole(e.target.value)} className="w-full border border-slate-300 p-2.5 bg-white rounded-lg">
+                  <option value="">Employees & interns</option><option value="employee">Employees</option><option value="intern">Interns</option>
+                </select>
+                <select aria-label="Filter assignment by tag" value={assignmentTag} onChange={e => setAssignmentTag(e.target.value)} className="w-full border border-slate-300 p-2.5 bg-white rounded-lg">
+                  <option value="">All tags</option>{tagOptions.map(tag => <option key={tag} value={tag}>{tag}</option>)}
+                </select>
+              </div>
+              {(assignmentSearch || assignmentRole || assignmentTag) && <button type="button" className="admin-link" onClick={() => {setAssignmentSearch('');setAssignmentRole('');setAssignmentTag('');}}>Clear filters</button>}
+            </div>
             <div className="flex justify-between items-center mb-3 shrink-0">
-              <label className="text-xs font-semibold normal-case tracking-normal text-slate-500">Select Employees</label>
-              <button type="button" onClick={toggleAllUsers} className="admin-button  ">
-                {selectedUsers.length === users.length && users.length > 0 ? 'Deselect All' : 'Select All'}
+              <label className="text-xs font-semibold normal-case tracking-normal text-slate-500">Select people</label>
+              <button type="button" disabled={loading || filteredUsers.length === 0} onClick={toggleAllUsers} className="admin-button  ">
+                {allVisibleSelected ? 'Deselect visible' : 'Select visible'}
               </button>
             </div>
             
             <div className="overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2 no-scrollbar flex-grow shadow-inner min-h-[150px]">
-              {users.length > 0 ? users.map(u => (
+              {filteredUsers.length > 0 ? filteredUsers.map(u => (
                 <label key={u.id} className="flex items-center gap-4 p-3 hover:bg-white rounded-lg cursor-pointer transition border border-transparent hover:border-slate-200">
                   <input 
-                    type="checkbox" 
+                    type="checkbox"
+                    disabled={loading} 
                     checked={selectedUsers.includes(u.id)}
                     onChange={() => toggleUser(u.id)}
                     className="w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500 cursor-pointer"
@@ -476,16 +432,17 @@ export default function ManageLeaves() {
                   </div>
                 </label>
               )) : (
-                <div className="text-xs text-slate-400 text-center p-6">No eligible employees.</div>
+                <div className="text-xs text-slate-400 text-center p-6">No people match these filters.</div>
               )}
             </div>
 
-            <div className="flex justify-between items-center mt-5 pt-5 border-t border-slate-100 shrink-0">
+            <div className="flex flex-wrap gap-3 justify-between items-center mt-5 pt-5 border-t border-slate-100 shrink-0">
               <span className="text-xs font-semibold text-slate-500 normal-case tracking-normal">
-                {selectedUsers.length} Selected
+                {selectedUsers.length} selected · {filteredUsers.length} shown
+                {selectedUsers.some(id => !filteredUsers.some(user => user.id === id)) && <span className="block text-xs font-normal mt-1">Includes selections hidden by filters</span>}
               </span>
               <div className="flex gap-3">
-                <button type="button" onClick={() => setAssignModal({isOpen: false, policy: null})} className="admin-button  ">
+                <button type="button" disabled={loading} onClick={() => setAssignModal({isOpen: false, policy: null})} className="admin-button  ">
                   Cancel
                 </button>
                 <button onClick={submitAssignment} disabled={loading || selectedUsers.length === 0} className="admin-button primary ">
