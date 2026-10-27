@@ -3,7 +3,7 @@ import { formatAttendanceTime } from '../utils/attendanceTime';
 import { Person, Avatar, Status, Icon, localDate } from './AdminUI';
 import './CalmDashboard.css';
 
-export default function AdminOverview({ records, users, pendingLeaves, leaveRequests = [], busy, error, retry, navigate, addEmployee }) {
+export default function AdminOverview({ records, users, pendingLeaves, leaveRequests = [], busy, error, retry, navigate, addEmployee, onSelectEmployee }) {
   const now = new Date();
   const today = localDate(now);
   const todays = records.filter(r => r.date === today);
@@ -60,7 +60,7 @@ export default function AdminOverview({ records, users, pendingLeaves, leaveRequ
           <div className="calm-review-links"><button className="admin-link" onClick={() => navigate('pending-attendance')}>Attendance requests →</button><button className="admin-link" onClick={() => navigate('pending-leaves')}>Leave & WFH requests →</button></div>
         </section>
         <section className="admin-panel calm-team-panel"><div className="admin-panel-title"><div><h2>Your team</h2><p>{unavailable ? 'Team overview' : `${team.length} employees and interns`}</p></div><button className="admin-link" onClick={() => navigate('employees')}>View all →</button></div>
-          {unavailable || !team.length ? <p className="admin-empty">{busy ? 'Loading team…' : error ? 'Team unavailable.' : 'Add your first team member to get started.'}</p> : <div className="calm-team" tabIndex={0} role="region" aria-label="Employees and interns">{team.map(u => <div key={u.id}><Avatar person={u}/><strong>{u.username}</strong><small>{u.role}</small></div>)}</div>}
+          {unavailable || !team.length ? <p className="admin-empty">{busy ? 'Loading team…' : error ? 'Team unavailable.' : 'Add your first team member to get started.'}</p> : <div className="calm-team" tabIndex={0} role="region" aria-label="Employees and interns">{team.map(u => <button type="button" key={u.id} className="calm-team-member" aria-label={`View ${u.username} in people directory`} onClick={() => onSelectEmployee(u.id)}><Avatar person={u}/><strong>{u.username}</strong><small>{u.role}</small></button>)}</div>}
         </section>
       </div>
     </div>
