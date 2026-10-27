@@ -1,5 +1,6 @@
 from datetime import date
 from email.utils import formataddr
+from hashlib import sha256
 from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -13,7 +14,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .letter_auth import LetterAuthentication
 from .letter_pdf import render_letter, CONTACT, SIGNATORY, TITLE
-from .letter_signing import sign_letter, LetterSigningError
+from .letter_signing import sign_letter, verify_signed_letter, LetterSigningError
 from .models import RecommendationRequest, SMTPSettings
 
 
@@ -144,6 +145,11 @@ def send(request, pk):
             except LetterSigningError as exc:
                 return Response({'error': str(exc)}, status=503)
             item.draft = {**item.draft, '_signed_revision': item.revision}
+        try:
+            signed_pdf = bytes(item.pdf)
+            verify_signed_letter(signed_pdf)
+        except LetterSigningError as exc:
+            return Response({'error': str(exc)}, status=503)
         item.status = 'Sending'
         item.sent_to = item.user.email
         item.reviewed_by = request.user
@@ -163,8 +169,9 @@ def send(request, pk):
                 f"Kind regards,\n{SIGNATORY}\n{TITLE}\nOne Smarter, Inc.\n{CONTACT}")
         message = EmailMessage('Your Letter of Recommendation - One Smarter, Inc.', body,
                                formataddr((config.sender_name, config.sender_email)), [item.sent_to],
-                               reply_to=[CONTACT], connection=connection)
-        message.attach(f'OneSmarter_Recommendation_{item.pk}.pdf', bytes(item.pdf), 'application/pdf')
+                               reply_to=[CONTACT], connection=connection,
+                               headers={'X-OneSmarter-PDF-SHA256': sha256(signed_pdf).hexdigest()})
+        message.attach(f'OneSmarter_Recommendation_{item.pk}_signed.pdf', signed_pdf, 'application/pdf')
         if message.send(fail_silently=False) != 1:
             raise RuntimeError('Email not accepted')
     except Exception:

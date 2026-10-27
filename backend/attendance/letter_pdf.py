@@ -12,10 +12,48 @@ from reportlab.lib.styles import ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.lib.colors import HexColor
+from pyhanko.pdf_utils.incremental_writer import IncrementalPdfFileWriter
+from pyhanko.sign.fields import append_signature_field, SigFieldSpec
 
 CONTACT = 'akshay.kumar@onesmarter.com'
 SIGNATORY = 'Akshay Agrawal'
 TITLE = 'Global Delivery Manager'
+SIGNATURE_FIELD = 'OneSmarterApproval'
+SIGNATURE_WIDTH, SIGNATURE_HEIGHT = 190, 104
+
+
+def draw_signature_box(c, signer=None, signed_at=None):
+    """Word-style signature line; the signed appearance replaces the preview."""
+    normal, _ = fonts()
+    c.setFillColor(HexColor('#ffffff'))
+    c.rect(0, 0, SIGNATURE_WIDTH, SIGNATURE_HEIGHT, stroke=0, fill=1)
+    c.setStrokeColor(HexColor('#8c6e36')); c.setLineWidth(.6)
+    c.rect(7, 85, 7, 9, fill=0, stroke=1)
+    c.line(9, 91, 12, 91); c.line(9, 88, 12, 88)
+    c.setFillColor(HexColor('#c7192d')); c.setFont(normal, 8)
+    c.drawString(22, 87, 'Digitally signed' if signed_at else 'Awaiting approval')
+    c.setFillColor(HexColor('#111111')); c.setFont(normal, 24)
+    c.drawString(4, 58, 'X')
+    c.setFont(normal, 14); c.drawString(27, 60, SIGNATORY)
+    c.setStrokeColor(HexColor('#111111')); c.setLineWidth(.8)
+    c.line(0, 54, SIGNATURE_WIDTH, 54)
+    c.setFont(normal, 9); c.drawString(8, 41, SIGNATORY)
+    c.drawString(8, 28, TITLE)
+    c.setFont(normal, 8)
+    label = 'Signed by: ' + (signer or SIGNATORY)
+    # Fit certificate names without overflowing the signature box.
+    size = min(8, 8 * (SIGNATURE_WIDTH - 16) / max(c.stringWidth(label, normal, 8), 1))
+    c.setFont(normal, size); c.drawString(8, 15, label)
+    c.setFont(normal, 7)
+    c.drawString(8, 3, signed_at or 'Signature and signing date are added after approval.')
+
+
+def signature_artwork(signer, signed_at):
+    stream = BytesIO()
+    c = canvas.Canvas(stream, pagesize=(SIGNATURE_WIDTH, SIGNATURE_HEIGHT))
+    draw_signature_box(c, signer, signed_at)
+    c.save()
+    return stream.getvalue()
 
 
 def fonts():
@@ -71,7 +109,21 @@ def render_letter(data):
     paragraph(f"{d['name']} demonstrated {d['strengths']}. For example, {d['example']}.")
     paragraph(f"Based on their contributions, I recommend {d['name']} for {d['recommendation_purpose']}. {d['endorsement']}")
     paragraph(f'Please contact me at <b>{CONTACT}</b> if you require any additional information.', 18)
-    # Keep the entire sign-off together, even when the letter spans pages.
-    paragraph(f'Sincerely,<br/><br/><b>{SIGNATORY}</b><br/>{TITLE}<br/>One Smarter, Inc.<br/>{CONTACT}', 0)
+    # Reserve the full sign-off so the visible signature never covers letter text.
+    if y - (SIGNATURE_HEIGHT + 36) < 70:
+        c.showPage(); header(); y = 640
+    paragraph('Sincerely,', 16)
+    signature_bottom = y - SIGNATURE_HEIGHT
+    c.saveState(); c.translate(68, signature_bottom)
+    draw_signature_box(c)
+    c.restoreState()
     c.save()
-    return stream.getvalue()
+    writer = IncrementalPdfFileWriter(BytesIO(stream.getvalue()))
+    append_signature_field(writer, SigFieldSpec(
+        sig_field_name=SIGNATURE_FIELD, on_page=page - 1,
+        box=(68, signature_bottom, 68 + SIGNATURE_WIDTH, y),
+        readable_field_name='OneSmarter manager approval',
+    ))
+    output = BytesIO()
+    writer.write(output)
+    return output.getvalue()

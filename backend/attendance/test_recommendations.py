@@ -1,5 +1,8 @@
 from datetime import date, datetime, timedelta, timezone
 from io import BytesIO
+from email import policy
+from email.parser import BytesParser
+from hashlib import sha256
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -104,6 +107,17 @@ class RecommendationTests(TestCase):
         self.assertTrue(signed.startswith(preview))
         signatures = PdfFileReader(BytesIO(signed)).embedded_signatures
         self.assertEqual(len(signatures), 1)
+        x1, y1, x2, y2 = signatures[0].sig_field['/Rect']
+        self.assertGreater(x2 - x1, 180)
+        self.assertGreater(y2 - y1, 90)
+        self.assertGreaterEqual(y1, 70)
+        # Check the MIME payload actually delivered by SMTP, not only the
+        # in-memory attachment tuple, against the committed database bytes.
+        mime = BytesParser(policy=policy.default).parsebytes(mail.outbox[0].message().as_bytes())
+        attachment = next(mime.iter_attachments())
+        self.assertTrue(attachment.get_filename().endswith('_signed.pdf'))
+        self.assertEqual(attachment.get_payload(decode=True), bytes(RecommendationRequest.objects.get(pk=pk).pdf))
+        self.assertEqual(str(mime['X-OneSmarter-PDF-SHA256']).strip(), sha256(signed).hexdigest())
         result = validate_pdf_signature(signatures[0], signer_validation_context=ValidationContext(
             trust_roots=[signatures[0].signer_cert], allow_fetching=False))
         self.assertTrue(result.intact and result.valid and result.trusted)
@@ -173,6 +187,30 @@ class RecommendationTests(TestCase):
         self.assertIn('expired', response.data['error'])
         self.assertEqual(RecommendationRequest.objects.get(pk=pk).status, 'Draft')
         self.assertEqual(len(mail.outbox), 0)
+
+    def test_unsigned_signer_output_is_never_emailed(self):
+        pk = self.request_letter(); self.save(pk)
+        preview = bytes(RecommendationRequest.objects.get(pk=pk).pdf)
+        with patch('attendance.recommendations.sign_letter', return_value=preview):
+            response = self.client.post(f'/recommendations/{pk}/send/', {'revision': 1}, format='json')
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(len(mail.outbox), 0)
+        self.assertEqual(RecommendationRequest.objects.get(pk=pk).status, 'Draft')
+
+    def test_long_letter_keeps_signature_on_last_page(self):
+        pk = self.request_letter()
+        self.fields.update(responsibilities=('Delivering reliable systems. ' * 24)[:700],
+                           achievement=('Improved team processes. ' * 28)[:700],
+                           example=('Provided clear documentation. ' * 23)[:700],
+                           endorsement=('Recommended for further study. ' * 23)[:700])
+        self.save(pk)
+        response = self.client.post(f'/recommendations/{pk}/send/', {'revision': 1}, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+        reader = PdfFileReader(BytesIO(mail.outbox[0].attachments[0][1]))
+        self.assertGreater(reader.root['/Pages']['/Count'], 1)
+        sig = reader.embedded_signatures[0]
+        self.assertGreaterEqual(sig.sig_field['/Rect'][1], 70)
+        self.assertEqual(sig.sig_field.raw_get('/P'), reader.find_page_for_modification(-1)[0])
 
     def test_missing_joining_date_and_invalid_end_date(self):
         pk = self.request_letter(); self.auth(self.manager)
