@@ -165,14 +165,14 @@ export default function EmployeeDashboard({ user }) {
   };
 
   return (
-    <div className="w-full max-w-7xl flex flex-col h-full gap-4">
+    <div className="employee-workspace w-full max-w-7xl flex flex-col h-full gap-5">
       
       {/* Compact Welcome Panel */}
-      <div className="bg-white p-4 sm:px-6 sm:py-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center relative overflow-hidden shrink-0">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-red-400"></div>
+      <div className="bg-white p-5 sm:px-6 sm:py-6 rounded-xl border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center relative overflow-hidden shrink-0">
+        
         <div className="relative z-10 mb-4 md:mb-0">
-          <span className="text-[9px] font-bold text-red-600 uppercase tracking-widest">Portal Dashboard</span>
-          <h2 className="text-xl sm:text-2xl font-black text-zinc-900 mt-0.5 tracking-tight">Welcome, {user.username}</h2>
+          <span className="text-[9px] font-bold text-red-600 uppercase tracking-widest">Employee workspace</span>
+          <h2 className="text-2xl sm:text-[26px] font-semibold text-zinc-900 mt-1 tracking-tight">Welcome, {user.username}</h2>
           <p className="text-xs text-slate-500 mt-0.5 font-medium">Record your attendance and monitor performance metrics.</p>
         </div>
         
@@ -181,7 +181,7 @@ export default function EmployeeDashboard({ user }) {
             <button 
               onClick={handleCheckIn} 
               disabled={loading}
-              className="w-full md:w-auto bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition shadow-sm"
+              className="admin-button primary w-full md:w-auto"
             >
               {loading ? 'Processing...' : 'Check In Now'}
             </button>
@@ -198,7 +198,7 @@ export default function EmployeeDashboard({ user }) {
               <button 
                 onClick={handleCheckOut} 
                 disabled={loading}
-                className="w-full md:w-auto bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white px-6 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider transition shadow-sm"
+                className="admin-button primary w-full md:w-auto"
               >
                 {loading ? 'Processing...' : 'Check Out Now'}
               </button>
@@ -286,14 +286,14 @@ export default function EmployeeDashboard({ user }) {
       </div>
 
       {/* Compact Weekly View Section */}
-      <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-sm flex-grow flex flex-col">
+      <div className="admin-panel bg-white p-4 sm:p-6 flex-grow flex flex-col">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 pb-3 border-b border-slate-100 shrink-0">
-          <h3 className="text-sm sm:text-base font-bold text-zinc-900 uppercase tracking-wide">
+          <h3 className="text-sm sm:text-base font-semibold text-zinc-900">
             Week of {weekStart.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
           </h3>
           <div className="flex w-full sm:w-auto gap-2">
-            <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() - 7)))} className="flex-1 sm:flex-none px-4 py-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600 uppercase transition shadow-sm text-center">Prev Week</button>
-            <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() + 7)))} className="flex-1 sm:flex-none px-4 py-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-lg text-[10px] font-bold text-slate-600 uppercase transition shadow-sm text-center">Next Week</button>
+            <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() - 7)))} className="admin-button flex-1 sm:flex-none">Prev Week</button>
+            <button onClick={() => setCurrentDate(new Date(currentDate.setDate(currentDate.getDate() + 7)))} className="admin-button flex-1 sm:flex-none">Next Week</button>
           </div>
         </div>
         
