@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useWorkspacePage } from '../utils/useWorkspacePage';
 import WorkspaceNavigation from './WorkspaceNavigation';
 import './AdminUI.css';
 import { Icon } from './AdminUI';
@@ -8,11 +9,11 @@ import EmployeeLeave from './EmployeeLeave';
 import EmployeeWFH from './EmployeeWFH';
 
 export default function EmployeeLayout({ user }) {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, navigatePage] = useWorkspacePage('employee', ['dashboard', 'leave', 'wfh', 'profile']);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const navigate = tab => {
-    setActiveTab(tab);
+    navigatePage(tab);
     setIsSidebarOpen(false);
   };
 
