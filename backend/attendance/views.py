@@ -336,8 +336,8 @@ def manage_user(request, pk):
         details = employee_details(request.data)
         reset_password = request.data.get('reset_password') is True
         new_password = request.data.get('password')
-        if reset_password and (not isinstance(new_password, str) or not new_password.strip()):
-            return Response({'error': 'Enter a new password to reset it.'}, status=status.HTTP_400_BAD_REQUEST)
+        if reset_password and (not isinstance(new_password, str) or len(new_password) < 8 or not new_password.strip()):
+            return Response({'error': 'Enter a temporary password with at least 8 characters.'}, status=status.HTTP_400_BAD_REQUEST)
         birth_date = validated_birth_date(request.data['date_of_birth']) if 'date_of_birth' in request.data else None
         user.email = request.data.get('email', user.email)
         
@@ -369,7 +369,7 @@ def manage_user(request, pk):
                 user.profile.date_of_birth = birth_date
             user.profile.save()
 
-        return Response({'message': 'User updated successfully'}, status=status.HTTP_200_OK)
+        return Response({'message': 'Password reset successful. Employee must change it at next login.' if reset_password else 'User updated successfully', 'password_reset': reset_password}, status=status.HTTP_200_OK)
     
 @api_view(['GET', 'PUT'])
 def employee_profile(request, user_id):
