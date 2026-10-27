@@ -13,6 +13,7 @@ export default function EmployeeProfile({ user }) {
     profile_photo: null
   });
   
+  const [employment, setEmployment] = useState({ designation: '', tags: [] });
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
   
@@ -40,6 +41,7 @@ export default function EmployeeProfile({ user }) {
         joining_date: res.data.joining_date || '',
         date_of_birth: res.data.date_of_birth || '',
       });
+      setEmployment({ designation: res.data.designation || '', tags: res.data.tags || [] });
       setPhotoPreview(res.data.profile_photo);
     } catch (err) {
       console.error(err);
@@ -104,6 +106,14 @@ export default function EmployeeProfile({ user }) {
   return (
     <div className="w-full max-w-4xl space-y-6">
       
+      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <h2 className="text-lg font-bold mb-1">Employment Details</h2>
+        <p className="text-xs text-slate-500 mb-4">Managed by your administrator.</p>
+        <p className="text-xs font-bold text-slate-500">Designation</p>
+        <p className="text-sm font-semibold mt-1 mb-3">{employment.designation || 'Not assigned'}</p>
+        <p className="text-xs font-bold text-slate-500 mb-2">Tags</p>
+        <div className="flex flex-wrap gap-2">{employment.tags.length ? employment.tags.map(tag => <span key={tag} className="rounded-full bg-indigo-50 text-indigo-700 px-3 py-1 text-xs break-all">{tag}</span>) : <span className="text-sm text-slate-500">No tags assigned</span>}</div>
+      </div>
       {/* Personal Info Card */}
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
         <h2 className="text-xl font-bold text-zinc-900 mb-6">Personal Information</h2>
