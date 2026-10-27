@@ -11,6 +11,9 @@ export default function ManageEmployees() {
   const [birthDate, setBirthDate] = useState('');
   const [today] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [joiningDate, setJoiningDate] = useState('');
+  const [designation, setDesignation] = useState('');
+  const [tags, setTags] = useState('');
+  const [resetPassword, setResetPassword] = useState(false);
   const [password, setPassword] = useState('');
   const [photoPreview, setPhotoPreview] = useState(null);
   
@@ -52,6 +55,9 @@ export default function ManageEmployees() {
       return;
     }
     setBirthDate(profile.date_of_birth || '');
+    setDesignation(profile.designation || '');
+    setTags((profile.tags || []).join(', '));
+    setResetPassword(false);
     setEditingUser(u);
     setUsername(u.username);
     setEmail(u.email);
@@ -71,7 +77,9 @@ export default function ManageEmployees() {
         username, 
         email, 
         role, 
-        password,
+        designation,
+        tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
+        ...(resetPassword ? { reset_password: true, password } : {}),
         joining_date: joiningDate,
         date_of_birth: birthDate || null 
       });
@@ -80,7 +88,7 @@ export default function ManageEmployees() {
       fetchUsers();
       setTimeout(() => setEditingUser(null), 1500);
     } catch (err) {
-      setMsg({ text: err.response?.data?.error || 'Update failed.', type: 'error' });
+      setMsg({ text: err.response?.data?.error || (err.response?.data ? JSON.stringify(err.response.data) : 'Update failed.'), type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -110,7 +118,7 @@ export default function ManageEmployees() {
         </div>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
         <table className="w-full text-left border-collapse text-sm">
           <thead>
             <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs uppercase">
@@ -135,6 +143,8 @@ export default function ManageEmployees() {
                   <div>
                     <div className="font-bold text-zinc-900">{u.username}</div>
                     <div className="text-[10px] font-medium text-slate-500">ID: #{u.id}</div>
+                    <div className="text-xs text-slate-600 mt-1">{u.designation || 'No designation'}</div>
+                    <div className="flex flex-wrap gap-1 mt-1">{(u.tags || []).map(tag => <span key={tag} className="rounded-full bg-indigo-50 text-indigo-700 px-2 py-0.5 text-[10px] break-all">{tag}</span>)}</div>
                   </div>
                 </td>
                 <td className="p-4 text-slate-600">{u.email}</td>
@@ -182,6 +192,8 @@ export default function ManageEmployees() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-4">
+              <div><p className="text-xs text-slate-500">Designation</p><p className="font-semibold">{viewingProfile.designation || '-'}</p></div>
+              <div><p className="text-xs text-slate-500">Tags</p><p className="break-words">{(viewingProfile.tags || []).join(', ') || '-'}</p></div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">First Name</label>
                 <div className="text-sm font-semibold text-slate-800">{viewingProfile.first_name || '-'}</div>
@@ -278,9 +290,24 @@ export default function ManageEmployees() {
                 <p className="mt-1 text-xs text-slate-500">Celebrations appear seven days before their birthday. Clear this field to remove it.</p>
               </div>
 
+              <div>
+                <label htmlFor="edit-employee-designation" className="block text-xs font-bold text-slate-600 mb-1">Designation</label>
+                <input id="edit-employee-designation" type="text" maxLength={120} value={designation} onChange={e => setDesignation(e.target.value)} placeholder="e.g. Software Engineer" className="w-full border border-slate-300 rounded p-2 text-sm" />
+              </div>
+              <div>
+                <label htmlFor="edit-employee-tags" className="block text-xs font-bold text-slate-600 mb-1">Tags</label>
+                <input id="edit-employee-tags" type="text" value={tags} onChange={e => setTags(e.target.value)} placeholder="e.g. Engineering, Remote" className="w-full border border-slate-300 rounded p-2 text-sm" />
+                <p className="mt-1 text-xs text-slate-500">Separate tags with commas. Up to 20 tags, 40 characters each.</p>
+              </div>
               <div className="pt-2 border-t border-slate-100">
-                <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1">Reset Password (Optional)</label>
-                <input type="password" placeholder="Leave blank to keep current" value={password} onChange={e => setPassword(e.target.value)} className="w-full border border-slate-300 p-2 text-sm outline-none focus:border-red-500 rounded" />
+                <label className="flex items-center gap-2 text-xs font-bold text-slate-600">
+                  <input type="checkbox" checked={resetPassword} onChange={e => { setResetPassword(e.target.checked); setPassword(''); }} />
+                  Reset this person's password
+                </label>
+                {resetPassword && <>
+                  <input aria-label="New temporary password" name="employee-new-password" autoComplete="new-password" type="password" required value={password} onChange={e => setPassword(e.target.value)} className="mt-2 w-full border border-slate-300 p-2 text-sm rounded" />
+                  <p className="mt-1 text-xs text-slate-500">They will be asked to change this temporary password at their next login.</p>
+                </>}
               </div>
 
               <div className="flex justify-end gap-3 mt-6">
