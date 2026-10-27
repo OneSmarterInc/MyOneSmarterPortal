@@ -114,7 +114,7 @@ export default function ManagerReport() {
         <div className="bg-white p-6 rounded-xl border border-slate-200">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div><label htmlFor="report-employee" className="block text-sm mb-1">Select Employee</label>
-              <select id="report-employee" disabled={fetching || users.length === 0} value={selectedUser} onChange={resetPage(setSelectedUser)} className="w-full border border-slate-300 p-2.5 rounded-lg bg-white">
+              <select id="report-employee" disabled={fetching || users.length === 0} value={selectedUser} onChange={e => resetPage(setSelectedUser)(e.target.value)} className="w-full border border-slate-300 p-2.5 rounded-lg bg-white">
                 <option value="">{fetching ? 'Loading employees…' : users.length ? 'All employees' : 'No employees available'}</option>
                 {users.map(u => <option key={u.id} value={u.id}>@{u.username} ({u.email})</option>)}
               </select>
