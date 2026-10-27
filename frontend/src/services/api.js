@@ -38,3 +38,4 @@ export const deleteLeaveRequest = (id) => API.delete(`leaves/${id}/`);
 export const getBirthdays = () => API.get('birthdays/');
 
 export default API;
+export const getCalendarAnnouncements = () => API.get('calendar-announcements/');
