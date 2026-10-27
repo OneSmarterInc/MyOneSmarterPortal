@@ -1,3 +1,4 @@
+import { formatAttendanceTime } from '../utils/attendanceTime';
 import React, { useState, useEffect } from 'react';
 import { getSchedules, saveSchedule, deleteSchedule } from '../services/api';
 
@@ -152,7 +153,7 @@ export default function ManagerSchedule() {
                 
                 {config.day_type !== 'Holiday' && config.start_time && (
                    <span className="text-xs font-bold text-slate-500 mt-1">
-                     {config.start_time.substring(0,5)} - {config.end_time?.substring(0,5)}
+                     {formatAttendanceTime(config.start_time)} - {formatAttendanceTime(config.end_time)}
                    </span>
                 )}
                 
