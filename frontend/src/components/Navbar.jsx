@@ -1,9 +1,72 @@
 import React, { useState, useEffect } from 'react';
-import { getProfile } from '../services/api';
+import { getProfile, getSchedules } from '../services/api';
 import { Avatar } from './AdminUI';
 
 export default function Navbar({ user, onLogout }) {
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [notificationError, setNotificationError] = useState('');
+  const [readKeys, setReadKeys] = useState([]);
+  const isEmployee = user && user.role !== 'manager';
+  const storageKey = user?.user_id ? `employee-calendar-read:${user.user_id}` : '';
+  const today = () => {
+    const d = new Date();
+    return [d.getFullYear(), String(d.getMonth() + 1).padStart(2, '0'), String(d.getDate()).padStart(2, '0')].join('-');
+  };
+  const readStorage = () => {
+    if (!storageKey) return [];
+    try {
+      const parsed = JSON.parse(localStorage.getItem(storageKey) || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    } catch { return []; }
+  };
+  useEffect(() => {
+    setNotifications([]);
+    setNotificationsOpen(false);
+    setReadKeys(readStorage());
+    if (!isEmployee) return;
+    let active = true;
+    const refresh = async () => {
+      try {
+        const response = await getSchedules();
+        if (!active) return;
+        if (!Array.isArray(response.data)) throw new Error('Invalid calendar response');
+        const upcoming = response.data
+          .filter(day => day.date >= today() && ['Holiday', 'Half-Day'].includes(day.day_type))
+          .map(day => ({
+            ...day,
+            key: JSON.stringify([day.date, day.day_type, day.start_time || '', day.end_time || '', day.description || ''])
+          }))
+          .sort((a, b) => a.date.localeCompare(b.date));
+        setNotifications(upcoming);
+        setNotificationError('');
+      } catch {
+        if (active) setNotificationError('Could not load calendar updates.');
+      }
+    };
+    refresh();
+    const interval = window.setInterval(refresh, 60000);
+    const onFocus = () => refresh();
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('calendarUpdated', onFocus);
+    return () => {
+      active = false;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('calendarUpdated', onFocus);
+    };
+  }, [user?.user_id, user?.role]);
+  const unreadCount = notifications.filter(n => !readKeys.includes(n.key)).length;
+  const openNotifications = () => {
+    const next = !notificationsOpen;
+    setNotificationsOpen(next);
+    if (next) {
+      const keys = [...new Set([...readStorage(), ...notifications.map(n => n.key)])].slice(-500);
+      setReadKeys(keys);
+      try { localStorage.setItem(storageKey, JSON.stringify(keys)); } catch { /* storage unavailable */ }
+    }
+  };
   useEffect(() => {
     const syncMenu = event => setAdminMenuOpen(event.detail);
     window.addEventListener('adminMenuState', syncMenu);
@@ -27,6 +90,31 @@ export default function Navbar({ user, onLogout }) {
           </div>
         </div>
         {user ? <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+          {isEmployee && <div className="relative">
+            <button type="button" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
+              aria-expanded={notificationsOpen} aria-haspopup="true" onClick={openNotifications}
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl border border-zinc-200 bg-white text-zinc-700 hover:border-red-200 hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-red-500">
+              <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
+              {unreadCount > 0 && <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-600 px-1 text-center text-[10px] font-bold leading-5 text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}
+            </button>
+            {notificationsOpen && <div role="region" aria-label="Calendar notifications"
+              className="absolute right-0 top-12 z-[100] w-[min(340px,calc(100vw-24px))] rounded-xl border border-zinc-200 bg-white shadow-2xl">
+              <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
+                <strong className="text-sm text-zinc-900">Calendar notifications</strong>
+                <button type="button" aria-label="Close notifications" onClick={() => setNotificationsOpen(false)} className="text-zinc-500 hover:text-red-600">✕</button>
+              </div>
+              <div className="max-h-80 overflow-y-auto p-2">
+                {notificationError && <p role="alert" className="p-3 text-xs text-red-700">{notificationError}</p>}
+                {!notificationError && notifications.length === 0 && <p className="p-4 text-center text-sm text-zinc-500">No upcoming holiday or half-day announcements.</p>}
+                {notifications.map(n => <div key={n.key} className="mb-1 rounded-lg border border-zinc-100 p-3 last:mb-0">
+                  <p className="text-sm font-semibold text-zinc-900">{n.day_type === 'Holiday' ? 'Company holiday' : 'Company half-day'}</p>
+                  <p className="mt-1 text-xs font-medium text-red-700">{new Date(`${n.date}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</p>
+                  {n.description && <p className="mt-1 text-xs text-zinc-600">{n.description}</p>}
+                  {n.day_type === 'Half-Day' && n.start_time && n.end_time && <p className="mt-1 text-xs text-zinc-600">{n.start_time.slice(0,5)} – {n.end_time.slice(0,5)}</p>}
+                </div>)}
+              </div>
+            </div>}
+          </div>}
           <div className="hidden text-right sm:block"><p className="text-sm font-bold text-zinc-900">{user.username}</p><p className="text-[10px] font-semibold uppercase tracking-widest text-red-600">{user.role === 'manager' ? 'Administrator' : 'Employee'}</p></div>
           <span className="hidden sm:inline-flex"><Avatar person={{...profile,username:user.username}} /></span>
           <button type="button" onClick={onLogout} className="rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-xs font-bold text-zinc-800 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 sm:px-5">Sign out</button>
