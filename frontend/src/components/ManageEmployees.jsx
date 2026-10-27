@@ -4,6 +4,7 @@ import { getUsers, updateUser, deleteUser, getProfile } from '../services/api';
 
 export default function ManageEmployees({ onAddEmployee, initialUserId = null }) {
   const [users, setUsers] = useState([]);
+  const [copiedEmail, setCopiedEmail] = useState('');
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [tagFilter, setTagFilter] = useState('');
@@ -42,6 +43,17 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
     } catch {
       setFetchError('Unable to load people. Please try again.');
     } finally {setFetching(false);}
+  };
+
+  const copyEmail = async address => {
+    if (!address) return;
+    try {
+      await navigator.clipboard.writeText(address);
+      setCopiedEmail(address);
+    } catch {
+      setCopiedEmail('');
+      setMsg({ text: 'Could not copy email. Please check browser clipboard permissions.', type: 'error' });
+    }
   };
 
   const handleDelete = async (id) => {
@@ -126,12 +138,23 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
       <header className="admin-page-heading"><div><h1>People directory</h1><p>Manage your team’s profiles, designations and tags.</p></div><button className="admin-button primary" onClick={onAddEmployee}>+ Add employee</button></header>
       <div className="admin-toolbar"><input type="search" aria-label="Search people" placeholder="Search name, email, designation or tag…" value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="Filter by role" value={roleFilter} onChange={e=>setRoleFilter(e.target.value)}><option value="">All roles</option><option value="employee">Employees</option><option value="intern">Interns</option></select><select aria-label="Filter by tag" value={tagFilter} onChange={e=>setTagFilter(e.target.value)}><option value="">All tags</option>{tagOptions.map(t=><option key={t}>{t}</option>)}</select><span className="text-xs text-slate-500">{visible.length} people</span></div>
       {fetchError && <p role="alert" className="admin-error">{fetchError} <button onClick={fetchUsers}>Try again</button></p>}
-      {fetching ? <p className="admin-empty">Loading people…</p> : <div className="admin-people-grid">{visible.map(u=><article className="admin-people-card" key={u.id}>
-        <header><Avatar person={u} large/><div><h2>{u.username}</h2><p>{u.designation || 'No designation yet'}</p></div></header>
-        <Status value={u.role}/><span className="admin-email">{u.email || 'No email provided'}</span>
-        <div className="admin-tags">{(u.tags||[]).map(tag=><span key={tag}>{tag}</span>)}</div>
-        <div className="admin-card-actions"><button className="admin-button" onClick={()=>openProfileView(u)}>View profile</button><button className="admin-button" onClick={()=>startEdit(u)}>Edit</button><button className="admin-link" aria-label={'Delete '+u.username} onClick={()=>handleDelete(u.id)}>Delete</button></div>
-      </article>)}</div>}
+      {copiedEmail && <p role="status" className="text-sm text-emerald-700">Copied email: {copiedEmail}</p>}
+      {msg.type === 'error' && msg.text && <p role="alert" className="admin-error">{msg.text}</p>}
+      {fetching ? <p className="admin-empty">Loading people…</p> : <div className="admin-panel overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="admin-table w-full">
+            <thead><tr><th>Employee</th><th>Role</th><th>Designation</th><th>Email (click to copy)</th><th>Tags</th><th className="text-right">Actions</th></tr></thead>
+            <tbody>{visible.map(u => <tr key={u.id}>
+              <td><button type="button" onClick={() => openProfileView(u)} className="admin-person text-left hover:text-red-700" aria-label={`View profile for ${u.username}`}><Avatar person={u}/><span className="font-semibold">{u.username}</span></button></td>
+              <td><Status value={u.role}/></td>
+              <td>{u.designation || '—'}</td>
+              <td>{u.email ? <button type="button" title="Copy email address" aria-label={`Copy email address ${u.email}`} className="text-red-700 hover:underline break-all text-left" onClick={() => copyEmail(u.email)}>{u.email} {copiedEmail === u.email ? '✓ Copied' : '⧉'}</button> : <span className="text-slate-400">No email</span>}</td>
+              <td><div className="flex flex-wrap gap-1">{(u.tags || []).length ? u.tags.map(tag => <span key={tag} className="admin-badge">{tag}</span>) : '—'}</div></td>
+              <td><div className="flex flex-wrap justify-end gap-2"><button type="button" className="admin-button" onClick={() => openProfileView(u)}>View profile</button><button type="button" className="admin-button" onClick={() => startEdit(u)}>Edit</button><button type="button" className="admin-link" aria-label={`Delete ${u.username}`} onClick={() => handleDelete(u.id)}>Delete</button></div></td>
+            </tr>)}</tbody>
+          </table>
+        </div>
+      </div>}
       {!fetching&&!fetchError&&!visible.length&&<p className="admin-empty">No people match your filters.</p>}
 
       {viewingProfile && (
