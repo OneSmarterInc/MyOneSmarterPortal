@@ -1,85 +1,47 @@
 import React, { useState, useEffect } from 'react';
+import { getAttendance, getUsers, updateAttendance } from '../services/api';
 import { formatAttendanceTime } from '../utils/attendanceTime';
-import { getAttendance, updateAttendance, getUsers } from '../services/api';
+import { Person, Status } from './AdminUI';
 
-export default function PendingAttendance() {
-  const [records, setRecords] = useState([]);
-  const [usersList, setUsersList] = useState([]);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
+export default function PendingAttendance({ initialFilter = 'all' }) {
+  const [records,setRecords] = useState([]);
+  const [users,setUsers] = useState([]);
+  const [filter,setFilter] = useState(initialFilter);
+  const [query,setQuery] = useState('');
+  const [date,setDate] = useState('');
+  const [busy,setBusy] = useState(true);
+  const [saving,setSaving] = useState(null);
+  const [error,setError] = useState('');
+  const [notice,setNotice] = useState('');
+  async function refresh() {
+    setBusy(true); setError('');
+    try { const [a,u] = await Promise.all([getAttendance(),getUsers()]); setRecords(a.data.filter(r=>r.status==='Pending')); setUsers(u.data); }
+    catch { setError('Unable to load requests. Please try again.'); }
+    finally { setBusy(false); }
+  }
+  useEffect(()=>{refresh();},[]);
+  const person = id => users.find(u=>u.id===id) || {};
+  async function review(record,status) {
+    setSaving(record.id);setError('');setNotice('');
     try {
-      const [attRes, usersRes] = await Promise.all([getAttendance(), getUsers()]);
-      setRecords(attRes.data.filter(r => r.status === 'Pending'));
-      setUsersList(usersRes.data);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleApproval = async (id, newStatus) => {
-    try {
-      await updateAttendance(id, { status: newStatus });
-      fetchData(); 
-    } catch (err) {
-      alert('Failed to update status.');
-    }
-  };
-
-  const getUserDetails = (userId) => {
-    return usersList.find(u => u.id === userId) || { username: 'Unknown', role: 'N/A' };
-  };
-
-  return (
-    <div className="w-full max-w-7xl flex flex-col gap-4 relative h-full">
-      <div className="bg-white p-4 sm:px-6 sm:py-4 rounded-xl shadow-sm border border-slate-200 flex flex-col relative overflow-hidden shrink-0 border-t-4 border-t-blue-500">
-        <span className="text-[9px] font-bold text-blue-600 uppercase tracking-widest">Approvals</span>
-        <h2 className="text-xl sm:text-2xl font-black text-zinc-900 mt-0.5 tracking-tight">Pending Attendance ({records.length})</h2>
-        <p className="text-xs text-slate-500 mt-0.5 font-medium">Review and resolve daily employee check-in and check-out requests.</p>
-      </div>
-
-      <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col flex-grow min-h-[400px]">
-        <div className="overflow-y-auto no-scrollbar flex-grow border border-slate-100 rounded">
-          <table className="w-full text-left border-collapse text-xs">
-            <thead className="sticky top-0 bg-slate-50 z-10 shadow-sm">
-              <tr className="border-b border-slate-200 text-slate-500 uppercase">
-                <th className="p-3 font-bold">Employee</th>
-                <th className="p-3 font-bold">Requested Times</th>
-                <th className="p-3 font-bold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {records.length > 0 ? records.map(item => {
-                const emp = getUserDetails(item.user);
-                return (
-                  <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                    <td className="p-3">
-                      <div className="font-bold text-zinc-900 text-sm">@{emp.username}</div>
-                      <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{emp.role}</div>
-                    </td>
-                    <td className="p-3">
-                      <div className="text-[11px] font-semibold text-slate-700">{item.date}</div>
-                      <div className="text-[10px] font-bold text-blue-700 mt-1">{item.check_out ? 'Check-out awaiting approval' : 'Check-in awaiting approval'}</div>
-                      <div className="text-[10px] text-slate-500 mt-1">In: <span className="font-bold text-slate-800">{formatAttendanceTime(item.check_in, '--:--')}</span></div>
-                      {item.check_out && <div className="text-[10px] text-slate-500">Out: <span className="font-bold text-slate-800">{formatAttendanceTime(item.check_out)}</span></div>}
-                    </td>
-                    <td className="p-3 text-right space-x-2">
-                      <button onClick={() => handleApproval(item.id, 'Present')} className="bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] uppercase tracking-wider font-bold px-3 py-1.5 rounded transition">{item.check_out ? 'Approve Check-Out' : 'Approve Check-In'}</button>
-                      <button onClick={() => handleApproval(item.id, 'Late')} className="bg-amber-500 hover:bg-amber-600 text-white text-[9px] uppercase tracking-wider font-bold px-3 py-1.5 rounded transition">Approve as Late</button>
-                      <button onClick={() => handleApproval(item.id, 'Absent')} className="bg-slate-200 hover:bg-slate-300 text-slate-700 text-[9px] uppercase tracking-wider font-bold px-3 py-1.5 rounded transition">Reject</button>
-                    </td>
-                  </tr>
-                );
-              }) : (
-                <tr><td colSpan="3" className="p-8 text-center text-slate-400 text-xs">No pending attendance approvals required.</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
+      await updateAttendance(record.id,{status});
+      setRecords(previous=>previous.filter(r=>r.id!==record.id));
+      setNotice(`${person(record.user).username || 'Team member'}: ${record.check_out?'check-out':'check-in'} ${status==='Absent'?'rejected':'approved'+(status==='Late'?' as late':'')}.`);
+    } catch { setError('Unable to save this decision. Please try again.'); }
+    finally {setSaving(null);}
+  }
+  const visible=records.filter(r=>(filter==='all'||(filter==='out'?!!r.check_out:!r.check_out))&&(!date||r.date===date)&&[person(r.user).username,person(r.user).designation,person(r.user).email].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
+  return <div className="w-full max-w-7xl space-y-5">
+    <header className="admin-page-heading"><div><p className="admin-eyebrow">ATTENDANCE MANAGEMENT</p><h1>Attendance approvals</h1><p>Review your team’s check-in and check-out requests.</p></div><button className="admin-button" disabled={busy||saving!==null} onClick={refresh}>Refresh</button></header>
+    {error&&<p className="admin-error" role="alert">{error}</p>}
+    {notice&&<p role="status" className="rounded-lg bg-emerald-50 text-emerald-800 p-3 text-sm">{notice}</p>}
+    <section className="admin-panel">
+      <div className="admin-tabs" aria-label="Request type">{[['all','All requests'],['in','Check-ins'],['out','Check-outs']].map(([key,label])=><button key={key} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label} <span className="admin-badge">{records.filter(r=>key==='all'||(key==='out'?!!r.check_out:!r.check_out)).length}</span></button>)}</div>
+      <div className="admin-toolbar p-4"><input aria-label="Search requests" type="search" placeholder="Search name or designation…" value={query} onChange={e=>setQuery(e.target.value)}/><input aria-label="Filter request date" type="date" value={date} onChange={e=>setDate(e.target.value)}/>{(query||date)&&<button className="admin-link" onClick={()=>{setQuery('');setDate('');}}>Clear filters</button>}<span className="text-xs text-slate-500">{visible.length} requests</span></div>
+      <div className="admin-table-scroll"><table className="admin-table"><thead><tr><th>Team member</th><th>Request</th><th>Check-in</th><th>Check-out</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+      {!busy&&visible.map(r=><tr key={r.id}><td><Person person={person(r.user)}/></td><td><strong>{r.check_out?'Check-out':'Check-in'}</strong><small className="block text-slate-500 mt-1">{r.date}</small></td><td>{formatAttendanceTime(r.check_in)}</td><td>{formatAttendanceTime(r.check_out)}</td><td><Status value="Pending"/></td><td><div className="flex gap-2"><button className="admin-button primary" disabled={saving!==null} onClick={()=>review(r,'Present')}>{saving===r.id?'Saving…':r.check_out?'Approve check-out':'Approve check-in'}</button><button className="admin-button" disabled={saving!==null} onClick={()=>review(r,'Late')}>Approve as late</button><button className="admin-button danger" disabled={saving!==null} onClick={()=>review(r,'Absent')}>Reject</button></div></td></tr>)}
+      {(busy||!visible.length)&&<tr><td colSpan="6" className="admin-empty">{busy?'Loading requests…':error?'Requests unavailable.':'No pending requests match these filters.'}</td></tr>}
+      </tbody></table></div>
+    </section>
+  </div>;
 }

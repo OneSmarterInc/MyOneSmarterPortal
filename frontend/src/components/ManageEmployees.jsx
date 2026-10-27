@@ -1,8 +1,17 @@
+import { Avatar, Status } from './AdminUI';
 import React, { useState, useEffect } from 'react';
 import { getUsers, updateUser, deleteUser, getProfile } from '../services/api';
 
-export default function ManageEmployees() {
+export default function ManageEmployees({ onAddEmployee }) {
   const [users, setUsers] = useState([]);
+  const [query, setQuery] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [tagFilter, setTagFilter] = useState('');
+  const [fetching, setFetching] = useState(true);
+  const [fetchError, setFetchError] = useState('');
+  const team = users.filter(u=>['employee','intern','student'].includes(u.role));
+  const tagOptions = [...new Set(team.flatMap(u=>u.tags||[]))].sort();
+  const visible = team.filter(u=>(!roleFilter||u.role===roleFilter)&&(!tagFilter||(u.tags||[]).includes(tagFilter))&&[u.username,u.email,u.designation,...(u.tags||[])].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
   
   const [editingUser, setEditingUser] = useState(null);
   const [username, setUsername] = useState('');
@@ -26,13 +35,14 @@ export default function ManageEmployees() {
     fetchUsers();
   }, []);
 
-  const fetchUsers = async () => {
+  async function fetchUsers() {
+    setFetching(true);setFetchError('');
     try {
       const res = await getUsers();
       setUsers(res.data);
-    } catch (err) {
-      console.error(err);
-    }
+    } catch {
+      setFetchError('Unable to load people. Please try again.');
+    } finally {setFetching(false);}
   };
 
   const handleDelete = async (id) => {
@@ -40,7 +50,7 @@ export default function ManageEmployees() {
     try {
       await deleteUser(id);
       fetchUsers();
-    } catch (err) {
+    } catch {
       alert('Failed to delete user.');
     }
   };
@@ -51,7 +61,7 @@ export default function ManageEmployees() {
       const res = await getProfile(u.id);
       profile = res.data;
     } catch {
-      alert('Unable to load the birthday. Please try again.');
+      alert('Unable to load the profile. Please try again.');
       return;
     }
     setBirthDate(profile.date_of_birth || '');
@@ -103,73 +113,27 @@ export default function ManageEmployees() {
         role: u.role,
         id: u.id
       });
-    } catch (err) {
+    } catch {
       alert('Failed to load employee profile.');
     }
   };
 
   return (
-    <div className="w-full max-w-6xl space-y-6 relative">
-      <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
-        <div>
-          <span className="text-xs font-bold text-red-600 uppercase tracking-widest">Database</span>
-          <h2 className="text-xl font-bold text-zinc-900 mt-0.5">Manage Employees</h2>
-          <p className="text-xs text-slate-500">View profiles, edit credentials, manage birthdays and joining dates, or remove access.</p>
-        </div>
-      </div>
-
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
-        <table className="w-full text-left border-collapse text-sm">
-          <thead>
-            <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs uppercase">
-              <th className="p-4 font-bold">Employee</th>
-              <th className="p-4 font-bold">Email</th>
-              <th className="p-4 font-bold">Role</th>
-              <th className="p-4 font-bold">Joining Date</th>
-              <th className="p-4 font-bold text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {users.map(u => (
-              <tr key={u.id} className="border-b border-slate-100 hover:bg-slate-50/50">
-                <td className="p-4 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-slate-200 border border-slate-300 overflow-hidden shrink-0">
-                    {u.profile_photo ? (
-                      <img src={u.profile_photo} alt={u.username} className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-400 text-[10px] font-bold">N/A</div>
-                    )}
-                  </div>
-                  <div>
-                    <div className="font-bold text-zinc-900">{u.username}</div>
-                    <div className="text-[10px] font-medium text-slate-500">ID: #{u.id}</div>
-                    <div className="text-xs text-slate-600 mt-1">{u.designation || 'No designation'}</div>
-                    <div className="flex flex-wrap gap-1 mt-1">{(u.tags || []).map(tag => <span key={tag} className="rounded-full bg-indigo-50 text-indigo-700 px-2 py-0.5 text-[10px] break-all">{tag}</span>)}</div>
-                  </div>
-                </td>
-                <td className="p-4 text-slate-600">{u.email}</td>
-                <td className="p-4 capitalize text-slate-700">{u.role}</td>
-                <td className="p-4 text-slate-600">{u.joining_date || '-'}</td>
-                <td className="p-4 text-right space-x-3">
-                  <button onClick={() => openProfileView(u)} className="text-xs font-bold text-emerald-600 hover:text-emerald-800 uppercase tracking-wider">
-                    View
-                  </button>
-                  <button onClick={() => startEdit(u)} className="text-xs font-bold text-indigo-600 hover:text-indigo-800 uppercase tracking-wider">
-                    Edit
-                  </button>
-                  <button onClick={() => handleDelete(u.id)} className="text-xs font-bold text-red-600 hover:text-red-800 uppercase tracking-wider">
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+    <div className="w-full max-w-7xl space-y-5 relative">
+      <header className="admin-page-heading"><div><p className="admin-eyebrow">YOUR PEOPLE, ALL IN ONE PLACE</p><h1>People directory</h1><p>Manage your team’s profiles, designations and tags.</p></div><button className="admin-button primary" onClick={onAddEmployee}>+ Add employee</button></header>
+      <div className="admin-toolbar"><input type="search" aria-label="Search people" placeholder="Search name, email, designation or tag…" value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="Filter by role" value={roleFilter} onChange={e=>setRoleFilter(e.target.value)}><option value="">All roles</option><option value="employee">Employees</option><option value="intern">Interns</option></select><select aria-label="Filter by tag" value={tagFilter} onChange={e=>setTagFilter(e.target.value)}><option value="">All tags</option>{tagOptions.map(t=><option key={t}>{t}</option>)}</select><span className="text-xs text-slate-500">{visible.length} people</span></div>
+      {fetchError && <p role="alert" className="admin-error">{fetchError} <button onClick={fetchUsers}>Try again</button></p>}
+      {fetching ? <p className="admin-empty">Loading people…</p> : <div className="admin-people-grid">{visible.map(u=><article className="admin-people-card" key={u.id}>
+        <header><Avatar person={u} large/><div><h2>{u.username}</h2><p>{u.designation || 'No designation yet'}</p></div></header>
+        <Status value={u.role}/><span className="admin-email">{u.email || 'No email provided'}</span>
+        <div className="admin-tags">{(u.tags||[]).map(tag=><span key={tag}>{tag}</span>)}</div>
+        <div className="admin-card-actions"><button className="admin-button" onClick={()=>openProfileView(u)}>View profile</button><button className="admin-button" onClick={()=>startEdit(u)}>Edit</button><button className="admin-link" aria-label={'Delete '+u.username} onClick={()=>handleDelete(u.id)}>Delete</button></div>
+      </article>)}</div>}
+      {!fetching&&!fetchError&&!visible.length&&<p className="admin-empty">No people match your filters.</p>}
 
       {viewingProfile && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-2xl border border-slate-200">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[80] p-4">
+          <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200">
             
             <div className="flex justify-between items-start mb-6 pb-6 border-b border-slate-100">
               <div className="flex items-center gap-5">
@@ -236,7 +200,7 @@ export default function ManageEmployees() {
       )}
 
       {editingUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[80]">
           <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-slate-200">
             
             <div className="flex items-center gap-4 mb-6 pb-4 border-b border-slate-100">

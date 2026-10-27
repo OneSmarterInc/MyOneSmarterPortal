@@ -1,13 +1,16 @@
+import AdminOverview from './AdminOverview';
 import AttendanceTimeInput from './AttendanceTimeInput';
 import React, { useState, useEffect } from 'react';
 import { formatAttendanceTime, toTimeParts, toApiTime } from '../utils/attendanceTime';
 import { getAttendance, managerCreateUser, getLeaveRequests, getUsers, updateAttendance } from '../services/api';
 
-export default function ManagerDashboard({ setActiveTab }) {
+export default function ManagerDashboard({ setActiveTab, createMode = false, onCreateMode, navigate }) {
   const [allRecords, setAllRecords] = useState([]);
   const [leaves, setLeaves] = useState([]);
   const [usersList, setUsersList] = useState([]);
   
+  const [dataBusy, setDataBusy] = useState(true);
+  const [dataError, setDataError] = useState('');
   // Create Employee State
   const [employeeId, setEmployeeId] = useState('');
   const [username, setUsername] = useState('');
@@ -23,6 +26,10 @@ export default function ManagerDashboard({ setActiveTab }) {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (createMode) document.getElementById('create-employee-panel')?.scrollIntoView({behavior:'smooth',block:'start'});
+  }, [createMode]);
+
   // Edit Modal State
   const [editingRecord, setEditingRecord] = useState(null);
   const [editData, setEditData] = useState({ check_in: toTimeParts(''), check_out: toTimeParts(''), status: '' });
@@ -32,7 +39,8 @@ export default function ManagerDashboard({ setActiveTab }) {
     fetchAllData();
   }, []);
 
-  const fetchAllData = async () => {
+  async function fetchAllData() {
+    setDataBusy(true); setDataError('');
     try {
       const [attRes, leaveRes, usersRes] = await Promise.all([
         getAttendance(),
@@ -42,9 +50,9 @@ export default function ManagerDashboard({ setActiveTab }) {
       setAllRecords(attRes.data);
       setLeaves(leaveRes.data);
       setUsersList(usersRes.data);
-    } catch (err) {
-      console.error(err);
-    }
+    } catch {
+      setDataError('Unable to load dashboard data.');
+    } finally { setDataBusy(false); }
   };
 
   const handleCreateAccount = async (e) => {
@@ -93,14 +101,13 @@ export default function ManagerDashboard({ setActiveTab }) {
       });
       fetchAllData();
       setEditingRecord(null);
-    } catch (err) {
+    } catch {
       alert('Failed to update record.');
     } finally {
       setIsUpdating(false);
     }
   };
 
-  const pendingRequests = allRecords.filter(r => r.status === 'Pending');
   const historicalLogs = allRecords.filter(r => r.status !== 'Pending');
   const pendingLeaves = leaves.filter(l => l.status === 'Pending');
 
@@ -111,42 +118,12 @@ export default function ManagerDashboard({ setActiveTab }) {
   return (
     <div className="w-full max-w-7xl flex flex-col gap-4 relative">
       
-      {/* Welcome Panel */}
-      <div className="bg-white p-4 sm:px-6 sm:py-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center relative overflow-hidden shrink-0">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-red-400"></div>
-        <div className="relative z-10">
-          <span className="text-[9px] font-bold text-red-600 uppercase tracking-widest">Management Console</span>
-          <h2 className="text-xl sm:text-2xl font-black text-zinc-900 mt-0.5 tracking-tight">Manager Dashboard</h2>
-          <p className="text-xs text-slate-500 mt-0.5 font-medium">Overview of system alerts, employee creation, and historical logs.</p>
-        </div>
-      </div>
-
-      {/* Summary Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 shrink-0">
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-blue-500 flex justify-between items-center">
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Pending Attendance</h3>
-            <div className="text-3xl font-black text-zinc-900">{pendingRequests.length}</div>
-          </div>
-          <button onClick={() => setActiveTab('pending-attendance')} className="bg-zinc-900 hover:bg-black text-white px-4 py-2 rounded text-[10px] font-bold uppercase tracking-wider transition shadow-sm">
-            Review
-          </button>
-        </div>
-        <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-purple-500 flex justify-between items-center">
-          <div>
-            <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Pending Leaves & WFH</h3>
-            <div className="text-3xl font-black text-zinc-900">{pendingLeaves.length}</div>
-          </div>
-          <button onClick={() => setActiveTab('pending-leaves')} className="bg-zinc-900 hover:bg-black text-white px-4 py-2 rounded text-[10px] font-bold uppercase tracking-wider transition shadow-sm">
-            Review
-          </button>
-        </div>
-      </div>
-
+      <AdminOverview records={allRecords} users={usersList} pendingLeaves={pendingLeaves.length} busy={dataBusy} error={dataError} retry={fetchAllData} navigate={navigate || setActiveTab} addEmployee={()=>onCreateMode(true)} />
+      {createMode && <>
       {/* Account Creation Block */}
-      <div className="bg-white p-4 sm:px-6 sm:py-4 rounded-xl shadow-sm border border-slate-200 shrink-0">
+      <div id="create-employee-panel" style={{scrollMarginTop:80}} className="bg-white p-4 sm:px-6 sm:py-4 rounded-xl shadow-sm border border-slate-200 shrink-0">
         <div className="mb-3">
-          <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-900">Create Employee Account</h3>
+          <div className="flex justify-between gap-3"><h3 className="text-xs font-bold uppercase tracking-widest text-zinc-900">Create Employee Account</h3><button type="button" className="admin-link" onClick={()=>onCreateMode(false)}>Close</button></div>
           <p className="text-[10px] text-slate-500">A temporary password will be auto-generated and emailed.</p>
         </div>
 
@@ -195,10 +172,13 @@ export default function ManagerDashboard({ setActiveTab }) {
         </form>
       </div>
 
+      </>}
+      <details className="admin-panel admin-history">
+      <summary>Attendance history · {historicalLogs.length} resolved records</summary>
       {/* Resolved Attendance Logs */}
       <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm flex-grow flex flex-col min-h-[300px]">
         <h3 className="text-[11px] font-bold uppercase tracking-widest text-zinc-900 mb-3 shrink-0">Resolved Attendance Logs</h3>
-        <div className="overflow-y-auto no-scrollbar flex-grow border border-slate-100 rounded">
+        <div className="overflow-auto no-scrollbar flex-grow border border-slate-100 rounded">
           <table className="w-full text-left border-collapse text-xs">
             <thead className="sticky top-0 bg-slate-50 z-10 shadow-sm">
               <tr className="border-b border-slate-200 text-slate-500 uppercase">
@@ -248,6 +228,7 @@ export default function ManagerDashboard({ setActiveTab }) {
         </div>
       </div>
 
+      </details>
       {/* Edit Modal */}
       {editingRecord && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[80] p-4">
