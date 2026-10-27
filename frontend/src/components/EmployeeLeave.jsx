@@ -9,7 +9,8 @@ export default function EmployeeLeave({ user }) {
     request_type: '',
     start_date: '',
     end_date: '',
-    reason: ''
+    reason: '',
+    other_type: ''
   });
   
   const [loading, setLoading] = useState(false);
@@ -69,39 +70,43 @@ export default function EmployeeLeave({ user }) {
   }));
 
   // --- FORM HANDLING ---
-  const isHalfDaySelected = formData.request_type.toLowerCase().includes('half-day');
+  const isOther = formData.request_type === 'Other';
+  const isHalfDaySelected = !isOther && formData.request_type.toLowerCase().includes('half-day');
+  const selectedQuota = availableQuotas.find(q => q.name === formData.request_type);
+  const requestedDays = isHalfDaySelected ? 0.5 : (formData.start_date && formData.end_date && formData.end_date >= formData.start_date ? Math.round((Date.parse(formData.end_date + 'T00:00:00Z') - Date.parse(formData.start_date + 'T00:00:00Z')) / 86400000) + 1 : 0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setMsg({ text: '', type: '' });
 
-    // Validate balances if it's a metered quota (not WFH)
-    if (formData.request_type !== 'Work From Home') {
-      const selectedQuota = availableQuotas.find(q => q.name === formData.request_type);
-      if (selectedQuota) {
-        const d1 = new Date(formData.start_date);
-        const d2 = new Date(isHalfDaySelected ? formData.start_date : formData.end_date);
-        const daysToRequest = isHalfDaySelected ? 0.5 : Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
-        
-        if (daysToRequest > selectedQuota.remaining) {
-          setMsg({ text: `Insufficient balance. You only have ${selectedQuota.remaining} day(s) left for this leave type.`, type: 'error' });
-          return;
-        }
-      }
+    if (!formData.start_date || (!isHalfDaySelected && !formData.end_date)) {
+      setMsg({ text: 'Please select the requested date or range.', type: 'error' }); return;
+    }
+    if (!isHalfDaySelected && formData.end_date < formData.start_date) {
+      setMsg({ text: 'End date cannot be earlier than start date.', type: 'error' }); return;
+    }
+    if (isOther && !formData.other_type.trim()) {
+      setMsg({ text: 'Please describe the other leave type.', type: 'error' }); return;
+    }
+    if (!isOther && !selectedQuota) {
+      setMsg({ text: 'Select a leave type assigned by your manager or choose Other leave.', type: 'error' }); return;
+    }
+    if (selectedQuota && requestedDays > selectedQuota.remaining) {
+      setMsg({ text: `Insufficient leave quota: you have ${selectedQuota.remaining} day(s) available and requested ${requestedDays}.`, type: 'error' }); return;
     }
 
     setLoading(true);
     try {
       await createLeaveRequest({
         user_id: user.user_id,
-        request_type: formData.request_type,
+        request_type: isOther ? 'Other: ' + formData.other_type.trim() : formData.request_type,
         start_date: formData.start_date,
         end_date: isHalfDaySelected ? formData.start_date : formData.end_date,
         reason: formData.reason
       });
       
       setMsg({ text: 'Leave request submitted successfully.', type: 'success' });
-      setFormData({ request_type: '', start_date: '', end_date: '', reason: '' });
+      setFormData({ request_type: '', start_date: '', end_date: '', reason: '', other_type: '' });
       fetchData(); // Refresh dynamic balances instantly
     } catch (err) {
       setMsg({ text: 'Failed to submit request.', type: 'error' });
@@ -171,14 +176,17 @@ export default function EmployeeLeave({ user }) {
                 className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded bg-white font-medium"
               >
                 <option value="" disabled>-- Select Leave Type --</option>
-                <option value="Work From Home">Work From Home (WFH)</option>
+                <option value="Other">Other leave / special reason (manager approval)</option>
                 {availableQuotas.map((q, idx) => (
                   <option key={idx} value={q.name} disabled={q.remaining <= 0}>
                     {q.name} ({q.remaining} Days Left)
                   </option>
                 ))}
               </select>
+              {selectedQuota && <p className="mt-2 text-xs text-slate-600">Assigned: {selectedQuota.total} days · Reserved/used: {selectedQuota.taken} · Available: <strong>{selectedQuota.remaining} days</strong></p>}
+              {isOther && <p className="mt-2 text-xs text-slate-600">Other leave is reviewed by your manager and does not automatically deduct an assigned quota.</p>}
             </div>
+            {isOther && <div><label htmlFor="other-leave-type" className="block text-xs font-semibold text-slate-600 mb-1">Other leave type</label><input id="other-leave-type" required maxLength={80} value={formData.other_type} onChange={e=>setFormData({...formData,other_type:e.target.value})} placeholder="e.g. Family emergency, personal work" className="w-full border border-slate-300 p-2.5 text-sm rounded-lg"/></div>}
 
             {isHalfDaySelected ? (
               <div>
@@ -198,6 +206,7 @@ export default function EmployeeLeave({ user }) {
               </div>
             )}
 
+            {requestedDays > 0 && <p className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-xs text-slate-600">Requested duration: <strong>{requestedDays} day(s)</strong> · Subject to manager approval</p>}
             <div>
               <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Reason / Description</label>
               <textarea required placeholder="Brief reason for your request..." rows="3" value={formData.reason} onChange={e => setFormData({...formData, reason: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded resize-none" />
