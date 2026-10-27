@@ -230,10 +230,10 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
       )}
 
       {editingUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[80]">
-          <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto border border-slate-200">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[80] p-4 sm:p-6">
+          <div role="dialog" aria-modal="true" aria-label="Edit employee" className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[calc(100dvh-32px)] sm:max-h-[min(780px,calc(100dvh-48px))] flex flex-col overflow-hidden border border-slate-200">
             
-            <div className="flex items-center gap-4 mb-6 pb-4 border-b border-slate-100">
+            <div className="flex items-center gap-4 px-6 py-4 border-b border-slate-100 shrink-0">
               <div className="w-14 h-14 rounded-full bg-slate-200 border border-slate-300 overflow-hidden shrink-0">
                 {photoPreview ? (
                   <img src={photoPreview} alt="Profile" className="w-full h-full object-cover" />
@@ -248,12 +248,13 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
             </div>
             
             {msg.text && (
-              <div className={`p-3 mb-4 rounded text-xs font-medium ${msg.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
+              <div className={`mx-6 mt-4 p-3 rounded text-xs font-medium ${msg.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
                 {msg.text}
               </div>
             )}
 
-            <form onSubmit={handleUpdate} className="space-y-4">
+            <form id="edit-employee-form" onSubmit={handleUpdate} className="flex flex-col min-h-0 flex-1">
+              <div className="space-y-4 overflow-y-auto min-h-0 flex-1 px-6 py-5">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="manageemployees-field-1" className="block text-xs font-bold normal-case tracking-normal text-slate-600 mb-1">Username</label>
@@ -307,7 +308,8 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
                 </>}
               </div>
 
-              <div className="flex justify-end gap-3 mt-6">
+              </div>
+              <div className="flex justify-end gap-3 px-6 py-4 border-t border-slate-100 bg-white shrink-0">
                 <button type="button" onClick={() => setEditingUser(null)} className="admin-button  ">
                   Cancel
                 </button>
