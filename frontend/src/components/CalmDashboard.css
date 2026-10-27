@@ -57,3 +57,7 @@
 .calm-team-column .calm-requests {flex:1;min-height:0;overflow-y:auto;contain:size;overscroll-behavior:contain}
 .calm-team-column>section>.admin-empty {flex:1;display:flex;align-items:center;justify-content:center}
 @media(max-width:1150px) {.calm-team-column {grid-template-rows:repeat(2,420px)}}
+
+.calm-team>.calm-team-member {min-width:0;display:flex;align-items:center;flex-direction:column;padding:6px 3px;border-radius:10px;background:transparent;color:inherit;cursor:pointer;transition:background .15s ease}
+.calm-team>.calm-team-member:hover {background:#fff1f3}
+.calm-team>.calm-team-member:focus-visible {outline:2px solid #c7192d;outline-offset:2px}
