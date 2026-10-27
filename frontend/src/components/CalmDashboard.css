@@ -49,3 +49,11 @@
 .calm-team-panel .calm-team {contain:size;flex:1;min-height:0;overflow-y:auto;align-content:start;overscroll-behavior:contain;scrollbar-gutter:stable}
 .calm-team-panel .calm-team:focus-visible {outline:2px solid #b82033;outline-offset:-3px}
 @media(max-width:1150px) {.calm-team-panel {flex:none;height:420px;min-height:0}}
+
+/* Both right-column cards share the available height equally. */
+.calm-team-column {display:grid;grid-template-rows:repeat(2,minmax(300px,1fr))}
+.calm-team-column>section {display:flex;flex-direction:column;min-height:0;height:auto}
+.calm-team-column .admin-panel-title,.calm-team-column .calm-review-links {flex-shrink:0}
+.calm-team-column .calm-requests {flex:1;min-height:0;overflow-y:auto;contain:size;overscroll-behavior:contain}
+.calm-team-column>section>.admin-empty {flex:1;display:flex;align-items:center;justify-content:center}
+@media(max-width:1150px) {.calm-team-column {grid-template-rows:repeat(2,420px)}}
