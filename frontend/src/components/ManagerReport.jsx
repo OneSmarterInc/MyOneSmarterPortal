@@ -32,10 +32,19 @@ export default function ManagerReport() {
     setFetchError('');
     try {
       const [userRes, attRes] = await Promise.all([getUsers(), getAttendance()]);
-      setUsers(userRes.data.filter(u => u.role !== 'manager'));
+      if (!Array.isArray(userRes.data) || !Array.isArray(attRes.data)) {
+        throw new Error('Unexpected API response. Expected employee and attendance lists.');
+      }
+      const employees = userRes.data.filter(u => String(u.role || '').toLowerCase() !== 'manager');
+      setUsers(employees);
       setAllRecords(attRes.data);
+      if (!employees.length && !attRes.data.length) {
+        setFetchError('The server returned no employee accounts or attendance records. Check that the frontend is connected to the correct backend database, then retry.');
+      } else if (!employees.length) {
+        setFetchError('Attendance was found, but the server returned no selectable employee accounts. Check the /api/users/ response and user roles.');
+      }
     } catch {
-      setFetchError('Unable to load this page. Please try again.');
+      setFetchError('Unable to load employees or attendance from the backend. Verify the API connection, then try again.');
     } finally {
       setFetching(false);
     }
@@ -100,13 +109,13 @@ export default function ManagerReport() {
       `}</style>
       <div className="report-screen space-y-6">
         <header className="admin-page-heading"><div><h1>Attendance reports</h1><p>Filter attendance by person and date. Select a person to print or save a PDF.</p></div></header>
-        {fetchError && <div role="alert" className="admin-error">{fetchError} <button onClick={fetchData}>Try again</button></div>}
+        {fetchError && <div role="alert" className="admin-error">{fetchError} <button type="button" className="ml-2 underline font-semibold" onClick={fetchData}>Retry loading</button></div>}
         {fetching && <p role="status" className="admin-loading">Loading…</p>}
         <div className="bg-white p-6 rounded-xl border border-slate-200">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
             <div><label htmlFor="report-employee" className="block text-sm mb-1">Select Employee</label>
-              <select id="report-employee" value={selectedUser} onChange={resetPage(setSelectedUser)} className="w-full border border-slate-300 p-2.5 rounded-lg bg-white">
-                <option value="">All employees</option>
+              <select id="report-employee" disabled={fetching || users.length === 0} value={selectedUser} onChange={resetPage(setSelectedUser)} className="w-full border border-slate-300 p-2.5 rounded-lg bg-white">
+                <option value="">{fetching ? 'Loading employees…' : users.length ? 'All employees' : 'No employees available'}</option>
                 {users.map(u => <option key={u.id} value={u.id}>@{u.username} ({u.email})</option>)}
               </select>
             </div>
@@ -121,7 +130,7 @@ export default function ManagerReport() {
               <thead><tr className="bg-slate-50 border-b border-slate-200 text-slate-600">
                 <th className="p-4">Employee</th><th className="p-4">Date</th><th className="p-4">Start Time</th><th className="p-4">End Time</th><th className="p-4">Status</th>
               </tr></thead>
-              <tbody>{visibleRecords.length ? visibleRecords.map(item => <tr key={item.id} className="border-b border-slate-100">
+              <tbody>{fetching ? <tr><td colSpan="5" className="p-8 text-center text-slate-500">Loading attendance records…</td></tr> : visibleRecords.length ? visibleRecords.map(item => <tr key={item.id} className="border-b border-slate-100">
                 <td className="p-4">{users.find(u => String(u.id) === String(item.user))?.username || 'Unknown'}</td>
                 <td className="p-4 font-semibold">{item.date}</td>
                 <td className="p-4">{formatTime(item.check_in)}</td>
