@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getAttendance, markAttendance, updateAttendance, getSchedules, getProfile, getLeaveRequests } from '../services/api';
 
-export default function EmployeeDashboard({ user }) {
+export default function EmployeeDashboard({ user, onNavigate }) {
   const [history, setHistory] = useState([]);
   const [schedules, setSchedules] = useState([]);
   const [approvedLeaves, setApprovedLeaves] = useState([]);
@@ -167,13 +167,14 @@ export default function EmployeeDashboard({ user }) {
   return (
     <div className="employee-workspace w-full max-w-7xl flex flex-col h-full gap-5">
       
+      <div className="workspace-page-intro"><span>YOUR WORKDAY, AT A GLANCE</span><h1>My overview</h1><p>Everything you need to start your day and stay connected.</p></div>
       {/* Compact Welcome Panel */}
       <div className="bg-white p-5 sm:px-6 sm:py-6 rounded-xl border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center relative overflow-hidden shrink-0">
         
         <div className="relative z-10 mb-4 md:mb-0">
           <span className="text-[9px] font-bold text-red-600 uppercase tracking-widest">Employee workspace</span>
           <h2 className="text-2xl sm:text-[26px] font-semibold text-zinc-900 mt-1 tracking-tight">Welcome, {user.username}</h2>
-          <p className="text-xs text-slate-500 mt-0.5 font-medium">Record your attendance and monitor performance metrics.</p>
+          <p className="text-xs text-slate-500 mt-0.5 font-medium">Start your workday, track your hours, and manage your attendance.</p>
         </div>
         
         <div className="relative z-10 flex items-center w-full md:w-auto">
@@ -240,10 +241,15 @@ export default function EmployeeDashboard({ user }) {
         </div>
       )}
 
+      <div className="workspace-quick-actions" aria-label="Quick actions">
+        <button onClick={() => onNavigate('leave')}><span>01 / TIME OFF</span><strong>Plan your next break <b aria-hidden="true">↗</b></strong><small>View leave balances and send a request</small></button>
+        <button onClick={() => onNavigate('wfh')}><span>02 / FLEXIBLE WORK</span><strong>Work from home <b aria-hidden="true">↗</b></strong><small>Manage requests and assigned days</small></button>
+        <button onClick={() => onNavigate('profile')}><span>03 / YOUR DETAILS</span><strong>Keep your profile current <b aria-hidden="true">↗</b></strong><small>Review your personal and work information</small></button>
+      </div>
       {/* Compact Performance Widget */}
       <div className="bg-white shadow-sm rounded-xl border border-slate-200 overflow-hidden shrink-0">
         <div className="bg-slate-50 border-b border-slate-200 px-5 py-3 flex justify-between items-center">
-          <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-widest">Overall Performance</h3>
+          <h3 className="text-xs font-bold text-zinc-900 uppercase tracking-widest">Attendance summary</h3>
           <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider bg-white border border-slate-200 px-2 py-1 rounded shadow-sm">
             As of {new Date().toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
           </span>

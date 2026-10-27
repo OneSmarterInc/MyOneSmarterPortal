@@ -34,10 +34,15 @@ export default function AdminOverview({ records, users, pendingLeaves, leaveRequ
   const unavailable = busy || error;
   return <div className="calm-dashboard">
     <header className="admin-page-heading calm-heading">
-      <div><p className="calm-eyebrow">Your workspace</p><h1>{greeting}{name ? `, ${name}` : ''}</h1><p>Here’s what’s happening with your team today.</p></div>
+      <div><p className="calm-eyebrow">COMPANY OVERVIEW</p><h1>{greeting}{name ? `, ${name}` : ''}</h1><p>Your people, daily operations, and decisions — in one place.</p></div>
       <div className="calm-heading-actions"><time dateTime={today}>{now.toLocaleDateString('en', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</time><button className="admin-button" onClick={addEmployee}>+ Add employee</button></div>
     </header>
     {error && <div className="admin-error" role="alert">{error} <button onClick={retry}>Try again</button></div>}
+    <div className="workspace-quick-actions" aria-label="Company quick actions">
+      <button onClick={() => navigate('pending-attendance')}><span>01 / TAKE ACTION</span><strong>Review attendance <b aria-hidden="true">↗</b></strong><small>Keep your team’s workday moving</small></button>
+      <button onClick={() => navigate('schedule')}><span>02 / PLAN AHEAD</span><strong>Company calendar <b aria-hidden="true">↗</b></strong><small>Manage holidays and working days</small></button>
+      <button onClick={() => navigate('report')}><span>03 / STAY INFORMED</span><strong>Reports & insights <b aria-hidden="true">↗</b></strong><small>Explore attendance and team records</small></button>
+    </div>
     <div className="calm-layout">
       <div className="calm-column">
         <section className="admin-panel"><div className="admin-panel-title"><h2>Today at a glance</h2><button className="admin-link" onClick={() => navigate('pending-attendance')}>View attendance →</button></div>

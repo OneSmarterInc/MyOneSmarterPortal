@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import './workspace.css';
 import Navbar from './components/Navbar';
 import Login from './components/Login';
 import EmployeeLayout from './components/EmployeeLayout';
