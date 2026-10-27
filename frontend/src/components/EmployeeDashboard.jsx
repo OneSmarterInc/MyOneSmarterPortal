@@ -52,6 +52,25 @@ export default function EmployeeDashboard({ user, onNavigate }) {
     }
   };
 
+  useEffect(() => {
+    let active = true;
+    const refreshSchedules = async () => {
+      try {
+        const result = await getSchedules();
+        if (active && Array.isArray(result.data)) setSchedules(result.data);
+      } catch { /* Retain the last successful calendar until the next refresh. */ }
+    };
+    const timer = window.setInterval(refreshSchedules, 60000);
+    window.addEventListener('focus', refreshSchedules);
+    window.addEventListener('calendarUpdated', refreshSchedules);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener('focus', refreshSchedules);
+      window.removeEventListener('calendarUpdated', refreshSchedules);
+    };
+  }, []);
+
   const todayStr = new Date().toLocaleDateString('en-CA');
   const todayRecord = history.find(h => h.date === todayStr);
 
@@ -311,6 +330,7 @@ export default function EmployeeDashboard({ user, onNavigate }) {
             
             const config = getDayConfiguration(day);
             const isHoliday = config.day_type === 'Holiday';
+            const isHalfDay = config.day_type === 'Half-Day';
             const approvedLeave = getApprovedLeaveForDate(day);
             
             let topBorderColor = "border-t-red-500"; 
@@ -319,7 +339,12 @@ export default function EmployeeDashboard({ user, onNavigate }) {
             
             if (isHoliday) {
               topBorderColor = "border-t-blue-500";
-              bgClass = "bg-blue-50/50";
+              bgClass = "bg-blue-50/70";
+              valueColor = "text-blue-700";
+            } else if (isHalfDay) {
+              topBorderColor = "border-t-amber-500";
+              bgClass = "bg-amber-50/70";
+              valueColor = "text-amber-700";
             } else if (approvedLeave) {
               topBorderColor = "border-t-orange-400";
               bgClass = "bg-orange-50/50";
@@ -349,7 +374,7 @@ export default function EmployeeDashboard({ user, onNavigate }) {
                     {day.toLocaleDateString('en-US', { month: 'short', day: '2-digit' })}
                   </div>
                   
-                  {(!isHoliday && !approvedLeave) && (
+                  {(record?.check_in || record?.check_out) && !approvedLeave && (
                     <div className="text-[9px] font-bold text-slate-500 tracking-wider pt-1 whitespace-nowrap">
                       {timeRange}
                     </div>
@@ -358,8 +383,17 @@ export default function EmployeeDashboard({ user, onNavigate }) {
 
                 <div className="mt-2 pt-2 border-t border-slate-100 w-full text-center">
                   {isHoliday ? (
-                    <div className="flex flex-col items-center">
-                      <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Holiday</span>
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest">Company Holiday</span>
+                      {config.description && <span className="text-[10px] text-blue-700 break-words">{config.description}</span>}
+                      {record?.check_in && <span className="text-xs font-semibold text-blue-700">{hours} hrs logged</span>}
+                    </div>
+                  ) : isHalfDay ? (
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Half-Day</span>
+                      {config.description && <span className="text-[10px] text-amber-700 break-words">{config.description}</span>}
+                      {config.start_time && config.end_time && <span className="text-[10px] text-amber-700">{formatTime(config.start_time)} – {formatTime(config.end_time)}</span>}
+                      {record?.check_in && <span className="text-xs font-semibold text-amber-700">{hours} hrs logged</span>}
                     </div>
                   ) : approvedLeave ? (
                     <div className="flex flex-col items-center">
