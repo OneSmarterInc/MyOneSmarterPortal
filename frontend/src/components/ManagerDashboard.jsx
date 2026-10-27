@@ -13,6 +13,8 @@ export default function ManagerDashboard({ setActiveTab }) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('intern'); 
+  const [designation, setDesignation] = useState('');
+  const [tags, setTags] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [today] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [joiningDate, setJoiningDate] = useState('');
@@ -53,7 +55,9 @@ export default function ManagerDashboard({ setActiveTab }) {
 
     try {
       const res = await managerCreateUser({ 
-        employee_id: employeeId, 
+        employee_id: employeeId,
+        designation,
+        tags: tags.split(',').map(tag => tag.trim()).filter(Boolean), 
         username, 
         email, 
         role, 
@@ -61,7 +65,9 @@ export default function ManagerDashboard({ setActiveTab }) {
         date_of_birth: birthDate || null 
       });
       setSuccess(res.data.message);
-      setEmployeeId(''); 
+      setEmployeeId('');
+      setDesignation('');
+      setTags(''); 
       setUsername(''); 
       setEmail(''); 
       setRole('intern'); 
@@ -70,7 +76,7 @@ export default function ManagerDashboard({ setActiveTab }) {
       window.dispatchEvent(new Event('birthdaysUpdated'));
       fetchAllData(); 
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to create account.');
+      setError(err.response?.data?.error || (err.response?.data ? JSON.stringify(err.response.data) : 'Failed to create account.'));
     } finally {
       setLoading(false);
     }
@@ -175,6 +181,15 @@ export default function ManagerDashboard({ setActiveTab }) {
             <label htmlFor="new-employee-birthday" className="block text-[10px] font-bold uppercase text-slate-600 mb-1">Date of Birth (optional)</label>
             <input id="new-employee-birthday" type="date" value={birthDate} max={today} onChange={e => setBirthDate(e.target.value)} className="w-full border border-slate-300 rounded p-2 text-xs outline-none focus:border-red-500" />
           </div>
+              <div>
+                <label htmlFor="new-employee-designation" className="block text-xs font-bold text-slate-600 mb-1">Designation</label>
+                <input id="new-employee-designation" type="text" maxLength={120} value={designation} onChange={e => setDesignation(e.target.value)} placeholder="e.g. Software Engineer" className="w-full border border-slate-300 rounded p-2 text-sm" />
+              </div>
+              <div>
+                <label htmlFor="new-employee-tags" className="block text-xs font-bold text-slate-600 mb-1">Tags</label>
+                <input id="new-employee-tags" type="text" value={tags} onChange={e => setTags(e.target.value)} placeholder="e.g. Engineering, Remote" className="w-full border border-slate-300 rounded p-2 text-sm" />
+                <p className="mt-1 text-xs text-slate-500">Separate tags with commas. Up to 20 tags, 40 characters each.</p>
+              </div>
           <button type="submit" disabled={loading} className="bg-zinc-900 hover:bg-black disabled:bg-slate-400 text-white py-2 rounded text-[11px] font-bold uppercase tracking-wider transition shadow-sm w-full">
             {loading ? 'Processing...' : 'Create'}
           </button>
