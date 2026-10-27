@@ -78,7 +78,7 @@ export default function EmployeeDashboard({ user }) {
     try {
       await updateAttendance(todayRecord.id, { check_out: timeNow });
       await fetchData();
-      setMsg('Check-Out recorded successfully.');
+      setMsg('Check-Out request sent to administrator for approval.');
     } catch (err) {
       setMsg('Failed to check out.');
     } finally {
@@ -206,10 +206,10 @@ export default function EmployeeDashboard({ user }) {
           ) : (
              <div className="w-full md:w-auto flex flex-col items-center justify-center bg-slate-50 border border-slate-200 px-5 py-2 rounded-lg">
                <span className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                 Shift Completed (Out: {formatTime(todayRecord.check_out)})
+                 {todayRecord.status === 'Pending' ? 'Check-Out Submitted' : todayRecord.status === 'Absent' ? 'Attendance Rejected' : 'Shift Completed'} (Out: {formatTime(todayRecord.check_out)})
                </span>
                {todayRecord.status === 'Pending' && (
-                 <span className="text-[9px] font-bold text-amber-600 mt-0.5 uppercase tracking-widest">Pending Manager Approval</span>
+                 <span className="text-[9px] font-bold text-amber-600 mt-0.5 uppercase tracking-widest">Check-Out Pending Approval</span>
                )}
              </div>
           )}
