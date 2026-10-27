@@ -86,7 +86,7 @@ export default function ManagerReport() {
           .admin-workspace .attendance-report { max-width: none !important; padding: 0 !important; margin: 0 !important; }
           .attendance-report .report-screen { display: none !important; }
           .attendance-report .report-print-document { display: block !important; }
-          .attendance-report .report-sheet { width: 100%; min-height: 297mm; padding: 12mm; box-sizing: border-box; display: flex; flex-direction: column; break-after: page; page-break-after: always; font-family: Arial, sans-serif; color: #10141a; }
+          .attendance-report .report-sheet { width: 100%; height: 297mm; padding: 12mm; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; break-after: page; page-break-after: always; font-family: Arial, sans-serif; color: #10141a; }
           .attendance-report .report-sheet:last-child { break-after: auto; page-break-after: auto; }
           .attendance-report .report-letterhead { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #111; padding: 0 0 9px; font-size: 11px; font-weight: 600; }
           .attendance-report .report-letterhead img { height: 32px; width: 32px; object-fit: contain; }
@@ -104,7 +104,7 @@ export default function ManagerReport() {
           .attendance-report .report-signature { margin-top: auto; align-self: flex-end; width: 255px; text-align: center; font-size: 12px; padding-bottom: 24px; }
           .attendance-report .report-signature .line { border-top: 2px solid #111; padding-top: 8px; }
           .attendance-report .report-signature strong { display: block; font-size: 14px; margin-bottom: 3px; }
-          .attendance-report .report-footer { display: flex; justify-content: space-between; gap: 10px; border-top: 2px solid #111; padding-top: 15px; font-size: 10px; }
+          .attendance-report .report-footer { margin-top: auto; flex-shrink: 0; display: flex; justify-content: space-between; gap: 10px; border-top: 2px solid #111; padding-top: 15px; font-size: 10px; }
         }
       `}</style>
       <div className="report-screen space-y-6">
@@ -166,7 +166,7 @@ export default function ManagerReport() {
             <p className="report-generated">Generated on: {generatedAt.toLocaleString('en-US')}</p>
             <div className="report-signature"><div className="line"><strong>Akshay Agrawal</strong>Global Service and Delivery Manager</div></div>
           </>}
-          <div className="report-footer"><span>© 2026 One Smarter Inc., USA. All rights reserved. Secure Compliance &amp; Systems.</span></div>
+          <div className="report-footer"><span>© 2026 One Smarter Inc., USA. All rights reserved. Secure Compliance &amp; Systems.</span><span>{index + 1} / {printPages.length}</span></div>
         </section>)}
       </div>}
     </div>
