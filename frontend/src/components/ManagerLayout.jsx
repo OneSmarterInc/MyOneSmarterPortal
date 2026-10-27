@@ -16,7 +16,9 @@ export default function ManagerLayout() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [createMode,setCreateMode] = useState(false);
   const [approvalFilter,setApprovalFilter] = useState('all');
-  const navigate = (tab,filter = 'all') => {setApprovalFilter(filter);setActiveTab(tab);setIsSidebarOpen(false);setCreateMode(false);};
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
+  const navigate = (tab,filter = 'all') => {setSelectedEmployeeId(null);setApprovalFilter(filter);setActiveTab(tab);setIsSidebarOpen(false);setCreateMode(false);};
+  const openEmployee = id => {navigate('employees');setSelectedEmployeeId(id);};
   const addEmployee = () => {setActiveTab('dashboard');setCreateMode(true);};
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -115,11 +117,11 @@ export default function ManagerLayout() {
 
       {/* Main Content Area */}
       <div className="flex-grow p-4 sm:p-8 bg-[#f7f7f8] print:p-0 print:bg-white flex justify-center w-full min-w-0">
-        {activeTab === 'dashboard' && <ManagerDashboard setActiveTab={setActiveTab} navigate={navigate} createMode={createMode} onCreateMode={setCreateMode} />}
+        {activeTab === 'dashboard' && <ManagerDashboard setActiveTab={setActiveTab} navigate={navigate} createMode={createMode} onCreateMode={setCreateMode} onSelectEmployee={openEmployee} />}
         {activeTab === 'pending-attendance' && <PendingAttendance key={approvalFilter} initialFilter={approvalFilter} />}
         {activeTab === 'pending-leaves' && <PendingLeaves />}
         {activeTab === 'schedule' && <ManagerSchedule />}
-        {activeTab === 'employees' && <ManageEmployees onAddEmployee={addEmployee} />}
+        {activeTab === 'employees' && <ManageEmployees onAddEmployee={addEmployee} initialUserId={selectedEmployeeId} />}
         {activeTab === 'leaves' && <ManageLeaves />}
         {activeTab === 'wfh' && <ManageWFH />} {/* <-- Render new component */}
         {activeTab === 'report' && <ManagerReport />}
