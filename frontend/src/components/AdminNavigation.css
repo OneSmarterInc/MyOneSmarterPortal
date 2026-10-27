@@ -1,0 +1,5 @@
+/* Modal navigation stays pinned to the viewport; only its links can scroll. */
+.admin-navigation {position:fixed;inset:0 auto 0 0;margin:0;padding:0;width:280px;max-width:85vw;height:100dvh;max-height:none;border:0;border-right:1px solid #e5e7eb;background:#fff;color:#24262b;box-shadow:8px 0 32px #18202b1a;overflow:hidden}
+.admin-navigation[open] {display:flex;flex-direction:column}
+.admin-navigation::backdrop {background:rgb(17 24 39 / 28%)}
+.admin-navigation nav {min-height:0;overscroll-behavior:contain}

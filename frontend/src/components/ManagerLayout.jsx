@@ -1,6 +1,7 @@
 import './AdminUI.css';
+import './AdminNavigation.css';
 import { Icon } from './AdminUI';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ManagerDashboard from './ManagerDashboard';
 import ManageEmployees from './ManageEmployees';
 import EmailSettings from './EmailSettings';
@@ -19,6 +20,17 @@ export default function ManagerLayout() {
   const addEmployee = () => {setActiveTab('dashboard');setCreateMode(true);};
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  const menuRef = useRef(null);
+  useEffect(() => {
+    const menu = menuRef.current;
+    window.dispatchEvent(new CustomEvent('adminMenuState', { detail: isSidebarOpen }));
+    if (!isSidebarOpen) { if (menu.open) menu.close(); return; }
+    menu.showModal();
+    const overflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = overflow; if (menu.open) menu.close(); };
+  }, [isSidebarOpen]);
+
   useEffect(() => {
     const toggleMenu = () => setIsSidebarOpen(prev => !prev);
     window.addEventListener('toggleMobileMenu', toggleMenu);
@@ -33,28 +45,21 @@ export default function ManagerLayout() {
   return (
     <div className="admin-workspace flex w-full min-h-[calc(100vh-64px)] sm:min-h-[calc(100vh-80px)]">
       
-      {/* Mobile Dark Overlay Backdrop */}
-      <div 
-        onClick={() => setIsSidebarOpen(false)}
-        className={`fixed inset-0 bg-black/50 z-[60] md:hidden transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-      ></div>
-
-      {/* Slide-out Sidebar */}
-      <aside className={`admin-sidebar fixed md:relative top-0 left-0 h-full md:h-auto z-[70] md:z-0 w-56 bg-white shadow-2xl md:shadow-none border-r border-slate-200 shrink-0 print:hidden flex flex-col transition-transform duration-300 ease-in-out ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}`}>
-        
-        {/* Mobile Header (Hidden on Desktop) */}
-        <div className="md:hidden flex items-center justify-between p-5 border-b border-slate-100">
+      <dialog ref={menuRef} id="admin-navigation" className="admin-sidebar admin-navigation print:hidden"
+        aria-label="Administration navigation"
+        onCancel={() => setIsSidebarOpen(false)}
+        onClick={event => {
+          if (event.target !== event.currentTarget) return;
+          const rect = event.currentTarget.getBoundingClientRect();
+          if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) setIsSidebarOpen(false);
+        }}>
+        <div className="flex items-center justify-between p-5 border-b border-slate-100 shrink-0">
           <span className="font-bold text-zinc-900 uppercase tracking-widest text-xs">Administration</span>
-          <button aria-label="Close navigation menu" onClick={() => setIsSidebarOpen(false)} className="text-slate-400 hover:text-red-600 transition-colors">
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          <button type="button" autoFocus aria-label="Close navigation menu" onClick={() => setIsSidebarOpen(false)} className="p-2 text-slate-500 hover:text-red-600">
+            <svg aria-hidden="true" className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
-
-        <div className="hidden md:block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-4 px-6 pt-6">
-          Administration
-        </div>
-        
-        <nav className="flex flex-col gap-1 px-4 py-4 md:py-0 overflow-y-auto">
+        <nav className="flex flex-col gap-1 px-4 py-4 overflow-y-auto">
           {[
             { id: 'dashboard', label: 'Dashboard' },
             { id: 'pending-attendance', label: 'Attendance approvals' },
@@ -80,7 +85,7 @@ export default function ManagerLayout() {
             </button>
           ))}
         </nav>
-      </aside>
+      </dialog>
 
       {/* Main Content Area */}
       <div className="flex-grow p-4 sm:p-8 bg-[#f7f7f8] print:p-0 print:bg-white flex justify-center w-full min-w-0">
