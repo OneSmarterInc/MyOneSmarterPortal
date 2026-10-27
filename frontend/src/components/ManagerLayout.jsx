@@ -14,6 +14,7 @@ import ManageWFH from './ManageWFH'; // <-- Import the new component
 export default function ManagerLayout() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [desktopSidebarVisible, setDesktopSidebarVisible] = useState(true);
   const [createMode,setCreateMode] = useState(false);
   const [approvalFilter,setApprovalFilter] = useState('all');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
@@ -22,13 +23,16 @@ export default function ManagerLayout() {
   const addEmployee = () => {setActiveTab('dashboard');setCreateMode(true);};
 
   useEffect(() => {
-    const toggle = () => setIsSidebarOpen(open => !open);
+    const toggle = () => {
+      if (window.matchMedia('(min-width: 1024px)').matches) setDesktopSidebarVisible(visible => !visible);
+      else setIsSidebarOpen(open => !open);
+    };
     window.addEventListener('toggleMobileMenu', toggle);
     return () => window.removeEventListener('toggleMobileMenu', toggle);
   }, []);
   useEffect(() => {
-    window.dispatchEvent(new CustomEvent('adminMenuState', { detail: isSidebarOpen }));
-  }, [isSidebarOpen]);
+    window.dispatchEvent(new CustomEvent('adminMenuState', { detail: isSidebarOpen || desktopSidebarVisible }));
+  }, [isSidebarOpen, desktopSidebarVisible]);
   const navigation = [
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
     { id: 'pending-attendance', label: 'Attendance approvals', icon: 'clock' },
@@ -44,7 +48,7 @@ export default function ManagerLayout() {
     <div className="admin-workspace flex w-full min-h-[calc(100vh-64px)] sm:min-h-[calc(100vh-80px)]">
       
       {isSidebarOpen && <button type="button" aria-label="Close navigation" onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 z-[60] bg-black/40 lg:hidden" />}
-      <aside id="workspace-navigation" className={`admin-sidebar fixed inset-y-0 left-0 z-[70] flex w-56 shrink-0 flex-col border-r border-slate-200 bg-white transition-transform duration-200 print:hidden lg:relative lg:inset-auto lg:z-auto lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'}`}>
+      <aside id="workspace-navigation" className={`admin-sidebar fixed inset-y-0 left-0 z-[70] flex w-56 shrink-0 flex-col border-r border-slate-200 bg-white transition-transform duration-200 print:hidden lg:relative lg:inset-auto lg:z-auto ${desktopSidebarVisible ? 'lg:flex lg:translate-x-0' : 'lg:hidden'} ${isSidebarOpen ? 'translate-x-0 shadow-xl' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between border-b border-slate-100 p-4 lg:hidden">
           <span className="text-xs font-bold uppercase tracking-widest text-zinc-700">Administration</span>
           <button type="button" aria-label="Close navigation menu" onClick={() => setIsSidebarOpen(false)} className="rounded-lg p-2 text-zinc-600 hover:bg-red-50">✕</button>
