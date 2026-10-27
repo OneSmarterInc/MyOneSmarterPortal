@@ -1,22 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { getUsers, getLeaveRequests, createLeaveRequest, updateLeaveRequest } from '../services/api';
+import { getUsers, getLeaveRequests, updateLeaveRequest } from '../services/api';
 
 export default function ManageWFH() {
   const [users, setUsers] = useState([]);
   const [wfhRecords, setWfhRecords] = useState([]);
   
-  // Assignment State
-  const [selectedUsers, setSelectedUsers] = useState([]);
-  const [formData, setFormData] = useState({
-    start_date: '',
-    end_date: '',
-    reason: 'Assigned by Management'
-  });
-  
-  const [loading, setLoading] = useState(false);
-  const [msg, setMsg] = useState({ text: '', type: '' });
-  const [showEmployeeList, setShowEmployeeList] = useState(false);
-
   // Table Filter & Pagination State
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDate, setFilterDate] = useState('');
@@ -44,65 +32,6 @@ export default function ManageWFH() {
     } catch (err) {
       setFetchError('Unable to load this page. Please try again.');
     } finally {setFetching(false);}
-  };
-
-  const toggleUser = (id) => {
-    setSelectedUsers(prev => prev.includes(id) ? prev.filter(userId => userId !== id) : [...prev, id]);
-  };
-
-  const toggleAllUsers = () => {
-    if (selectedUsers.length === users.length) setSelectedUsers([]);
-    else setSelectedUsers(users.map(u => u.id));
-  };
-
-  const handleAssignWFH = async (e) => {
-    e.preventDefault();
-    if (selectedUsers.length === 0) {
-      setMsg({ text: 'Please select at least one employee.', type: 'error' });
-      return;
-    }
-
-    // Duplicate Check: Prevent assigning if a WFH record already overlaps these dates
-    const newStart = formData.start_date;
-    const newEnd = formData.end_date;
-    
-    const hasDuplicate = selectedUsers.some(userId => {
-      const user = users.find(u => u.id === userId);
-      return wfhRecords.some(record => 
-        record.username === user.username && 
-        record.status !== 'Rejected' && 
-        (newStart <= record.end_date && newEnd >= record.start_date)
-      );
-    });
-
-    if (hasDuplicate) {
-      setMsg({ text: 'Duplicate found: One or more selected employees already have a WFH record on these dates.', type: 'error' });
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      await Promise.all(selectedUsers.map(userId => 
-        createLeaveRequest({
-          user_id: userId,
-          request_type: 'Work From Home',
-          start_date: formData.start_date,
-          end_date: formData.end_date,
-          reason: formData.reason,
-          status: 'Approved' 
-        })
-      ));
-      
-      setMsg({ text: `Remote days assigned to ${selectedUsers.length} people.`, type: 'success' });
-      setSelectedUsers([]);
-      setShowEmployeeList(false);
-      setFormData({ start_date: '', end_date: '', reason: 'Assigned by Management' });
-      fetchData();
-    } catch (err) {
-      setMsg({ text: 'Failed to assign WFH.', type: 'error' });
-    } finally {
-      setLoading(false);
-    }
   };
 
   const handleStatusUpdate = async (id, status) => {
@@ -156,117 +85,11 @@ export default function ManageWFH() {
   return (
     <div className="admin-legacy w-full max-w-7xl flex flex-col gap-6 relative">
       
-      <header className="admin-page-heading"><div><h1>Work from home</h1><p>Assign remote days and review the team’s schedule.</p></div></header>
+      <header className="admin-page-heading"><div><h1>Work from home</h1><p>Review remote work requests and the team’s schedule.</p></div></header>
       {fetchError && <div className="admin-error" role="alert">{fetchError} <button onClick={fetchData}>Try again</button></div>}
       {fetching && <p role="status" className="admin-loading">Loading…</p>}
       <div className="flex flex-col gap-6">
         
-        {/* TOP ROW: ASSIGN WFH */}
-        <div className="bg-white rounded-lg border border-slate-200 flex flex-col shrink-0 shadow-none z-20">
-          <div className="p-5 flex justify-between items-center border-b border-slate-100">
-            <h3 className="text-xs font-semibold normal-case tracking-normal text-zinc-900">Assign remote days</h3>
-          </div>
-
-          <div className="p-5">
-            {msg.text && (
-              <div className={`p-3 mb-4 rounded-lg text-xs font-bold normal-case tracking-normal shrink-0 ${msg.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
-                {msg.text}
-              </div>
-            )}
-
-            <form onSubmit={handleAssignWFH} className="flex flex-col lg:flex-row gap-6">
-              
-              {/* Form Inputs */}
-              <div className="w-full lg:w-1/3 flex flex-col gap-4 shrink-0">
-                <div className="bg-slate-50 p-5 rounded-xl border border-slate-200 flex flex-col gap-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="managewfh-field-1" className="block text-xs font-bold normal-case text-slate-500 mb-1.5">Start Date</label>
-                      <input id="managewfh-field-1" type="date" min={todayStr} required value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} className="w-full border border-slate-300 p-2 text-xs outline-none focus:border-indigo-500 rounded-lg bg-white" />
-                    </div>
-                    <div>
-                      <label htmlFor="managewfh-field-2" className="block text-xs font-bold normal-case text-slate-500 mb-1.5">End Date</label>
-                      <input id="managewfh-field-2" type="date" min={formData.start_date || todayStr} required value={formData.end_date} onChange={e => setFormData({...formData, end_date: e.target.value})} className="w-full border border-slate-300 p-2 text-xs outline-none focus:border-indigo-500 rounded-lg bg-white" />
-                    </div>
-                  </div>
-                  <div>
-                    <label htmlFor="managewfh-field-3" className="block text-xs font-bold normal-case text-slate-500 mb-1.5">Reason / Note</label>
-                    <input id="managewfh-field-3" type="text" required value={formData.reason} onChange={e => setFormData({...formData, reason: e.target.value})} className="w-full border border-slate-300 p-2 text-xs outline-none focus:border-indigo-500 rounded-lg bg-white" />
-                  </div>
-                </div>
-              </div>
-
-              {/* Smart Employee Selection */}
-              <div className="w-full lg:w-2/3 flex flex-col">
-                <div className="flex justify-between items-center mb-1.5">
-                  <label className="block text-xs font-bold normal-case text-slate-500">Select Employees</label>
-                </div>
-
-                <div className="relative flex flex-col">
-                  <button 
-                    type="button" 
-                    aria-expanded={showEmployeeList}
-                    onClick={() => setShowEmployeeList(!showEmployeeList)}
-                    className="w-full border border-slate-300 p-3 text-xs outline-none rounded-lg bg-white flex justify-between items-center hover:border-slate-400 transition"
-                  >
-                    <span className="font-semibold text-slate-700 truncate">
-                      {selectedUsers.length === 0 
-                        ? 'Select employees' 
-                        : selectedUsers.length === 1
-                        ? `@${users.find(u => u.id === selectedUsers[0])?.username || 'Unknown'}`
-                        : `@${users.find(u => u.id === selectedUsers[0])?.username || 'Unknown'} and ${selectedUsers.length - 1} others`}
-                    </span>
-                    <svg className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${showEmployeeList ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                  </button>
-                  
-                  {/* Floating Absolute Popup List */}
-                  {showEmployeeList && (
-                    <div className="mt-2 border border-slate-200 rounded-xl p-4 bg-white shadow-xl flex flex-col gap-3 animate-fade-in z-50">
-                      <div className="flex justify-between items-center pb-3 border-b border-slate-100">
-                        <span className="text-xs font-semibold text-slate-400 normal-case tracking-normal">Team members</span>
-                        <button type="button" onClick={toggleAllUsers} className="admin-button  ">
-                          {selectedUsers.length === users.length && users.length > 0 ? 'Deselect All' : 'Select All'}
-                        </button>
-                      </div>
-                      
-                      <div className="overflow-auto max-h-[250px]">
-                        {users.length > 0 ? (
-                          <div className="flex flex-col gap-1">
-                            {users.map(u => (
-                              <label key={u.id} className="flex items-center gap-3 p-2.5 hover:bg-slate-50 rounded-lg cursor-pointer transition border border-transparent hover:border-slate-200">
-                                <input 
-                                  type="checkbox" 
-                                  checked={selectedUsers.includes(u.id)}
-                                  onChange={() => toggleUser(u.id)}
-                                  className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
-                                />
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-bold text-zinc-900">@{u.username}</span>
-                                  <span className="text-xs font-bold text-slate-400 normal-case tracking-normal bg-slate-100 px-1.5 py-0.5 rounded">{u.role}</span>
-                                </div>
-                              </label>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="text-xs text-slate-400 text-center p-4">No employees available.</div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-5 flex justify-end shrink-0">
-                  <button type="submit" disabled={loading || selectedUsers.length === 0} className="admin-button primary w-full sm:w-auto">
-                    {loading ? 'Assigning...' : `Assign to ${selectedUsers.length} people`}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        </div>
-
         {/* BOTTOM ROW: WFH RECORDS TABLE */}
         <div className="bg-white rounded-lg border border-slate-200 flex flex-col min-h-[260px] shadow-none z-10">
           <div className="p-4 border-b border-slate-100 shrink-0 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
