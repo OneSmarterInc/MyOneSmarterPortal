@@ -86,7 +86,7 @@ export default function ManagerReport() {
           .admin-workspace .attendance-report { max-width: none !important; padding: 0 !important; margin: 0 !important; }
           .attendance-report .report-screen { display: none !important; }
           .attendance-report .report-print-document { display: block !important; }
-          .attendance-report .report-sheet { width: 100%; height: 297mm; padding: 12mm; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; break-after: page; page-break-after: always; font-family: Arial, sans-serif; color: #10141a; }
+          .attendance-report .report-sheet { width: 100%; height: 297mm; padding: 12mm; box-sizing: border-box; display: flex; flex-direction: column; overflow: hidden; break-after: page; page-break-after: always; break-inside: avoid; page-break-inside: avoid; font-family: Arial, sans-serif; color: #10141a; }
           .attendance-report .report-sheet:last-child { break-after: auto; page-break-after: auto; }
           .attendance-report .report-letterhead { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #111; padding: 0 0 9px; font-size: 11px; font-weight: 600; }
           .attendance-report .report-letterhead img { height: 32px; width: 32px; object-fit: contain; }
@@ -104,6 +104,8 @@ export default function ManagerReport() {
           .attendance-report .report-signature { margin-top: auto; align-self: flex-end; width: 255px; text-align: center; font-size: 12px; padding-bottom: 24px; }
           .attendance-report .report-signature .line { border-top: 2px solid #111; padding-top: 8px; }
           .attendance-report .report-signature strong { display: block; font-size: 14px; margin-bottom: 3px; }
+          .attendance-report .report-print-document { counter-reset: reportpage; }
+          .attendance-report .report-sheet { counter-increment: reportpage; }
           .attendance-report .report-footer { margin-top: auto; flex-shrink: 0; display: flex; justify-content: space-between; gap: 10px; border-top: 2px solid #111; padding-top: 15px; font-size: 10px; }
         }
       `}</style>
@@ -151,12 +153,14 @@ export default function ManagerReport() {
       </div>
       {filteredRecords.length > 0 && <div className="report-print-document" aria-hidden="true">
         {printPages.map((records, index) => <section className="report-sheet" key={index}>
+          {index === 0 && <>
           <div className="report-letterhead"><img src="/images/logo.png" alt="" />One Smarter Inc., USA</div>
           <h1 className="report-title">ATTENDANCE RECORD</h1>
           <div className="report-info"><table><tbody>
-            <tr><td className="report-label">{selectedUserInfo ? 'Employee Name:' : 'Report Scope:'}</td><td className="report-value">{selectedUserInfo ? selectedUserInfo.username : 'All employees'}</td><td className="report-label">{selectedUserInfo ? 'Employee ID:' : 'Employees:'}</td><td>{selectedUserInfo ? (selectedUserInfo.employee_id || selectedUserInfo.id) : new Set(filteredRecords.map(record => String(record.user))).size}</td></tr>
+            {selectedUserInfo ? <tr><td className="report-label">Employee Name:</td><td className="report-value">{selectedUserInfo.username}</td><td className="report-label">Employee ID:</td><td>{selectedUserInfo.employee_id || selectedUserInfo.id}</td></tr> : <tr><td className="report-label">Report Scope:</td><td colSpan="3">All employees</td></tr>}
             <tr><td className="report-label">Period:</td><td colSpan="3">{period}</td></tr>
           </tbody></table></div>
+          </>}
           <table className="report-table"><thead><tr><th style={{width:'12%'}}>Sr. No.</th>{!selectedUserInfo && <th>Employee</th>}<th>Date</th><th>Start Time</th><th>End Time</th><th>Status</th></tr></thead>
             <tbody>{records.map((record, row) => <tr key={record.id}>
               <td>{index * PAGE_SIZE + row + 1}</td>{!selectedUserInfo && <td>{users.find(u => String(u.id) === String(record.user))?.username || 'Unknown'}</td>}<td>{formatDate(record.date)}</td><td>{formatTime(record.check_in)}</td><td>{formatTime(record.check_out)}</td><td>{record.status}</td>
@@ -166,7 +170,7 @@ export default function ManagerReport() {
             <p className="report-generated">Generated on: {generatedAt.toLocaleString('en-US')}</p>
             <div className="report-signature"><div className="line"><strong>Akshay Agrawal</strong>Global Service and Delivery Manager</div></div>
           </>}
-          <div className="report-footer"><span>© 2026 One Smarter Inc., USA. All rights reserved. Secure Compliance &amp; Systems.</span><span>{index + 1} / {printPages.length}</span></div>
+          <div className="report-footer"><span>© 2026 One Smarter Inc., USA. All rights reserved. Secure Compliance &amp; Systems.</span><span>Page {index + 1} of {printPages.length}</span></div>
         </section>)}
       </div>}
     </div>
