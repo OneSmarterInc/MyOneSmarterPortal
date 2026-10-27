@@ -297,7 +297,6 @@ export default function ManageEmployees() {
               <div>
                 <label htmlFor="edit-employee-tags" className="block text-xs font-bold text-slate-600 mb-1">Tags</label>
                 <input id="edit-employee-tags" type="text" value={tags} onChange={e => setTags(e.target.value)} placeholder="e.g. Engineering, Remote" className="w-full border border-slate-300 rounded p-2 text-sm" />
-                <p className="mt-1 text-xs text-slate-500">Separate tags with commas. Up to 20 tags, 40 characters each.</p>
               </div>
               <div className="pt-2 border-t border-slate-100">
                 <label className="flex items-center gap-2 text-xs font-bold text-slate-600">
