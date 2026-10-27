@@ -7,9 +7,10 @@ import EmployeeDashboard from './EmployeeDashboard';
 import EmployeeProfile from './EmployeeProfile';
 import EmployeeLeave from './EmployeeLeave';
 import EmployeeWFH from './EmployeeWFH';
+import EmployeePolicies from './EmployeePolicies';
 
 export default function EmployeeLayout({ user }) {
-  const [activeTab, navigatePage] = useWorkspacePage('employee', ['dashboard', 'leave', 'wfh', 'profile']);
+  const [activeTab, navigatePage] = useWorkspacePage('employee', ['dashboard', 'leave', 'wfh', 'profile', 'policies']);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const navigate = tab => {
@@ -21,7 +22,8 @@ export default function EmployeeLayout({ user }) {
     { id: 'dashboard', label: 'My overview', icon: 'dashboard' },
     { id: 'leave', label: 'Leave & time off', icon: 'calendar' },
     { id: 'wfh', label: 'Work from home', icon: 'home' },
-    { id: 'profile', label: 'My profile', icon: 'people' }
+    { id: 'profile', label: 'My profile', icon: 'people' },
+    { id: 'policies', label: 'Privacy & security policies', icon: 'shield' }
   ];
 
   return (
@@ -41,6 +43,7 @@ export default function EmployeeLayout({ user }) {
         {activeTab === 'profile' && <EmployeeProfile user={user} />}
         {activeTab === 'leave' && <EmployeeLeave user={user} />}
         {activeTab === 'wfh' && <EmployeeWFH user={user} />}
+        {activeTab === 'policies' && <EmployeePolicies />}
       </div>
     </div>
   );
