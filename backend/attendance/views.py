@@ -148,8 +148,8 @@ def manager_create_user(request):
     profile.tags = details.get('tags', [])
     if joining_date:
         profile.joining_date = joining_date
-    if employee_id and hasattr(profile, 'employee_id'):
-        profile.employee_id = employee_id
+    if employee_id:
+        profile.employee_id = str(employee_id).strip()
     profile.save()
 
     # Professional HTML Email Template
@@ -309,6 +309,7 @@ def get_all_users(request):
             'username': u.username,
             'email': u.email,
             'role': role,
+            'employee_id': profile.employee_id if profile else '',
             'joining_date': joining_date,
             'designation': profile.designation if profile else '',
             'tags': profile.tags if profile else [],
@@ -381,6 +382,7 @@ def employee_profile(request, user_id):
             'phone': profile.phone,
             'address': profile.address,
             'joining_date': profile.joining_date,
+            'employee_id': profile.employee_id,
             'date_of_birth': profile.date_of_birth,
             'designation': profile.designation,
             'tags': profile.tags,
