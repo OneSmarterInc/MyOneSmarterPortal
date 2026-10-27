@@ -1,3 +1,4 @@
+import { portalAlert } from './PortalDialog';
 import React, { useState, useEffect } from 'react';
 import { formatAttendanceTime } from '../utils/attendanceTime';
 import { getAttendance, updateAttendance, getLeaveRequests, updateLeaveRequest, getUsers } from '../services/api';
@@ -31,7 +32,7 @@ export default function ManagerApprovals() {
       await updateAttendance(id, { status: newStatus });
       fetchAllData(); 
     } catch (err) {
-      alert('Failed to update status.');
+      portalAlert('Failed to update status.');
     }
   };
 
@@ -40,7 +41,7 @@ export default function ManagerApprovals() {
       await updateLeaveRequest(id, { status });
       fetchAllData();
     } catch (err) {
-      alert('Failed to update leave status.');
+      portalAlert('Failed to update leave status.');
     }
   };
 
