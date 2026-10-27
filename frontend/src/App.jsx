@@ -9,10 +9,13 @@ export default function App() {
   const [user, setUser] = useState(null);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
+    const syncUser = () => {
+      const savedUser = localStorage.getItem('user');
+      setUser(savedUser ? JSON.parse(savedUser) : null);
+    };
+    syncUser();
+    window.addEventListener('userUpdated', syncUser);
+    return () => window.removeEventListener('userUpdated', syncUser);
   }, []);
 
   const handleLogout = () => {

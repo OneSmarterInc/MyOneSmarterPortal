@@ -90,3 +90,62 @@ class EmployeeDetailsTests(TestCase):
         self.assertEqual(profile.designation, 'Design Intern')
         self.assertEqual(profile.tags, ['Design', 'Remote'])
         self.assertTrue(profile.is_first_login)
+
+    def test_admin_cannot_rename_account_or_partially_apply_update(self):
+        response = self.client.put(self.url, {'username': 'renamed', 'email': 'changed@example.com'}, format='json')
+        self.assertEqual(response.status_code, 403)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.username, 'alex')
+        self.assertEqual(self.user.email, 'alex@example.com')
+        self.assertEqual(self.client.put(self.url, {'username': 'alex', 'designation': 'Intern II'}, format='json').status_code, 200)
+
+    def test_username_change_requires_owner_password(self):
+        for password in (None, '', 'WrongPassword'):
+            response = self.client.put(f'/profile/{self.user.pk}/', {
+                'username': 'newalex', 'current_password': password,
+            }, format='json')
+            self.assertEqual(response.status_code, 403)
+        self.user.refresh_from_db()
+        self.assertEqual(self.user.username, 'alex')
+
+    def test_employees_and_interns_can_rename_without_resetting_password(self):
+        for role in ('employee', 'intern'):
+            self.user.profile.role = role
+            self.user.profile.save()
+            name = f'alex-{role}'
+            response = self.client.put(f'/profile/{self.user.pk}/', {
+                'username': name, 'current_password': 'OriginalPass123!',
+            }, format='json')
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.data['username'], name)
+            login = self.client.post('/login/', {'username': name, 'password': 'OriginalPass123!'}, format='json')
+            self.assertEqual(login.status_code, 200)
+            self.assertFalse(login.data['is_first_login'])
+            self.assertEqual(self.client.get(f'/profile/{self.user.pk}/').data['username'], name)
+        self.assertEqual(self.login().status_code, 400)
+
+    def test_invalid_or_duplicate_username_does_not_modify_profile(self):
+        User.objects.create_user('taken')
+        for name in ('', '   ', 'invalid name', 'x' * 151, 'TAKEN', None):
+            response = self.client.put(f'/profile/{self.user.pk}/', {
+                'username': name, 'current_password': 'OriginalPass123!',
+                'first_name': 'Should not save',
+            }, format='json')
+            self.assertEqual(response.status_code, 400)
+            self.user.refresh_from_db()
+            self.assertEqual(self.user.username, 'alex')
+            self.assertEqual(self.user.first_name, '')
+
+    def test_manager_and_other_authenticated_users_cannot_rename(self):
+        manager = User.objects.create_user('manager', password='ManagerPass123!')
+        manager.profile.role = 'manager'
+        manager.profile.save()
+        response = self.client.put(f'/profile/{manager.pk}/', {
+            'username': 'manager-new', 'current_password': 'ManagerPass123!',
+        }, format='json')
+        self.assertEqual(response.status_code, 403)
+        self.client.force_authenticate(user=manager)
+        response = self.client.put(f'/profile/{self.user.pk}/', {
+            'username': 'not-allowed', 'current_password': 'OriginalPass123!',
+        }, format='json')
+        self.assertEqual(response.status_code, 403)

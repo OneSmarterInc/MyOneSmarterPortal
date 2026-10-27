@@ -1,3 +1,5 @@
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import IntegrityError, transaction
 import string
 import random
 from rest_framework import viewsets, status, serializers
@@ -326,13 +328,14 @@ def manage_user(request, pk):
         return Response({'message': 'User deleted successfully'}, status=status.HTTP_200_OK)
     
     if request.method == 'PUT':
+        if 'username' in request.data and request.data['username'] != user.username:
+            return Response({'error': 'Only the account owner can change their username from their profile.'}, status=status.HTTP_403_FORBIDDEN)
         details = employee_details(request.data)
         reset_password = request.data.get('reset_password') is True
         new_password = request.data.get('password')
         if reset_password and (not isinstance(new_password, str) or not new_password.strip()):
             return Response({'error': 'Enter a new password to reset it.'}, status=status.HTTP_400_BAD_REQUEST)
         birth_date = validated_birth_date(request.data['date_of_birth']) if 'date_of_birth' in request.data else None
-        user.username = request.data.get('username', user.username)
         user.email = request.data.get('email', user.email)
         
         # Profile edits (including autofilled passwords) never reset credentials.
@@ -371,6 +374,7 @@ def employee_profile(request, user_id):
     if request.method == 'GET':
         photo_url = request.build_absolute_uri(profile.profile_photo.url) if profile.profile_photo else None
         return Response({
+            'username': user.username,
             'first_name': user.first_name,
             'last_name': user.last_name,
             'email': user.email,
@@ -384,6 +388,31 @@ def employee_profile(request, user_id):
         }, status=status.HTTP_200_OK)
 
     if request.method == 'PUT':
+        if 'username' in request.data:
+            if profile.role not in ('employee', 'intern'):
+                return Response({'error': 'Only employees and interns can change their own username.'}, status=status.HTTP_403_FORBIDDEN)
+            if request.user.is_authenticated and request.user.pk != user.pk:
+                return Response({'error': 'You can only change your own username.'}, status=status.HTTP_403_FORBIDDEN)
+            password = request.data.get('current_password')
+            if not user.is_active or not isinstance(password, str) or not user.check_password(password):
+                return Response({'error': 'Enter your correct current password to change your username.'}, status=status.HTTP_403_FORBIDDEN)
+            username = request.data.get('username')
+            if not isinstance(username, str):
+                return Response({'error': 'Enter a valid username.'}, status=status.HTTP_400_BAD_REQUEST)
+            username = username.strip()
+            try:
+                User._meta.get_field('username').clean(username, user)
+            except DjangoValidationError:
+                return Response({'error': 'Use 1–150 characters: letters, numbers, or @ . + - _.'}, status=status.HTTP_400_BAD_REQUEST)
+            if User.objects.filter(username__iexact=username).exclude(pk=user.pk).exists():
+                return Response({'error': 'This username is already in use.'}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                with transaction.atomic():
+                    user.username = username
+                    user.save(update_fields=['username'])
+            except IntegrityError:
+                return Response({'error': 'This username is already in use.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'Username updated successfully.', 'username': user.username}, status=status.HTTP_200_OK)
         birth_date = validated_birth_date(request.data['date_of_birth']) if 'date_of_birth' in request.data else profile.date_of_birth
         user.first_name = request.data.get('first_name', user.first_name)
         user.last_name = request.data.get('last_name', user.last_name)

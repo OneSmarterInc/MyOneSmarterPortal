@@ -14,7 +14,6 @@ export default function ManageEmployees({ onAddEmployee }) {
   const visible = team.filter(u=>(!roleFilter||u.role===roleFilter)&&(!tagFilter||(u.tags||[]).includes(tagFilter))&&[u.username,u.email,u.designation,...(u.tags||[])].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
   
   const [editingUser, setEditingUser] = useState(null);
-  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('intern'); // Default changed to intern
   const [birthDate, setBirthDate] = useState('');
@@ -69,7 +68,6 @@ export default function ManageEmployees({ onAddEmployee }) {
     setTags((profile.tags || []).join(', '));
     setResetPassword(false);
     setEditingUser(u);
-    setUsername(u.username);
     setEmail(u.email);
     // Only map valid roles. If somehow manager exists, default back to intern.
     setRole(u.role === 'employee' ? 'employee' : 'intern'); 
@@ -84,7 +82,6 @@ export default function ManageEmployees({ onAddEmployee }) {
     setLoading(true);
     try {
       await updateUser(editingUser.id, { 
-        username, 
         email, 
         role, 
         designation,
@@ -227,7 +224,7 @@ export default function ManageEmployees({ onAddEmployee }) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label htmlFor="manageemployees-field-1" className="block text-xs font-bold normal-case tracking-normal text-slate-600 mb-1">Username</label>
-                  <input id="manageemployees-field-1" type="text" value={username} onChange={e => setUsername(e.target.value)} className="w-full border border-slate-300 p-2 text-sm outline-none focus:border-red-500 rounded" required />
+                  <input id="manageemployees-field-1" type="text" value={editingUser.username} readOnly aria-readonly="true" className="w-full border border-slate-200 bg-slate-50 text-slate-500 p-2 text-sm rounded" />
                 </div>
                 <div>
                   <label htmlFor="manageemployees-field-2" className="block text-xs font-bold normal-case tracking-normal text-slate-600 mb-1">Joining Date</label>

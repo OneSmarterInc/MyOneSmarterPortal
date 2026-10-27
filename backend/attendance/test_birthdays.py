@@ -46,10 +46,10 @@ class BirthdayTests(TestCase):
 
     def test_invalid_birthdays_are_rejected_before_other_fields_change(self):
         for value in ['2026-02-30', 'invalid', str(timezone.localdate() + timedelta(days=1))]:
-            response = self.client.put(f'/users/{self.user.pk}/', {'username': 'changed', 'date_of_birth': value}, format='json')
+            response = self.client.put(f'/users/{self.user.pk}/', {'email': 'changed@example.com', 'date_of_birth': value}, format='json')
             self.assertEqual(response.status_code, 400)
             self.user.refresh_from_db()
-            self.assertEqual(self.user.username, 'alex')
+            self.assertEqual(self.user.email, '')
 
     def test_unrelated_profile_update_preserves_birthday(self):
         response = self.client.put(f'/profile/{self.user.pk}/', {'phone': '123'}, format='json')

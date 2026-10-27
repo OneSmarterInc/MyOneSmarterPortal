@@ -13,6 +13,36 @@ export default function EmployeeProfile({ user }) {
     profile_photo: null
   });
   
+  const [newUsername, setNewUsername] = useState(user.username || '');
+  const [usernamePassword, setUsernamePassword] = useState('');
+  const [usernameMsg, setUsernameMsg] = useState({ text: '', type: '' });
+  const [usernameSaving, setUsernameSaving] = useState(false);
+  const [currentUsername, setCurrentUsername] = useState(user.username || '');
+
+  const saveUsername = async (event) => {
+    event.preventDefault();
+    setUsernameSaving(true);
+    setUsernameMsg({text:'',type:''});
+    try {
+      const data = new FormData();
+      data.append('username', newUsername.trim());
+      data.append('current_password', usernamePassword);
+      const response = await updateProfile(user.user_id, data);
+      const username = response.data.username;
+      setCurrentUsername(username);
+      setNewUsername(username);
+      setUsernamePassword('');
+      const savedUser = JSON.parse(localStorage.getItem('user') || 'null');
+      if (savedUser?.user_id === user.user_id) {
+        localStorage.setItem('user', JSON.stringify({...savedUser, username}));
+        window.dispatchEvent(new Event('userUpdated'));
+      }
+      setUsernameMsg({text:'Username updated. Use it the next time you sign in.',type:'success'});
+    } catch (error) {
+      setUsernameMsg({text:error.response?.data?.error || 'Unable to update username.',type:'error'});
+    } finally {setUsernameSaving(false);}
+  };
+
   const [employment, setEmployment] = useState({ designation: '', tags: [] });
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
@@ -32,6 +62,8 @@ export default function EmployeeProfile({ user }) {
   const fetchProfile = async () => {
     try {
       const res = await getProfile(user.user_id);
+      setNewUsername(res.data.username || user.username);
+      setCurrentUsername(res.data.username || user.username);
       setProfile({
         first_name: res.data.first_name || '',
         last_name: res.data.last_name || '',
@@ -90,7 +122,7 @@ export default function EmployeeProfile({ user }) {
     setPwdLoading(true);
     try {
       await changePassword({
-        username: user.username,
+        username: currentUsername,
         old_password: pwdData.old_password,
         new_password: pwdData.new_password
       });
@@ -177,6 +209,17 @@ export default function EmployeeProfile({ user }) {
           </div>
         </form>
       </div>
+
+      {['employee','intern'].includes(user.role) && <section className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+        <h3 className="text-lg font-bold text-zinc-900 mb-2">Change username</h3>
+        <p className="text-sm text-slate-500 mb-4">Your username is used to sign in. Confirm your current password to change it.</p>
+        {usernameMsg.text && <p role={usernameMsg.type==='error'?'alert':'status'} className={`p-3 rounded mb-4 text-sm ${usernameMsg.type==='error'?'bg-red-50 text-red-700':'bg-emerald-50 text-emerald-700'}`}>{usernameMsg.text}</p>}
+        <form onSubmit={saveUsername} className="space-y-4 max-w-md">
+          <div><label htmlFor="self-username" className="block text-sm font-semibold mb-1">Username</label><input id="self-username" autoComplete="username" required maxLength={150} value={newUsername} onChange={event=>setNewUsername(event.target.value)} className="w-full border border-slate-300 rounded-lg p-2.5" /></div>
+          <div><label htmlFor="username-password" className="block text-sm font-semibold mb-1">Current password to change username</label><input id="username-password" type="password" autoComplete="current-password" required value={usernamePassword} onChange={event=>setUsernamePassword(event.target.value)} className="w-full border border-slate-300 rounded-lg p-2.5" /></div>
+          <button type="submit" disabled={usernameSaving || !newUsername.trim() || newUsername.trim()===currentUsername} className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg px-5 py-2.5 text-sm font-semibold">{usernameSaving?'Saving…':'Save username'}</button>
+        </form>
+      </section>}
 
       {/* Password Change Card */}
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
