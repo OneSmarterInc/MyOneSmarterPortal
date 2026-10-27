@@ -10,7 +10,7 @@ from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from django.core.mail import send_mail, get_connection, EmailMessage
 from django.conf import settings
-from .models import Attendance, UserProfile, SMTPSettings, CompanySchedule, LeaveRequest, LeaveAllocation
+from .models import Attendance, UserProfile, SMTPSettings, CompanySchedule, CalendarAnnouncement, LeaveRequest, LeaveAllocation
 from .serializers import AttendanceSerializer
 
 
@@ -448,6 +448,17 @@ def get_schedules(request):
         })
     return Response(data, status=status.HTTP_200_OK)
 
+@api_view(['GET'])
+def calendar_announcements(request):
+    events = CalendarAnnouncement.objects.filter(date__gte=timezone.localdate()).order_by('-id')[:200]
+    return Response([{
+        'id': event.id, 'date': str(event.date), 'day_type': event.day_type,
+        'description': event.description,
+        'start_time': str(event.start_time) if event.start_time else None,
+        'end_time': str(event.end_time) if event.end_time else None
+    } for event in events])
+
+
 @api_view(['POST'])
 def save_schedule(request):
     date = request.data.get('date')
@@ -456,6 +467,11 @@ def save_schedule(request):
     end_time = request.data.get('end_time') or None
     description = request.data.get('description', '')
 
+    previous = CompanySchedule.objects.filter(date=date).first()
+    old_type = previous.day_type if previous else 'Working'
+    old_description = previous.description if previous else ''
+    old_start = str(previous.start_time) if previous and previous.start_time else ''
+    old_end = str(previous.end_time) if previous and previous.end_time else ''
     schedule, created = CompanySchedule.objects.update_or_create(
         date=date,
         defaults={
@@ -465,12 +481,22 @@ def save_schedule(request):
             'description': description
         }
     )
+    if old_type in ('Holiday', 'Half-Day') and day_type not in ('Holiday', 'Half-Day'):
+        CalendarAnnouncement.objects.create(date=schedule.date, day_type='Cancelled', description=old_description or old_type)
+    elif day_type in ('Holiday', 'Half-Day') and (
+        old_type != day_type or (old_description or '') != (description or '')
+        or old_start != (start_time or '') or old_end != (end_time or '')
+    ):
+        CalendarAnnouncement.objects.create(date=schedule.date, day_type=day_type,
+            description=description or '', start_time=schedule.start_time, end_time=schedule.end_time)
     return Response({'message': 'Schedule saved successfully!'}, status=status.HTTP_200_OK)
 
 @api_view(['DELETE'])
 def delete_schedule(request, date_str):
     try:
         schedule = CompanySchedule.objects.get(date=date_str)
+        if schedule.day_type in ('Holiday', 'Half-Day'):
+            CalendarAnnouncement.objects.create(date=schedule.date, day_type='Cancelled', description=schedule.description or schedule.day_type)
         schedule.delete()
         return Response({'message': 'Schedule reset to default.'}, status=status.HTTP_200_OK)
     except CompanySchedule.DoesNotExist:
