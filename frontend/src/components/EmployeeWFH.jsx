@@ -1,3 +1,4 @@
+import { portalAlert, portalConfirm } from './PortalDialog';
 import React, { useState, useEffect } from 'react';
 import { getLeaveRequests, createLeaveRequest, deleteLeaveRequest } from '../services/api';
 
@@ -86,12 +87,12 @@ export default function EmployeeWFH({ user }) {
 
   // Withdraw/Delete Pending Request
   const handleDeleteRequest = async (id) => {
-    if (!window.confirm('Are you sure you want to withdraw this pending WFH request?')) return;
+    if (!await portalConfirm('Are you sure you want to withdraw this pending WFH request?', true)) return;
     try {
       await deleteLeaveRequest(id);
       fetchData();
     } catch (err) {
-      alert('Failed to delete request.');
+      portalAlert('Failed to delete request.');
     }
   };
 
