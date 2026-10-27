@@ -176,7 +176,7 @@ export default function ManagerReport() {
           <div className="report-letterhead"><img src="/images/logo.png" alt="" />One Smarter Inc., USA</div>
           <h1 className="report-title">ATTENDANCE RECORD</h1>
           <div className="report-info"><table><tbody>
-            {selectedUserInfo ? <tr><td className="report-label">Employee Name:</td><td className="report-value">{selectedUserInfo.username}</td><td className="report-label">Employee ID:</td><td>{selectedUserInfo.employee_id || selectedUserInfo.id}</td></tr> : <tr><td className="report-label">Report Scope:</td><td colSpan="3">All employees</td></tr>}
+            {selectedUserInfo ? <tr><td className="report-label">Employee Name:</td><td className="report-value">{selectedUserInfo.username}</td><td className="report-label">Employee ID:</td><td>{selectedUserInfo.employee_id || 'Not assigned'}</td></tr> : <tr><td className="report-label">Report Scope:</td><td colSpan="3">All employees</td></tr>}
             <tr><td className="report-label">Period:</td><td colSpan="3">{period}</td></tr>
           </tbody></table></div>
           </>}
