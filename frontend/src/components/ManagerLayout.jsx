@@ -1,5 +1,6 @@
 import './AdminUI.css';
 import React, { useState } from 'react';
+import { useWorkspacePage } from '../utils/useWorkspacePage';
 import WorkspaceNavigation from './WorkspaceNavigation';
 import { Icon } from './AdminUI';
 import ManagerDashboard from './ManagerDashboard';
@@ -13,14 +14,14 @@ import PendingLeaves from './PendingLeaves';
 import ManageWFH from './ManageWFH'; // <-- Import the new component
 
 export default function ManagerLayout() {
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, navigatePage] = useWorkspacePage('manager', ['dashboard', 'pending-attendance', 'pending-leaves', 'schedule', 'employees', 'leaves', 'wfh', 'report', 'email']);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [createMode,setCreateMode] = useState(false);
   const [approvalFilter,setApprovalFilter] = useState('all');
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
-  const navigate = (tab,filter = 'all') => {setIsSidebarOpen(false);setSelectedEmployeeId(null);setApprovalFilter(filter);setActiveTab(tab);setCreateMode(false);};
+  const navigate = (tab,filter = 'all') => {setIsSidebarOpen(false);setSelectedEmployeeId(null);setApprovalFilter(filter);navigatePage(tab);setCreateMode(false);};
   const openEmployee = id => {navigate('employees');setSelectedEmployeeId(id);};
-  const addEmployee = () => {setActiveTab('dashboard');setCreateMode(true);};
+  const addEmployee = () => {navigatePage('dashboard');setCreateMode(true);};
 
   const navigation = [
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -49,7 +50,7 @@ export default function ManagerLayout() {
 
       {/* Main Content Area */}
       <div className="flex-grow p-4 sm:p-8 bg-[#f7f7f8] print:p-0 print:bg-white flex justify-center w-full min-w-0">
-        {activeTab === 'dashboard' && <ManagerDashboard setActiveTab={setActiveTab} navigate={navigate} createMode={createMode} onCreateMode={setCreateMode} onSelectEmployee={openEmployee} />}
+        {activeTab === 'dashboard' && <ManagerDashboard setActiveTab={navigatePage} navigate={navigate} createMode={createMode} onCreateMode={setCreateMode} onSelectEmployee={openEmployee} />}
         {activeTab === 'pending-attendance' && <PendingAttendance key={approvalFilter} initialFilter={approvalFilter} />}
         {activeTab === 'pending-leaves' && <PendingLeaves />}
         {activeTab === 'schedule' && <ManagerSchedule />}
