@@ -2,7 +2,7 @@ import { Avatar, Status } from './AdminUI';
 import React, { useState, useEffect } from 'react';
 import { getUsers, updateUser, deleteUser, getProfile } from '../services/api';
 
-export default function ManageEmployees({ onAddEmployee }) {
+export default function ManageEmployees({ onAddEmployee, initialUserId = null }) {
   const [users, setUsers] = useState([]);
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
@@ -114,6 +114,12 @@ export default function ManageEmployees({ onAddEmployee }) {
       alert('Failed to load employee profile.');
     }
   };
+
+  useEffect(() => {
+    if (initialUserId == null || fetching || fetchError) return;
+    const target = users.find(u => String(u.id) === String(initialUserId));
+    if (target) openProfileView(target);
+  }, [initialUserId, fetching, fetchError, users]);
 
   return (
     <div className="w-full max-w-7xl space-y-5 relative">
