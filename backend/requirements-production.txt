@@ -7,3 +7,5 @@ Pillow==13.0.0
 gunicorn
 
 reportlab>=4.2,<5
+pyHanko==0.25.3
+

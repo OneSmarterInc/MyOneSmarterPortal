@@ -13,6 +13,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .letter_auth import LetterAuthentication
 from .letter_pdf import render_letter, CONTACT, SIGNATORY, TITLE
+from .letter_signing import sign_letter, LetterSigningError
 from .models import RecommendationRequest, SMTPSettings
 
 
@@ -135,6 +136,14 @@ def send(request, pk):
             validate_email(item.user.email)
         except ValidationError:
             return Response({'error': 'Correct the recipient’s account email before sending.'}, status=400)
+        # Sign the saved preview before claiming email delivery. Keep the signed
+        # bytes on SMTP failure so retries cannot create different attachments.
+        if item.draft.get('_signed_revision') != item.revision:
+            try:
+                item.pdf = sign_letter(bytes(item.pdf))
+            except LetterSigningError as exc:
+                return Response({'error': str(exc)}, status=503)
+            item.draft = {**item.draft, '_signed_revision': item.revision}
         item.status = 'Sending'
         item.sent_to = item.user.email
         item.reviewed_by = request.user
@@ -148,7 +157,7 @@ def send(request, pk):
                                     use_tls=config.security_protocol == 'TLS', use_ssl=config.security_protocol == 'SSL', timeout=30)
         body = (f"Dear {item.draft['name']},\n\n"
                 "Your request for a Letter of Recommendation has been approved. "
-                "Please find your official letter attached to this email.\n\n"
+                "Please find your digitally signed official letter attached to this email.\n\n"
                 "We appreciate your contributions to One Smarter, Inc. and wish you continued success in your future endeavors. "
                 f"If you have any questions, please contact {CONTACT}.\n\n"
                 f"Kind regards,\n{SIGNATORY}\n{TITLE}\nOne Smarter, Inc.\n{CONTACT}")
@@ -180,3 +189,4 @@ def reject(request, pk):
         item.status = 'Rejected'; item.rejection_reason = reason; item.reviewed_by = request.user
         item.save()
     return Response(details(item, True))
+

@@ -14,7 +14,45 @@ Employees and interns request a letter in **Recommendation letters**. Administra
 
 The name and joining date are read from the account when saving. Missing or future joining dates prevent saving. An empty end date produces wording that employment continues as of the letter's issue date. The signatory is Akshay Agrawal, Global Delivery Manager. No scanned signature is copied.
 
-Saving stores a PDF and its data snapshot in the database. Approval sends those exact bytes; later account edits cannot silently alter the approved document. A revision check prevents stale approvals, and a transaction claims the send so concurrent clicks cannot dispatch the same request twice. An already sent request returns its existing result without resending.
+Saving stores an unsigned PDF preview and its data snapshot in the database. Approval adds a certificate signature as an incremental PDF update, preserving the reviewed page content, and stores the signed PDF before sending it. The emailed attachment and subsequent downloads use the same signed bytes. Later account edits cannot silently alter the approved document. A revision check prevents stale approvals, and a transaction claims the send so concurrent clicks cannot dispatch the same request twice. An already sent request returns its existing result without resending.
+
+## Certificate signing setup (Ubuntu)
+
+Signing is mandatory for new approvals. Missing/unreadable credentials, wrong passwords, invalid certificate dates, disallowed key usage, or signing failures stop approval before email is attempted. Draft previews still work. Previously sent PDFs are not modified or emailed again.
+
+Install the production dependencies (includes pyHanko). Keep the PKCS#12 certificate outside the repository and web root. The existing service runs as `ubuntu`, so `/home/ubuntu/onesmarter-signing/onesmarter-signing.p12` should be owned by ubuntu, mode 600, within a mode 700 directory.
+
+Create a password file on the server without putting the password in shell history:
+
+```bash
+(
+  umask 077
+  read -r -s -p 'PKCS#12 export password: ' signing_password
+  printf '\n'
+  printf '%s' "$signing_password" > /home/ubuntu/onesmarter-signing/password
+  unset signing_password
+)
+```
+
+Run `sudo systemctl edit onesmarter-backend.service` and add:
+
+```ini
+[Service]
+Environment="LOR_SIGNING_P12_PATH=/home/ubuntu/onesmarter-signing/onesmarter-signing.p12"
+Environment="LOR_SIGNING_PASSWORD_FILE=/home/ubuntu/onesmarter-signing/password"
+```
+
+Then run:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart onesmarter-backend.service
+systemctl is-active onesmarter-backend.service
+```
+
+Do not commit keys, certificate archives, or passwords. The public certificate can be shared for verification. Rotate the PKCS#12 and password files together when renewing the certificate; existing sent PDFs retain their original signatures. A retry after SMTP failure reuses the already signed attachment; saving a revised draft clears that signature and requires signing the new revision.
+
+The PDF uses an embedded signature named `OneSmarterApproval`, visible in a supporting reader's signature panel. The existing printed sign-off stays unchanged. A self-signed certificate requires recipients to independently verify and trust the certificate; the signer name alone does not establish identity. No trusted timestamp service or long-term validation data is configured. The signing time uses the server clock. Keep the private key accessible only to authorized server processes; anyone able to read both credential files can sign as this certificate.
 
 `Sent` means the SMTP server accepted the email, not that inbox delivery is guaranteed. `Send failed` requires checking SMTP logs and the recipient inbox before retrying, because SMTP failures can have ambiguous outcomes. If a worker stops during a send, the request may remain `Sending`; investigate the mail server before an operator resets it. It is not automatically resent.
 
