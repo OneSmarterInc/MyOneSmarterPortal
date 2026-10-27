@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getProfile, getSchedules } from '../services/api';
+import { getProfile, getCalendarAnnouncements } from '../services/api';
 import { Avatar } from './AdminUI';
 
 export default function Navbar({ user, onLogout }) {
@@ -29,17 +29,20 @@ export default function Navbar({ user, onLogout }) {
     let active = true;
     const refresh = async () => {
       try {
-        const response = await getSchedules();
+        const response = await getCalendarAnnouncements();
         if (!active) return;
         if (!Array.isArray(response.data)) throw new Error('Invalid calendar response');
-        const upcoming = response.data
-          .filter(day => day.date >= today() && ['Holiday', 'Half-Day'].includes(day.day_type))
-          .map(day => ({
-            ...day,
-            key: JSON.stringify([day.date, day.day_type, day.start_time || '', day.end_time || '', day.description || ''])
-          }))
+        const latestByDate = new Map();
+        for (const item of response.data) {
+          if (item.date < today() || latestByDate.has(item.date)) continue;
+          latestByDate.set(item.date, item);
+        }
+        const upcoming = [...latestByDate.values()]
+          .map(item => ({ ...item, key: `calendar-event-${item.id}` }))
+          .filter(item => !readStorage().includes(item.key))
           .sort((a, b) => a.date.localeCompare(b.date));
         setNotifications(upcoming);
+        setReadKeys(readStorage());
         setNotificationError('');
       } catch {
         if (active) setNotificationError('Could not load calendar updates.');
@@ -58,14 +61,14 @@ export default function Navbar({ user, onLogout }) {
     };
   }, [user?.user_id, user?.role]);
   const unreadCount = notifications.filter(n => !readKeys.includes(n.key)).length;
+  const dismissNotification = key => {
+    const keys = [...new Set([...readStorage(), key])].slice(-500);
+    setReadKeys(keys);
+    setNotifications(items => items.filter(n => n.key !== key));
+    try { localStorage.setItem(storageKey, JSON.stringify(keys)); } catch { /* storage unavailable */ }
+  };
   const openNotifications = () => {
-    const next = !notificationsOpen;
-    setNotificationsOpen(next);
-    if (next) {
-      const keys = [...new Set([...readStorage(), ...notifications.map(n => n.key)])].slice(-500);
-      setReadKeys(keys);
-      try { localStorage.setItem(storageKey, JSON.stringify(keys)); } catch { /* storage unavailable */ }
-    }
+    setNotificationsOpen(value => !value);
   };
   useEffect(() => {
     const syncMenu = event => setAdminMenuOpen(event.detail);
@@ -107,10 +110,11 @@ export default function Navbar({ user, onLogout }) {
                 {notificationError && <p role="alert" className="p-3 text-xs text-red-700">{notificationError}</p>}
                 {!notificationError && notifications.length === 0 && <p className="p-4 text-center text-sm text-zinc-500">No upcoming holiday or half-day announcements.</p>}
                 {notifications.map(n => <div key={n.key} className="mb-1 rounded-lg border border-zinc-100 p-3 last:mb-0">
-                  <p className="text-sm font-semibold text-zinc-900">{n.day_type === 'Holiday' ? 'Company holiday' : 'Company half-day'}</p>
+                  <p className="text-sm font-semibold text-zinc-900">{n.day_type === 'Holiday' ? 'Company holiday' : n.day_type === 'Cancelled' ? 'Holiday / half-day cancelled' : 'Company half-day'}</p>
                   <p className="mt-1 text-xs font-medium text-red-700">{new Date(`${n.date}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</p>
                   {n.description && <p className="mt-1 text-xs text-zinc-600">{n.description}</p>}
-                  {n.day_type === 'Half-Day' && n.start_time && n.end_time && <p className="mt-1 text-xs text-zinc-600">{n.start_time.slice(0,5)} – {n.end_time.slice(0,5)}</p>}
+                  <button type="button" className="mt-2 text-xs font-semibold text-red-700 underline" onClick={() => dismissNotification(n.key)}>Mark as read</button>
+                   {n.day_type === 'Half-Day' && n.start_time && n.end_time && <p className="mt-1 text-xs text-zinc-600">{n.start_time.slice(0,5)} – {n.end_time.slice(0,5)}</p>}
                 </div>)}
               </div>
             </div>}
