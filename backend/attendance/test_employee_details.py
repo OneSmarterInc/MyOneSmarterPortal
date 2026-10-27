@@ -43,6 +43,33 @@ class EmployeeDetailsTests(TestCase):
         self.client.put(self.url, {'designation': 'Engineer II'}, format='json')
         self.assertFalse(self.login('FinalPassword123!').data['is_first_login'])
 
+    def test_manager_reset_can_login_and_change_password_for_employee_and_intern(self):
+        for role in ('employee', 'intern'):
+            with self.subTest(role=role):
+                self.user.profile.role = role
+                self.user.profile.is_first_login = False
+                self.user.profile.save()
+                temporary = f'TempPassword{role}123!'
+                response = self.client.put(self.url, {
+                    'reset_password': True, 'password': temporary,
+                }, format='json')
+                self.assertEqual(response.status_code, 200)
+                self.assertTrue(response.data['password_reset'])
+                self.assertEqual(self.login('OriginalPass123!').status_code, 400)
+                fresh_login = self.login(temporary)
+                self.assertEqual(fresh_login.status_code, 200)
+                self.assertEqual(fresh_login.data['role'], role)
+                self.assertTrue(fresh_login.data['is_first_login'])
+                next_password = f'UpdatedPassword{role}456!'
+                changed = self.client.post('/change-password/', {
+                    'username': 'alex', 'old_password': temporary, 'new_password': next_password,
+                }, format='json')
+                self.assertEqual(changed.status_code, 200)
+                self.assertEqual(self.login(next_password).status_code, 200)
+                self.assertFalse(self.login(next_password).data['is_first_login'])
+                self.user.set_password('OriginalPass123!')
+                self.user.save()
+
     def test_reset_requires_nonempty_password_and_boolean_opt_in(self):
         for value in ['', None, '   ']:
             self.assertEqual(self.client.put(self.url, {'reset_password': True, 'password': value}, format='json').status_code, 400)
