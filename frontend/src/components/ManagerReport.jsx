@@ -78,7 +78,7 @@ export default function ManagerReport() {
     <div className="attendance-report admin-legacy w-full max-w-6xl space-y-6">
       <style>{`
         .attendance-report .report-print-document { display: none; }
-        @page { size: A4 portrait; margin: 12mm; }
+        @page { size: A4 portrait; margin: 0; }
         @media print {
           html, body, #root { background: #fff !important; }
           body { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
@@ -86,7 +86,7 @@ export default function ManagerReport() {
           .admin-workspace .attendance-report { max-width: none !important; padding: 0 !important; margin: 0 !important; }
           .attendance-report .report-screen { display: none !important; }
           .attendance-report .report-print-document { display: block !important; }
-          .attendance-report .report-sheet { width: 100%; min-height: 270mm; box-sizing: border-box; display: flex; flex-direction: column; break-after: page; page-break-after: always; font-family: Arial, sans-serif; color: #10141a; }
+          .attendance-report .report-sheet { width: 100%; min-height: 297mm; padding: 12mm; box-sizing: border-box; display: flex; flex-direction: column; break-after: page; page-break-after: always; font-family: Arial, sans-serif; color: #10141a; }
           .attendance-report .report-sheet:last-child { break-after: auto; page-break-after: auto; }
           .attendance-report .report-letterhead { display: flex; align-items: center; gap: 10px; border-bottom: 2px solid #111; padding: 0 0 9px; font-size: 11px; font-weight: 600; }
           .attendance-report .report-letterhead img { height: 32px; width: 32px; object-fit: contain; }
@@ -162,9 +162,11 @@ export default function ManagerReport() {
               <td>{index * PAGE_SIZE + row + 1}</td>{!selectedUserInfo && <td>{users.find(u => String(u.id) === String(record.user))?.username || 'Unknown'}</td>}<td>{formatDate(record.date)}</td><td>{formatTime(record.check_in)}</td><td>{formatTime(record.check_out)}</td><td>{record.status}</td>
             </tr>)}</tbody>
           </table>
-          <p className="report-generated">Generated on: {generatedAt.toLocaleString('en-US')}</p>
-          <div className="report-signature"><div className="line"><strong>Akshay Agrawal</strong>Global Service and Delivery Manager</div></div>
-          <div className="report-footer"><span>© 2026 One Smarter Inc., USA. All rights reserved. Secure Compliance &amp; Systems.</span><span>{index + 1} / {totalPages}</span></div>
+          {index === printPages.length - 1 && <>
+            <p className="report-generated">Generated on: {generatedAt.toLocaleString('en-US')}</p>
+            <div className="report-signature"><div className="line"><strong>Akshay Agrawal</strong>Global Service and Delivery Manager</div></div>
+          </>}
+          <div className="report-footer"><span>© 2026 One Smarter Inc., USA. All rights reserved. Secure Compliance &amp; Systems.</span></div>
         </section>)}
       </div>}
     </div>
