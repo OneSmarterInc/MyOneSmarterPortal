@@ -97,11 +97,11 @@ export default function ManagerSchedule() {
       <header className="admin-page-heading"><div><h1>Company calendar</h1><p>Select a day to change working hours, holidays or half-days.</p></div><button className="admin-button" onClick={()=>setCurrentDate(new Date())}>Today</button></header>
       {fetchError && <div className="admin-error" role="alert">{fetchError} <button onClick={fetchSchedules}>Try again</button></div>}
       {fetching && <p role="status" className="admin-loading">Loading…</p>}
-      <div className="bg-white p-4 sm:p-6 rounded-xl border border-slate-200 shadow-none flex-grow flex flex-col">
+      <div className="bg-white p-3 sm:p-6 rounded-2xl border border-slate-200 shadow-none flex-grow flex flex-col overflow-hidden">
         
         {/* Calendar Header */}
-        <div className="flex flex-wrap gap-3 justify-between items-center mb-6 pb-4 border-b border-slate-100 shrink-0">
-          <h3 className="text-lg sm:text-xl font-semibold text-zinc-900 normal-case tracking-normal">
+        <div className="flex flex-wrap gap-3 justify-between items-center mb-5 pb-5 border-b border-slate-100 shrink-0">
+          <h3 className="text-xl sm:text-2xl font-semibold text-zinc-900 tracking-tight">
             {currentDate.toLocaleString('default', { month: 'long', year: 'numeric' })}
           </h3>
           <div className="flex gap-2">
@@ -110,60 +110,62 @@ export default function ManagerSchedule() {
           </div>
         </div>
 
+        <div className="mb-4 flex flex-wrap gap-4 text-xs text-slate-600" aria-label="Calendar legend">
+          <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-emerald-500" />Working day</span>
+          <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-blue-500" />Holiday</span>
+          <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-amber-500" />Half-day</span>
+          <span className="inline-flex items-center gap-2"><i className="h-2.5 w-2.5 rounded-full bg-red-500" />Custom schedule</span>
+        </div>
         {/* Days of Week Row */}
-        <div className="grid grid-cols-7 gap-2 text-center mb-2 shrink-0">
+        <div className="grid grid-cols-7 gap-1.5 sm:gap-2 text-center mb-2 shrink-0">
           {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => (
-            <div key={d} className="text-xs font-semibold text-slate-400 normal-case tracking-normal pb-2 border-b border-slate-100">{d}</div>
+            <div key={d} className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-slate-500 py-2">{d}</div>
           ))}
         </div>
         
         {/* Calendar Grid */}
-        <div className="admin-calendar-grid grid grid-cols-7 gap-2 flex-grow auto-rows-[minmax(90px,_1fr)] sm:auto-rows-[minmax(100px,_1fr)]">
+        <div className="admin-calendar-grid grid grid-cols-7 gap-1.5 sm:gap-2 flex-grow auto-rows-[minmax(76px,_1fr)] sm:auto-rows-[minmax(118px,_1fr)]">
           {blanks.map(b => <div key={`blank-${b}`} className="p-2 bg-transparent"></div>)}
           
           {daysArray.map(day => {
             const dateObj = new Date(currentYear, currentMonth, day);
             const config = getDayConfiguration(dateObj);
             
-            let bgClass = "bg-white border-slate-200 hover:border-slate-400"; 
-            let textClass = "text-zinc-900";
-            let typeColor = "text-slate-400";
-            
-            if (config.day_type === 'Holiday') {
-              bgClass = "bg-blue-50/50 border-blue-200 hover:border-blue-400";
-              textClass = "text-blue-900";
-              typeColor = "text-blue-600";
-            }
-            if (config.day_type === 'Half-Day') {
-              bgClass = "bg-amber-50/50 border-amber-200 hover:border-amber-400";
-              textClass = "text-amber-900";
-              typeColor = "text-amber-600";
-            }
-
+            const isHoliday = config.day_type === 'Holiday';
+            const isHalfDay = config.day_type === 'Half-Day';
+            const isToday = dateObj.toDateString() === new Date().toDateString();
+            const hasOverride = schedules.some(item => item.date === dateObj.toLocaleDateString('en-CA'));
+            const colors = isHoliday
+              ? 'border-blue-200 bg-blue-50/60 hover:border-blue-400'
+              : isHalfDay
+                ? 'border-amber-200 bg-amber-50/60 hover:border-amber-400'
+                : 'border-slate-200 bg-white hover:border-slate-400 hover:bg-slate-50/60';
+            const pill = isHoliday
+              ? 'bg-blue-100 text-blue-700'
+              : isHalfDay
+                ? 'bg-amber-100 text-amber-800'
+                : 'bg-emerald-50 text-emerald-700';
             return (
-              <button 
-                key={day} 
-                onClick={() => openEditModal(dateObj)}
+              <button key={day} type="button" onClick={() => openEditModal(dateObj)}
                 aria-label={dateObj.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) + ', ' + config.day_type}
-                className={`admin-calendar-day p-2 sm:p-3 border rounded-lg flex flex-col items-center justify-center transition cursor-pointer shadow-none relative overflow-hidden group ${bgClass}`}
-              >
-                <span className={`font-semibold text-xl sm:text-2xl ${textClass}`}>{day}</span>
-                <span className={`text-xs sm:text-xs normal-case tracking-normal mt-1 font-bold ${typeColor}`}>
-                  <span className="hidden sm:inline">{config.day_type}</span><span className="sm:hidden">{config.day_type === 'Working' ? 'Work' : config.day_type === 'Holiday' ? 'Off' : 'Half'}</span>
+                className={`admin-calendar-day group relative flex min-w-0 flex-col items-start rounded-xl border p-2 sm:p-3 text-left shadow-none transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-red-500 ${colors}`}>
+                <div className="flex w-full items-start justify-between gap-1">
+                  <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-semibold sm:h-8 sm:w-8 sm:text-base ${isToday ? 'bg-[#c7192d] text-white' : 'text-slate-900'}`}>{day}</span>
+                  {hasOverride && <span title="Customized by manager" className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-red-500" />}
+                </div>
+                <span className={`mt-2 max-w-full truncate rounded-md px-1.5 py-0.5 text-[9px] font-semibold sm:text-[10px] ${pill}`}>
+                  <span className="hidden sm:inline">{config.day_type === 'Working' ? 'Working day' : config.day_type}</span>
+                  <span className="sm:hidden">{isHoliday ? 'Off' : isHalfDay ? 'Half' : 'Work'}</span>
                 </span>
-                
-                {config.day_type !== 'Holiday' && config.start_time && (
-                   <span className="text-xs font-bold text-slate-500 mt-1">
-                     {formatAttendanceTime(config.start_time)} - {formatAttendanceTime(config.end_time)}
-                   </span>
-                )}
-                
-                {config.description && (
-                  <span className="text-xs font-bold text-slate-400 mt-1 truncate w-full px-1">
-                    {config.description}
+                {config.day_type !== 'Holiday' && config.start_time && config.end_time && (
+                  <span className="mt-2 hidden w-full truncate text-[10px] font-medium text-slate-600 sm:block">
+                    {formatAttendanceTime(config.start_time)} – {formatAttendanceTime(config.end_time)}
                   </span>
                 )}
-                
+                {config.description && config.description !== 'Standard Shift' && config.description !== 'Sunday (Default)' && (
+                  <span className="mt-1 hidden w-full truncate text-[10px] text-slate-500 sm:block" title={config.description}>{config.description}</span>
+                )}
+                {config.description === 'Sunday (Default)' && <span className="mt-1 hidden text-[10px] text-slate-400 sm:block">Weekly off</span>}
               </button>
             );
           })}
