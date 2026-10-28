@@ -7,6 +7,8 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
   const [users, setUsers] = useState([]);
   const [copiedEmail, setCopiedEmail] = useState('');
   const [query, setQuery] = useState('');
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
   const [roleFilter, setRoleFilter] = useState('');
   const [tagFilter, setTagFilter] = useState('');
   const [fetching, setFetching] = useState(true);
@@ -15,6 +17,11 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
   const tagOptions = [...new Set(team.flatMap(u=>u.tags||[]))].sort();
   const visible = team.filter(u=>(!roleFilter||u.role===roleFilter)&&(!tagFilter||(u.tags||[]).includes(tagFilter))&&[u.username,u.email,u.designation,...(u.tags||[])].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
   
+  const totalPages = Math.max(1, Math.ceil(visible.length / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const startIndex = (currentPage - 1) * pageSize;
+  const paginatedPeople = visible.slice(startIndex, startIndex + pageSize);
+
   const [editingUser, setEditingUser] = useState(null);
   const [email, setEmail] = useState('');
   const [employeeId, setEmployeeId] = useState('');
@@ -148,7 +155,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
   return (
     <div className="w-full max-w-7xl space-y-5 relative">
       <header className="admin-page-heading"><div><h1>People directory</h1><p>Manage your team’s profiles, designations and tags.</p></div><button className="admin-button primary" onClick={onAddEmployee}>+ Add employee</button></header>
-      <div className="admin-toolbar"><input type="search" aria-label="Search people" placeholder="Search name, email, designation or tag…" value={query} onChange={e=>setQuery(e.target.value)}/><select aria-label="Filter by role" value={roleFilter} onChange={e=>setRoleFilter(e.target.value)}><option value="">All roles</option><option value="employee">Employees</option><option value="intern">Interns</option></select><select aria-label="Filter by tag" value={tagFilter} onChange={e=>setTagFilter(e.target.value)}><option value="">All tags</option>{tagOptions.map(t=><option key={t}>{t}</option>)}</select><span className="text-xs text-slate-500">{visible.length} people</span></div>
+      <div className="admin-toolbar"><input type="search" aria-label="Search people" placeholder="Search name, email, designation or tag…" value={query} onChange={e=>{setQuery(e.target.value);setPage(1);}}/><select aria-label="Filter by role" value={roleFilter} onChange={e=>{setRoleFilter(e.target.value);setPage(1);}}><option value="">All roles</option><option value="employee">Employees</option><option value="intern">Interns</option></select><select aria-label="Filter by tag" value={tagFilter} onChange={e=>{setTagFilter(e.target.value);setPage(1);}}><option value="">All tags</option>{tagOptions.map(t=><option key={t}>{t}</option>)}</select><span className="text-xs text-slate-500">{visible.length} people</span></div>
       {fetchError && <p role="alert" className="admin-error">{fetchError} <button onClick={fetchUsers}>Try again</button></p>}
       {copiedEmail && <p role="status" className="text-sm text-emerald-700">Copied email: {copiedEmail}</p>}
       {msg.type === 'error' && msg.text && <p role="alert" className="admin-error">{msg.text}</p>}
@@ -156,7 +163,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
         <div className="overflow-x-auto">
           <table className="admin-table w-full">
             <thead><tr><th>Employee</th><th>Role</th><th>Designation</th><th>Email (click to copy)</th><th>Tags</th><th className="text-right">Actions</th></tr></thead>
-            <tbody>{visible.map(u => <tr key={u.id}>
+            <tbody>{paginatedPeople.map(u => <tr key={u.id}>
               <td><button type="button" onClick={() => openProfileView(u)} className="admin-person text-left hover:text-red-700" aria-label={`View profile for ${u.username}`}><Avatar person={u}/><span className="font-semibold">{u.username}</span></button></td>
               <td><Status value={u.role}/></td>
               <td>{u.designation || '—'}</td>
@@ -165,6 +172,14 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
               <td><div className="flex flex-wrap justify-end gap-2"><button type="button" className="admin-button" onClick={() => openProfileView(u)}>View profile</button><button type="button" className="admin-button" onClick={() => startEdit(u)}>Edit</button><button type="button" className="admin-link" aria-label={`Delete ${u.username}`} onClick={() => handleDelete(u.id)}>Delete</button></div></td>
             </tr>)}</tbody>
           </table>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 p-4 text-sm">
+          <span className="text-slate-600">Showing {visible.length ? startIndex + 1 : 0}–{Math.min(startIndex + pageSize, visible.length)} of {visible.length} people</span>
+          <nav aria-label="People directory pagination" className="flex items-center gap-3">
+            <button type="button" className="admin-button" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>Previous</button>
+            <span aria-live="polite">Page {currentPage} of {totalPages}</span>
+            <button type="button" className="admin-button" disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)}>Next</button>
+          </nav>
         </div>
       </div>}
       {!fetching&&!fetchError&&!visible.length&&<p className="admin-empty">No people match your filters.</p>}
