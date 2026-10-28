@@ -121,6 +121,10 @@ export default function EmployeeDashboard({ user, onNavigate }) {
         : date < today ? 'Absent'
         : date > today ? 'Upcoming'
         : 'Not checked in';
-      return <div key={date} className={date === today ? 'is-today' : ''}><small>{day.toLocaleDateString('en-GB', { weekday: 'short' })}</small><strong>{day.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</strong><span>{status}</span><small>{entry?.check_in ? `${formatAttendanceTime(entry.check_in)} – ${formatAttendanceTime(entry.check_out)}` : '—'}</small></div>; })}</div></section>
+      const tone = status === 'Holiday' ? 'holiday'
+        : status === 'Half-day' ? 'halfday'
+        : ['Present', 'Late', 'Completed'].includes(status) ? 'present'
+        : 'other';
+      return <div key={date} className={`${date === today ? 'is-today ' : ''}week-tone-${tone}`}><small>{day.toLocaleDateString('en-GB', { weekday: 'short' })}</small><strong>{day.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</strong><span>{status}</span><small>{entry?.check_in ? `${formatAttendanceTime(entry.check_in)} – ${formatAttendanceTime(entry.check_out)}` : '—'}</small></div>; })}</div></section>
   </div>;
 }
