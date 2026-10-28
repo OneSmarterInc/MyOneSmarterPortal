@@ -2,6 +2,7 @@ from .policy_views import policy_documents
 from django.urls import path, include
 from . import recommendations
 from . import notifications
+from . import attendance_clock
 from rest_framework.routers import DefaultRouter
 from .views import (
     AttendanceViewSet,
@@ -28,6 +29,9 @@ router = DefaultRouter()
 router.register(r'attendance', AttendanceViewSet)
 
 urlpatterns = [
+    path('attendance-clock/', attendance_clock.clock),
+    path('attendance/punch/', attendance_clock.punch),
+    path('attendance/<int:pk>/times/', attendance_clock.edit_times),
     path('notifications/', notifications.inbox),
     path('my-policies/', policy_documents, name='my_policies'),
     path('recommendations/', recommendations.requests),

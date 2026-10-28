@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getAttendance, markAttendance, updateAttendance, getSchedules, getProfile, getLeaveRequests, getLeaveAllocations, getRecommendations } from '../services/api';
+import { getAttendance, getSchedules, getProfile, getLeaveRequests, getLeaveAllocations, getRecommendations } from '../services/api';
 import { Avatar, Icon, Status, localDate } from './AdminUI';
 import { formatAttendanceTime } from '../utils/attendanceTime';
 import './EmployeeDashboard.css';
+import { getAttendanceClock, punchAttendance, istCalendarDate } from '../services/attendanceClock';
 
 const dateLabel = value => value ? new Date(`${value.slice(0, 10)}T12:00:00`).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 const own = (items, id, key) => items.filter(item => String(item[key]) === String(id));
@@ -14,18 +15,27 @@ export default function EmployeeDashboard({ user, onNavigate }) {
   const [busy, setBusy] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
-  const [now, setNow] = useState(new Date());
+  const [now, setNow] = useState(() => istCalendarDate(new Date()));
   const [allHistory, setAllHistory] = useState(false);
   const [allRequests, setAllRequests] = useState(false);
   const [weekOffset, setWeekOffset] = useState(0);
   const [dismissed, setDismissed] = useState(localStorage.getItem(`wfh-dismissed-${user.user_id}`));
   const saveLock = useRef(false);
   const requestVersion = useRef(0);
+  const serverClock = useRef(null);
+  function syncClock(timestamp) {
+    serverClock.current = { epoch: Date.parse(timestamp), tick: performance.now() };
+    setNow(istCalendarDate(new Date(serverClock.current.epoch)));
+  }
+  function tickClock() {
+    const anchor = serverClock.current;
+    if (anchor) setNow(istCalendarDate(new Date(anchor.epoch + performance.now() - anchor.tick)));
+  }
 
   async function refresh() {
     const version = ++requestVersion.current;
     setBusy(true);
-    const sources = { attendance: getAttendance, schedules: getSchedules, profile: () => getProfile(user.user_id), leaves: getLeaveRequests, allocations: getLeaveAllocations, documents: getRecommendations };
+    const sources = { clock: getAttendanceClock, attendance: getAttendance, schedules: getSchedules, profile: () => getProfile(user.user_id), leaves: getLeaveRequests, allocations: getLeaveAllocations, documents: getRecommendations };
     const results = await Promise.allSettled(Object.values(sources).map(fetch => fetch()));
     if (version !== requestVersion.current) return;
     const next = {}, failed = [];
@@ -33,12 +43,13 @@ export default function EmployeeDashboard({ user, onNavigate }) {
       if (results[i].status === 'fulfilled') next[key] = results[i].value.data;
       else failed.push(key);
     });
+    if (next.clock) syncClock(next.clock.now);
     setData(next); setErrors(failed); setBusy(false);
   }
   useEffect(() => {
     refresh();
-    const timer = setInterval(() => setNow(new Date()), 30000);
-    const focus = () => { setNow(new Date()); if (!saveLock.current) refresh(); };
+    const timer = setInterval(tickClock, 1000);
+    const focus = () => { tickClock(); if (!saveLock.current) refresh(); };
     window.addEventListener('focus', focus);
     return () => { requestVersion.current++; clearInterval(timer); window.removeEventListener('focus', focus); };
   }, [user.user_id]);
@@ -78,12 +89,11 @@ export default function EmployeeDashboard({ user, onNavigate }) {
   const week = Array.from({ length: 7 }, (_, i) => { const day = new Date(weekStart); day.setDate(day.getDate() + i); return day; });
 
   async function submitAttendance() {
-    if (saveLock.current || busy || !data.attendance || record?.check_out) return;
+    if (saveLock.current || busy || !data.clock || !data.attendance || record?.check_out) return;
     saveLock.current = true; setSaving(true); setMessage('');
     try {
-      const time = new Date().toTimeString().split(' ')[0];
-      if (record) await updateAttendance(record.id, { check_out: time });
-      else await markAttendance({ user: user.user_id, check_in: time, status: 'Pending' });
+      const response = await punchAttendance(record ? 'check_out' : 'check_in');
+      syncClock(response.data.now);
       setMessage(`${record ? 'Check-out' : 'Check-in'} request sent for approval.`);
       await refresh();
     } catch { setMessage('Your attendance request could not be confirmed. Refresh before trying again.'); }
@@ -96,8 +106,8 @@ export default function EmployeeDashboard({ user, onNavigate }) {
     {message && <p className="employee-notice" role="status">{message}</p>}
     {assigned && dismissed !== String(assigned.id) && <div className="employee-notice employee-assignment"><span>Work from home assigned: {dateLabel(assigned.start_date)} – {dateLabel(assigned.end_date)}.</span><button className="admin-link" onClick={() => { localStorage.setItem(`wfh-dismissed-${user.user_id}`, String(assigned.id)); setDismissed(String(assigned.id)); }}>Dismiss</button></div>}
     <section className="employee-card employee-today" aria-label="Today’s attendance">
-      <div className="employee-card-heading"><h2>Today’s attendance</h2><span className={`employee-status ${record?.status === 'Pending' ? 'pending' : record?.status === 'Absent' ? 'rejected' : record ? 'approved' : ''}`}>{busy ? 'Loading…' : data.attendance ? attendanceStatus : 'Unavailable'}</span></div>
-      <div className="employee-attendance-values"><div><span>Check-in</span><strong>{formatAttendanceTime(record?.check_in)}</strong></div><div><span>{record?.check_out ? 'Recorded time' : 'Time since check-in'}</span><strong>{record?.check_in ? `${Math.floor(elapsed / 60)}h ${elapsed % 60}m` : '—'}</strong></div><div><span>Shift</span><strong className="employee-shift">{valueOrDash(data.schedules, config.day_type === 'Holiday' ? config.description || 'Holiday' : `${formatAttendanceTime(config.start_time)} – ${formatAttendanceTime(config.end_time)}`)}</strong></div><div className="employee-attendance-action">{record?.check_out ? <><span>Check-out</span><strong>{formatAttendanceTime(record.check_out)}</strong></> : <button className="admin-button primary" disabled={busy || saving || !data.attendance} onClick={submitAttendance}>{saving ? 'Submitting…' : record ? 'Check out' : 'Check in'}</button>}</div></div>
+      <div className="employee-card-heading"><h2>Today’s attendance <small className="text-xs font-normal text-slate-500">IST</small></h2><span className={`employee-status ${record?.status === 'Pending' ? 'pending' : record?.status === 'Absent' ? 'rejected' : record ? 'approved' : ''}`}>{busy ? 'Loading…' : data.attendance ? attendanceStatus : 'Unavailable'}</span></div>
+      <div className="employee-attendance-values"><div><span>Check-in</span><strong>{formatAttendanceTime(record?.check_in)}</strong></div><div><span>{record?.check_out ? 'Recorded time' : 'Time since check-in'}</span><strong>{record?.check_in ? `${Math.floor(elapsed / 60)}h ${elapsed % 60}m` : '—'}</strong></div><div><span>Shift</span><strong className="employee-shift">{valueOrDash(data.schedules, config.day_type === 'Holiday' ? config.description || 'Holiday' : `${formatAttendanceTime(config.start_time)} – ${formatAttendanceTime(config.end_time)}`)}</strong></div><div className="employee-attendance-action">{record?.check_out ? <><span>Check-out</span><strong>{formatAttendanceTime(record.check_out)}</strong></> : <button className="admin-button primary" disabled={busy || saving || !data.attendance || !data.clock} onClick={submitAttendance}>{saving ? 'Submitting…' : record ? 'Check out' : 'Check in'}</button>}</div></div>
     </section>
     <div className="employee-stats">{[
       ['calendar', 'green', valueOrDash(data.attendance, history.filter(r => r.date.startsWith(today.slice(0, 7)) && ['Present', 'Late'].includes(r.status)).length), 'Days present this month'],

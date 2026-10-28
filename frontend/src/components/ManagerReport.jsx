@@ -1,3 +1,4 @@
+import AttendanceTimeEditor from './AttendanceTimeEditor';
 import React, { useState, useEffect } from 'react';
 import { getUsers, getAttendance } from '../services/api';
 
@@ -149,15 +150,16 @@ export default function ManagerReport() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-sm">
               <thead><tr className="bg-slate-50 border-b border-slate-200 text-slate-600">
-                <th className="p-4">Employee</th><th className="p-4">Date</th><th className="p-4">Start Time</th><th className="p-4">End Time</th><th className="p-4">Status</th>
+                <th className="p-4">Employee</th><th className="p-4">Date</th><th className="p-4">Start Time</th><th className="p-4">End Time</th><th className="p-4">Status</th><th className="p-4">Actions</th>
               </tr></thead>
-              <tbody>{fetching ? <tr><td colSpan="5" className="p-8 text-center text-slate-500">Loading attendance records…</td></tr> : visibleRecords.length ? visibleRecords.map(item => <tr key={item.id} className="border-b border-slate-100">
+              <tbody>{fetching ? <tr><td colSpan="6" className="p-8 text-center text-slate-500">Loading attendance records…</td></tr> : visibleRecords.length ? visibleRecords.map(item => <tr key={item.id} className="border-b border-slate-100">
                 <td className="p-4">{users.find(u => String(u.id) === String(item.user))?.username || 'Unknown'}</td>
                 <td className="p-4 font-semibold">{item.date}</td>
                 <td className="p-4">{formatTime(item.check_in)}</td>
                 <td className="p-4">{formatTime(item.check_out)}</td>
                 <td className="p-4"><span className={`px-3 py-1 rounded-full text-xs font-semibold border ${item.status === 'Present' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : item.status === 'Late' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>{item.status}</span></td>
-              </tr>) : <tr><td colSpan="5" className="p-8 text-center text-slate-500">No attendance records found for the selected criteria.</td></tr>}</tbody>
+                <td className="p-4"><AttendanceTimeEditor record={item} name={users.find(u => String(u.id) === String(item.user))?.username} onSaved={updated => setAllRecords(previous => previous.map(record => record.id === updated.id ? updated : record))}/></td>
+              </tr>) : <tr><td colSpan="6" className="p-8 text-center text-slate-500">No attendance records found for the selected criteria.</td></tr>}</tbody>
             </table>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-t border-slate-200 text-sm">
@@ -195,3 +197,4 @@ export default function ManagerReport() {
     </div>
   );
 }
+

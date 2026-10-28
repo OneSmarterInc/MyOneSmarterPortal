@@ -1,4 +1,5 @@
-from datetime import time
+from datetime import time, datetime, timezone
+from unittest.mock import patch
 from django.contrib.auth.models import User
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -7,6 +8,8 @@ from .models import Attendance
 
 class CheckoutApprovalTests(TestCase):
     def setUp(self):
+        clock = patch('attendance.attendance_time.timezone.now', return_value=datetime(2026,10,28,12,30,tzinfo=timezone.utc))
+        clock.start(); self.addCleanup(clock.stop)
         self.client = APIClient()
         self.user = User.objects.create_user('employee')
         self.record = Attendance.objects.create(user=self.user, check_in=time(9), status='Present')
@@ -40,12 +43,14 @@ class CheckoutApprovalTests(TestCase):
         self.patch({'status': 'Absent'})
         self.assertEqual(self.record.status, 'Absent')
 
-    def test_corrected_checkout_reopens_review_but_unchanged_time_does_not(self):
+    def test_legacy_checkout_cannot_change_time_or_approve_a_request(self):
         self.patch({'check_out': '18:00:00'})
         self.patch({'check_out': '18:00:00', 'status': 'Present'})
-        self.assertEqual(self.record.status, 'Present')
-        self.patch({'check_out': '18:30:00', 'status': 'Present'})
         self.assertEqual(self.record.status, 'Pending')
+        self.patch({'status': 'Present'})
+        self.patch({'check_out': '18:30:00', 'status': 'Present'})
+        self.assertEqual(self.record.status, 'Present')
+        self.assertEqual(self.record.check_out, time(18))
 
     def test_pending_checkin_remains_pending_on_checkout(self):
         self.record.status = 'Pending'
@@ -63,3 +68,4 @@ class CheckoutApprovalTests(TestCase):
         self.assertEqual(self.record.status, 'Late')
         self.patch({'check_in': '09:30:00'})
         self.assertEqual(self.record.status, 'Late')
+        self.assertEqual(self.record.check_in, time(9))

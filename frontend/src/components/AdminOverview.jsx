@@ -1,3 +1,4 @@
+import AttendanceTimeEditor from './AttendanceTimeEditor';
 import React from 'react';
 import { formatAttendanceTime } from '../utils/attendanceTime';
 import { Person, Avatar, Status, Icon, localDate } from './AdminUI';
@@ -49,9 +50,9 @@ export default function AdminOverview({ records, users, pendingLeaves, leaveRequ
           <div className="calm-metrics">{metrics.map((m, i) => <button className={`calm-metric calm-tone-${i}`} key={m.label} onClick={m.action}><span className="calm-icon"><Icon name={m.icon}/></span><strong>{unavailable ? '—' : m.value}</strong><span>{m.label}</span></button>)}</div>
         </section>
         <section className="admin-panel" id="today-attendance"><div className="admin-panel-title"><div><h2>Team activity</h2><p>Today’s recorded check-ins and check-outs</p></div><button className="admin-link" onClick={retry} disabled={busy}>Refresh</button></div>
-          <div className="admin-table-scroll"><table className="admin-table"><thead><tr><th>Team member</th><th>Check-in</th><th>Check-out</th><th>Status</th></tr></thead><tbody>
-            {!unavailable && todays.map(r => <tr key={r.id}><td><Person person={person(r.user)}/></td><td>{formatAttendanceTime(r.check_in)}</td><td>{formatAttendanceTime(r.check_out)}</td><td><Status value={r.status}/></td></tr>)}
-            {(unavailable || !todays.length) && <tr><td colSpan="4" className="admin-empty">{busy ? 'Loading attendance…' : error ? 'Attendance unavailable.' : 'No attendance recorded today.'}</td></tr>}
+          <div className="admin-table-scroll"><table className="admin-table"><thead><tr><th>Team member</th><th>Check-in</th><th>Check-out</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+            {!unavailable && todays.map(r => <tr key={r.id}><td><Person person={person(r.user)}/></td><td>{formatAttendanceTime(r.check_in)}</td><td>{formatAttendanceTime(r.check_out)}</td><td><Status value={r.status}/></td><td><AttendanceTimeEditor record={r} name={person(r.user).username} onSaved={retry}/></td></tr>)}
+            {(unavailable || !todays.length) && <tr><td colSpan="5" className="admin-empty">{busy ? 'Loading attendance…' : error ? 'Attendance unavailable.' : 'No attendance recorded today.'}</td></tr>}
           </tbody></table></div>
           <div className="calm-panel-footer">{unavailable ? '—' : `${todays.length} attendance records today`}<button className="admin-link" onClick={() => navigate('employees')}>View people →</button></div>
         </section>
@@ -71,3 +72,4 @@ export default function AdminOverview({ records, users, pendingLeaves, leaveRequ
     </div>
   </div>;
 }
+

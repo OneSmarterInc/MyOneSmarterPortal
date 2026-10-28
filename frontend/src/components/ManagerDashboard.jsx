@@ -1,3 +1,4 @@
+import { editAttendanceTimes } from '../services/attendanceClock';
 import { portalAlert, portalConfirm } from './PortalDialog';
 import AdminOverview from './AdminOverview';
 import AttendanceTimeInput from './AttendanceTimeInput';
@@ -99,11 +100,13 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
     e.preventDefault();
     setIsUpdating(true);
     try {
-      await updateAttendance(editingRecord.id, {
+      await editAttendanceTimes(editingRecord.id, {
         check_in: toApiTime(editData.check_in),
         check_out: toApiTime(editData.check_out),
-        status: editData.status
+        expected_check_in: editingRecord.check_in,
+        expected_check_out: editingRecord.check_out
       });
+      if (editData.status !== editingRecord.status) await updateAttendance(editingRecord.id, { status: editData.status });
       fetchAllData();
       setEditingRecord(null);
     } catch {
