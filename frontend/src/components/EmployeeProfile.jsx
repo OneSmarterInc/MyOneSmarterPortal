@@ -149,7 +149,7 @@ export default function EmployeeProfile({ user }) {
         </div>
         <div className="min-w-0"><h2 className="text-lg font-semibold text-zinc-900 break-words">{profile.first_name || profile.last_name ? [profile.first_name,profile.last_name].filter(Boolean).join(' ') : currentUsername}</h2>
           <p className="text-sm text-slate-600 break-all">{profile.email}</p>
-          <span className="mt-2 inline-flex rounded-md bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">{user.role === 'intern' ? 'Intern' : 'Employee'}</span>
+          <span className="mt-2 inline-flex rounded-md bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">{employment.designation?.trim() || (user.role === 'intern' ? 'Intern' : 'Employee')}</span>
         </div>
       </section>
       <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200">

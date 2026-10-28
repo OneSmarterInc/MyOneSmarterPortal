@@ -173,7 +173,7 @@ export default function Navbar({ user, onLogout }) {
               </div>
             </div>}
           </div>}
-          <div className="hidden text-right sm:block"><p className="text-sm font-bold text-zinc-900">{user.username}</p><p className="text-[10px] font-semibold uppercase tracking-widest text-red-600">{user.role === 'manager' ? 'Administrator' : user.role === 'intern' ? 'Intern' : user.role === 'employee' ? 'Employee' : 'Team member'}</p></div>
+          <div className="hidden text-right sm:block"><p className="text-sm font-bold text-zinc-900">{user.username}</p><p className="max-w-[220px] break-words text-[10px] font-semibold uppercase tracking-widest text-red-600">{user.role === 'manager' ? 'Administrator' : profile?.designation?.trim() || (user.role === 'intern' ? 'Intern' : user.role === 'employee' ? 'Employee' : 'Team member')}</p></div>
           <span className="hidden sm:inline-flex"><Avatar person={{...profile,username:user.username}} /></span>
           <button type="button" onClick={onLogout} className="rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-xs font-bold text-zinc-800 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 sm:px-5">Sign out</button>
         </div> : <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-zinc-600"><span className="h-2 w-2 rounded-full bg-[#c7192d]"/>Secure portal</div>}
