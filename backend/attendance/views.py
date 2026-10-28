@@ -114,12 +114,11 @@ def register_user(request):
     profile.role = role
     profile.save()
 
-    return Response({'message': 'User registered successfully!', 'role': role}, status=status.HTTP_201_CREATED)
+    return Response({'message': 'User registered successfully!', 'role': role, 'employee_id': profile.employee_id}, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
 def manager_create_user(request):
     details = employee_details(request.data)
-    employee_id = request.data.get('employee_id')
     username = request.data.get('username')
     email = request.data.get('email')
     role = request.data.get('role', 'intern')
@@ -149,9 +148,8 @@ def manager_create_user(request):
     profile.tags = details.get('tags', [])
     if joining_date:
         profile.joining_date = joining_date
-    if employee_id:
-        profile.employee_id = str(employee_id).strip()
     profile.save()
+    employee_id = profile.employee_id
 
     # Professional HTML Email Template
     html_content = f"""
@@ -250,9 +248,9 @@ def manager_create_user(request):
         )
     except Exception as e:
         print("Email sending failed:", e)
-        return Response({'message': f'Account created for {username}, but failed to send email. Password: {temp_password}'}, status=status.HTTP_201_CREATED)
+        return Response({'message': f'Account created for {username}, but failed to send email. Password: {temp_password}', 'employee_id': employee_id}, status=status.HTTP_201_CREATED)
 
-    return Response({'message': f'Account successfully created for {username}. Credentials emailed.'}, status=status.HTTP_201_CREATED)
+    return Response({'message': f'Account successfully created for {username}. Credentials emailed.', 'employee_id': employee_id}, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
 def login_user(request):
@@ -333,6 +331,8 @@ def manage_user(request, pk):
     if request.method == 'PUT':
         if 'username' in request.data and request.data['username'] != user.username:
             return Response({'error': 'Only the account owner can change their username from their profile.'}, status=status.HTTP_403_FORBIDDEN)
+        if 'employee_id' in request.data and request.data['employee_id'] != user.profile.employee_id:
+            return Response({'error': 'Employee IDs are assigned automatically and cannot be edited.'}, status=status.HTTP_400_BAD_REQUEST)
         details = employee_details(request.data)
         reset_password = request.data.get('reset_password') is True
         new_password = request.data.get('password')
@@ -358,11 +358,6 @@ def manage_user(request, pk):
             if joining_date is not None:
                 user.profile.joining_date = joining_date if joining_date != '' else None
                 
-            if 'employee_id' in request.data:
-                employee_id = str(request.data.get('employee_id') or '').strip()
-                if len(employee_id) > 60:
-                    return Response({'error': 'Employee ID must be 60 characters or fewer.'}, status=status.HTTP_400_BAD_REQUEST)
-                user.profile.employee_id = employee_id
             for field, value in details.items():
                 setattr(user.profile, field, value)
             if 'date_of_birth' in request.data:
@@ -397,6 +392,8 @@ def employee_profile(request, user_id):
         }, status=status.HTTP_200_OK)
 
     if request.method == 'PUT':
+        if 'employee_id' in request.data and request.data['employee_id'] != profile.employee_id:
+            return Response({'error': 'Employee IDs are assigned automatically and cannot be edited.'}, status=status.HTTP_400_BAD_REQUEST)
         if 'username' in request.data:
             if profile.role not in ('employee', 'intern'):
                 return Response({'error': 'Only employees and interns can change their own username.'}, status=status.HTTP_403_FORBIDDEN)

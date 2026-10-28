@@ -43,7 +43,7 @@ export default function EmployeeProfile({ user }) {
     } finally {setUsernameSaving(false);}
   };
 
-  const [employment, setEmployment] = useState({ designation: '', tags: [] });
+  const [employment, setEmployment] = useState({ employee_id: '', designation: '', tags: [] });
   const [photoPreview, setPhotoPreview] = useState(null);
   const [photoFile, setPhotoFile] = useState(null);
   
@@ -73,7 +73,7 @@ export default function EmployeeProfile({ user }) {
         joining_date: res.data.joining_date || '',
         date_of_birth: res.data.date_of_birth || '',
       });
-      setEmployment({ designation: res.data.designation || '', tags: res.data.tags || [] });
+      setEmployment({ employee_id: res.data.employee_id || '', designation: res.data.designation || '', tags: res.data.tags || [] });
       setPhotoPreview(res.data.profile_photo);
     } catch (err) {
       console.error(err);
@@ -155,6 +155,8 @@ export default function EmployeeProfile({ user }) {
       <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200">
         <h2 className="text-lg font-semibold text-zinc-900 mb-1">Employment details</h2>
         <p className="text-xs text-slate-500 mb-4">Managed by your administrator.</p>
+        <p className="text-xs font-bold text-slate-500">{user.role === 'intern' ? 'Intern ID' : 'Employee ID'}</p>
+        <p className="text-sm font-semibold mt-1 mb-3">{employment.employee_id || 'Not assigned'}</p>
         <p className="text-xs font-bold text-slate-500">Designation</p>
         <p className="text-sm font-semibold mt-1 mb-3">{employment.designation || 'Not assigned'}</p>
         <p className="text-xs font-bold text-slate-500 mb-2">Tags</p>
@@ -267,3 +269,4 @@ export default function EmployeeProfile({ user }) {
     </div>
   );
 }
+

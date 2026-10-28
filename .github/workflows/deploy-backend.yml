@@ -52,6 +52,7 @@ jobs:
           "$TEST_ENV/bin/python" manage.py test \
             attendance.test_checkout_approval \
             attendance.test_employee_details \
+            attendance.test_employee_ids \
             attendance.test_birthdays \
             attendance.test_recommendations \
             --settings=test_settings --noinput
@@ -129,3 +130,4 @@ jobs:
           /usr/bin/systemctl status \
             onesmarter-backend.service --no-pager -l || true
           exit 1
+

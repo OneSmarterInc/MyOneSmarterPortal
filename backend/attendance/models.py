@@ -1,4 +1,6 @@
-from django.db import models
+from django.db import models, transaction, IntegrityError
+import re
+import secrets
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -7,6 +9,8 @@ class UserProfile(models.Model):
     ROLE_CHOICES = (
         ('student', 'Student'),
         ('manager', 'Manager'),
+        ('employee', 'Employee'),
+        ('intern', 'Intern'),
     )
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='student')
@@ -18,11 +22,47 @@ class UserProfile(models.Model):
     profile_photo = models.ImageField(upload_to='profiles/', blank=True, null=True)
     
     # Employee Data
-    employee_id = models.CharField(max_length=60, blank=True, default='', db_index=True)
+    employee_id = models.CharField(max_length=60, blank=True, default='', db_index=True, editable=False)
     designation = models.CharField(max_length=120, blank=True, default='')
     tags = models.JSONField(default=list, blank=True)
     joining_date = models.DateField(null=True, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(
+            fields=['employee_id'], condition=models.Q(role__in=['employee', 'intern']) & ~models.Q(employee_id=''),
+            name='unique_team_employee_id',
+        )]
+
+    def save(self, *args, **kwargs):
+        # The database constraint resolves races between simultaneous creations.
+        # Existing IDs are read from the locked row, never accepted from callers.
+        for attempt in range(10):
+            generated = False
+            try:
+                with transaction.atomic():
+                    old = type(self).objects.select_for_update().filter(pk=self.pk).first() if self.pk else None
+                    fields = kwargs.get('update_fields')
+                    role = old.role if old and fields is not None and 'role' not in fields else self.role
+                    previous = old.employee_id if old else ''
+                    if role in ('employee', 'intern'):
+                        prefix = 'E' if role == 'employee' else 'I'
+                        if attempt == 0 and re.fullmatch(r'[EI]-[A-HJ-NP-Z2-9]{6}', previous):
+                            self.employee_id = prefix + previous[1:]
+                            generated = self.employee_id != previous
+                        else:
+                            self.employee_id = prefix + '-' + ''.join(secrets.choice('ABCDEFGHJKLMNPQRSTUVWXYZ23456789') for _ in range(6))
+                            generated = True
+                    else:
+                        self.employee_id = previous
+                    if fields is not None:
+                        if not fields:
+                            return
+                        kwargs['update_fields'] = set(fields) | {'employee_id'}
+                    return super().save(*args, **kwargs)
+            except IntegrityError:
+                if not generated or attempt == 9:
+                    raise
 
     def __str__(self):
         return f"{self.user.username} ({self.role})"

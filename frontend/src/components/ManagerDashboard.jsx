@@ -14,7 +14,6 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
   const [dataBusy, setDataBusy] = useState(true);
   const [dataError, setDataError] = useState('');
   // Create Employee State
-  const [employeeId, setEmployeeId] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('intern'); 
@@ -65,7 +64,6 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
 
     try {
       const res = await managerCreateUser({ 
-        employee_id: employeeId,
         designation,
         tags: tags.split(',').map(tag => tag.trim()).filter(Boolean), 
         username, 
@@ -74,8 +72,7 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
         joining_date: joiningDate,
         date_of_birth: birthDate || null 
       });
-      setSuccess(res.data.message);
-      setEmployeeId('');
+      setSuccess(`${res.data.message}${res.data.employee_id ? ` ID: ${res.data.employee_id}` : ''}`);
       setDesignation('');
       setTags(''); 
       setUsername(''); 
@@ -140,7 +137,7 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
         <form onSubmit={handleCreateAccount} className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-3 items-end">
           <div>
             <label htmlFor="managerdashboard-field-1" className="block text-xs font-bold normal-case text-slate-600 mb-1">Emp ID</label>
-            <input id="managerdashboard-field-1" type="text" value={employeeId} onChange={(e) => setEmployeeId(e.target.value)} className="w-full border border-slate-300 rounded p-2 text-xs outline-none focus:border-red-500" required placeholder="e.g. EMP01" />
+            <input id="managerdashboard-field-1" type="text" value="Assigned automatically" readOnly className="w-full border border-slate-200 bg-slate-50 rounded p-2 text-xs text-slate-500" />
           </div>
           <div>
             <label htmlFor="managerdashboard-field-2" className="block text-xs font-bold normal-case text-slate-600 mb-1">Username</label>

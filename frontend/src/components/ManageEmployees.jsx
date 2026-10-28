@@ -15,7 +15,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
   const [fetchError, setFetchError] = useState('');
   const team = users.filter(u=>['employee','intern','student'].includes(u.role));
   const tagOptions = [...new Set(team.flatMap(u=>u.tags||[]))].sort();
-  const visible = team.filter(u=>(!roleFilter||u.role===roleFilter)&&(!tagFilter||(u.tags||[]).includes(tagFilter))&&[u.username,u.email,u.designation,...(u.tags||[])].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
+  const visible = team.filter(u=>(!roleFilter||u.role===roleFilter)&&(!tagFilter||(u.tags||[]).includes(tagFilter))&&[u.username,u.employee_id,u.email,u.designation,...(u.tags||[])].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
   
   const totalPages = Math.max(1, Math.ceil(visible.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -113,7 +113,6 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
     try {
       await updateUser(editingUser.id, { 
         email,
-        employee_id: employeeId,
         role, 
         designation,
         tags: tags.split(',').map(tag => tag.trim()).filter(Boolean),
@@ -164,7 +163,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
           <table className="admin-table w-full">
             <thead><tr><th>Employee</th><th>Role</th><th>Designation</th><th>Email (click to copy)</th><th>Tags</th><th className="text-right">Actions</th></tr></thead>
             <tbody>{paginatedPeople.map(u => <tr key={u.id}>
-              <td><button type="button" onClick={() => openProfileView(u)} className="admin-person text-left hover:text-red-700" aria-label={`View profile for ${u.username}`}><Avatar person={u}/><span className="font-semibold">{u.username}</span></button></td>
+              <td><button type="button" onClick={() => openProfileView(u)} className="admin-person text-left hover:text-red-700" aria-label={`View profile for ${u.username}`}><Avatar person={u}/><span><span className="font-semibold">{u.username}</span><span className="block text-xs text-slate-500 mt-1">{u.employee_id}</span></span></button></td>
               <td><Status value={u.role}/></td>
               <td>{u.designation || '—'}</td>
               <td>{u.email ? <button type="button" title="Copy email address" aria-label={`Copy email address ${u.email}`} className="text-red-700 hover:underline break-all text-left" onClick={() => copyEmail(u.email)}>{u.email} {copiedEmail === u.email ? '✓ Copied' : '⧉'}</button> : <span className="text-slate-400">No email</span>}</td>
@@ -291,7 +290,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
 
               <div>
                 <label htmlFor="manageemployee-employee-id" className="block text-xs font-bold text-slate-600 mb-1">Employee ID</label>
-                <input id="manageemployee-employee-id" type="text" maxLength={60} value={employeeId} onChange={e => setEmployeeId(e.target.value)} placeholder="Enter actual employee ID" className="w-full border border-slate-300 p-2 text-sm rounded" />
+                <input id="manageemployee-employee-id" type="text" value={employeeId || 'Assigned automatically'} readOnly className="w-full border border-slate-200 bg-slate-50 p-2 text-sm rounded text-slate-500" />
               </div>
               <div>
                 <label htmlFor="manageemployees-field-3" className="block text-xs font-bold normal-case tracking-normal text-slate-600 mb-1">Email</label>
