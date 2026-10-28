@@ -108,12 +108,12 @@ export default function Navbar({ user, onLogout }) {
               {unreadCount > 0 && <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-600 px-1 text-center text-[10px] font-bold leading-5 text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}
             </button>
             {notificationsOpen && <div role="region" aria-label="Calendar notifications"
-              className="absolute right-0 top-12 z-[100] w-[min(340px,calc(100vw-24px))] rounded-xl border border-zinc-200 bg-white shadow-2xl">
+              className="fixed left-3 right-3 top-[72px] z-[100] w-auto max-h-[min(70dvh,420px)] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-[340px]">
               <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
                 <strong className="text-sm text-zinc-900">Calendar notifications</strong>
                 <button type="button" aria-label="Close notifications" onClick={() => setNotificationsOpen(false)} className="text-zinc-500 hover:text-red-600">✕</button>
               </div>
-              <div className="max-h-80 overflow-y-auto p-2">
+              <div className="max-h-[min(55dvh,340px)] overflow-y-auto p-2">
                 {notificationError && <p role="alert" className="p-3 text-xs text-red-700">{notificationError}</p>}
                 {!notificationError && notifications.length === 0 && <p className="p-4 text-center text-sm text-zinc-500">No upcoming holiday or half-day announcements.</p>}
                 {notifications.map(n => <div key={n.key} className="mb-1 rounded-lg border border-zinc-100 p-3 last:mb-0">
