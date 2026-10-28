@@ -19,36 +19,43 @@
 .lor-verification .lor-match{color:#157347}
 @media(max-width:640px){.lor-fields{grid-template-columns:1fr}.lor-form{padding:16px}.lor-reject{flex-direction:column;align-items:stretch}.lor-preview iframe{height:500px}}
 
-/* Aligned recommendation request history */
-.lor-history-table{width:100%;table-layout:fixed;border-collapse:collapse}
-.lor-history-table th,.lor-history-table td{padding:15px 18px;vertical-align:middle;text-align:left}
-.lor-history-table th{font-weight:600;white-space:nowrap}
-.lor-history-table th:nth-last-child(4),.lor-history-table td:nth-last-child(4){width:31%}
-.lor-history-table th:nth-last-child(3),.lor-history-table td:nth-last-child(3){width:17%}
-.lor-history-table th:nth-last-child(2),.lor-history-table td:nth-last-child(2){width:15%}
-.lor-history-table th:last-child,.lor-history-table td:last-child{width:37%}
-.lor-history-table .lor-purpose{min-width:0;max-width:none;white-space:normal;overflow-wrap:anywhere}
-.lor-row-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.lor-row-actions .admin-button{min-width:132px;text-align:center;justify-content:center;white-space:nowrap}
-.lor-status{display:inline-flex;padding:5px 11px;border-radius:999px;border:1px solid #e2e8f0;background:#f8fafc;color:#475569;font-size:12px;font-weight:600}
-.lor-status-sent{border-color:#a7f3d0;background:#ecfdf5;color:#047857}
-.lor-status-pending,.lor-status-requested,.lor-status-under-review{border-color:#fde68a;background:#fffbeb;color:#92400e}
-.lor-status-rejected,.lor-status-send-failed{border-color:#fecaca;background:#fef2f2;color:#b91c1c}
-@media(max-width:760px){.lor-history-table{min-width:660px}.lor-history-table th,.lor-history-table td{padding:12px}.lor-row-actions .admin-button{min-width:115px}.lor-history-table th:last-child,.lor-history-table td:last-child{width:35%}}
-
-/* Manager has five columns; employee has four. Avoid overlapping headings. */
-.lor-history-table{table-layout:fixed;min-width:0}
-.lor-history-admin th:nth-child(1),.lor-history-admin td:nth-child(1){width:21%}
-.lor-history-admin th:nth-child(2),.lor-history-admin td:nth-child(2){width:24%}
-.lor-history-admin th:nth-child(3),.lor-history-admin td:nth-child(3){width:16%}
-.lor-history-admin th:nth-child(4),.lor-history-admin td:nth-child(4){width:14%}
-.lor-history-admin th:nth-child(5),.lor-history-admin td:nth-child(5){width:25%}
-.lor-history-employee th:nth-child(1),.lor-history-employee td:nth-child(1){width:31%}
-.lor-history-employee th:nth-child(2),.lor-history-employee td:nth-child(2){width:17%}
-.lor-history-employee th:nth-child(3),.lor-history-employee td:nth-child(3){width:15%}
-.lor-history-employee th:nth-child(4),.lor-history-employee td:nth-child(4){width:37%}
-.lor-history-table th,.lor-history-table td{overflow-wrap:anywhere}
-.lor-history-pagination{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-top:1px solid #e2e8f0;color:#475569;font-size:13px}
-.lor-history-pagination-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-.lor-history-pagination .admin-button:disabled{opacity:.45}
-@media(max-width:850px){.lor-history-admin{min-width:780px}.lor-history-employee{min-width:660px}}
+/* Recommendation letters tables: independent 4/5-column layouts. */
+.lor-page .admin-table-scroll { width:100%; max-width:100%; overflow-x:auto; overflow-y:auto; }
+.lor-page .lor-history-table {
+  width:100%; table-layout:fixed; border-collapse:collapse;
+  white-space:normal; min-width:680px;
+}
+.lor-page .lor-history-admin { min-width:900px; }
+.lor-page .lor-history-table th,
+.lor-page .lor-history-table td {
+  box-sizing:border-box; padding:14px 16px; text-align:left; vertical-align:middle;
+  white-space:normal; overflow-wrap:anywhere; word-break:normal;
+}
+.lor-page .lor-history-table th { white-space:nowrap; font-size:12px; letter-spacing:0; }
+.lor-page .lor-history-table .lor-purpose { width:auto; max-width:none; min-width:0; white-space:normal; }
+.lor-page .lor-history-admin th:nth-child(1), .lor-page .lor-history-admin td:nth-child(1) { width:22%; }
+.lor-page .lor-history-admin th:nth-child(2), .lor-page .lor-history-admin td:nth-child(2) { width:23%; }
+.lor-page .lor-history-admin th:nth-child(3), .lor-page .lor-history-admin td:nth-child(3) { width:16%; }
+.lor-page .lor-history-admin th:nth-child(4), .lor-page .lor-history-admin td:nth-child(4) { width:14%; }
+.lor-page .lor-history-admin th:nth-child(5), .lor-page .lor-history-admin td:nth-child(5) { width:25%; }
+.lor-page .lor-history-employee th:nth-child(1), .lor-page .lor-history-employee td:nth-child(1) { width:29%; }
+.lor-page .lor-history-employee th:nth-child(2), .lor-page .lor-history-employee td:nth-child(2) { width:17%; }
+.lor-page .lor-history-employee th:nth-child(3), .lor-page .lor-history-employee td:nth-child(3) { width:15%; }
+.lor-page .lor-history-employee th:nth-child(4), .lor-page .lor-history-employee td:nth-child(4) { width:39%; }
+.lor-row-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.lor-row-actions .admin-button { white-space:nowrap; text-align:center; justify-content:center; }
+.lor-status { display:inline-flex; border:1px solid #e2e8f0; border-radius:999px; padding:5px 11px; background:#f8fafc; color:#475569; font-size:12px; font-weight:600; white-space:nowrap; }
+.lor-status-sent { border-color:#a7f3d0; background:#ecfdf5; color:#047857; }
+.lor-status-pending,.lor-status-requested,.lor-status-under-review { border-color:#fde68a; background:#fffbeb; color:#92400e; }
+.lor-status-rejected,.lor-status-send-failed { border-color:#fecaca; background:#fef2f2; color:#b91c1c; }
+.lor-history-pagination {
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
+  gap:12px; padding:16px 20px; border-top:1px solid #e2e8f0;
+  color:#475569; font-size:13px;
+}
+.lor-history-pagination-controls { display:flex; flex-wrap:wrap; align-items:center; gap:10px; }
+.lor-history-pagination-controls .admin-button:disabled { opacity:.45; }
+@media(max-width:640px) {
+  .lor-page .lor-history-table th,.lor-page .lor-history-table td { padding:12px; }
+  .lor-history-pagination { padding:14px; }
+}
