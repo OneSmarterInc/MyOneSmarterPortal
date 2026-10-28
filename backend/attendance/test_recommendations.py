@@ -81,6 +81,54 @@ class RecommendationTests(TestCase):
         self.assertEqual(response.status_code, 200, response.data)
         return response
 
+    def test_attendance_workflow_and_separate_requests(self):
+        self.request_letter()
+        self.auth(self.employee)
+        response = self.client.post('/recommendations/', {'purpose': 'College attendance', 'document_type': 'attendance'}, format='json')
+        self.assertEqual(response.status_code, 201)
+        pk = response.data['id']
+        self.assertEqual(self.client.post('/recommendations/', {'purpose': 'Again', 'document_type': 'attendance'}, format='json').status_code, 409)
+        self.assertEqual(self.client.post('/recommendations/', {'purpose': 'Invalid', 'document_type': 'other'}, format='json').status_code, 400)
+        self.auth(self.intern)
+        self.assertEqual(self.client.get(f'/recommendations/{pk}/pdf/').status_code, 404)
+        self.auth(self.manager)
+        saved = self.client.post(f'/recommendations/{pk}/draft/', {
+            'revision': 0, 'attendance_note': 'Please consider the work commitments during this period.',
+            'institution': 'Example College', 'end_date': None, 'role': 'Spoofed',
+            'name': 'Spoofed', 'start_date': '2000-01-01', 'document_type': 'recommendation',
+        }, format='json')
+        self.assertEqual(saved.status_code, 200, saved.data)
+        self.assertEqual(saved.data['draft']['role'], 'employee')
+        self.assertEqual(saved.data['draft']['document_type'], 'attendance')
+        self.assertEqual(saved.data['draft']['start_date'], '2025-01-01')
+        self.assertEqual(saved.data['draft']['name'], 'employee')
+        self.assertEqual(saved.data['draft']['end_date'], '')
+        preview = self.client.get(f'/recommendations/{pk}/pdf/').content
+        response = self.client.post(f'/recommendations/{pk}/send/', {'revision': 1}, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertIn('Attendance Consideration Letter', mail.outbox[0].subject)
+        signed = mail.outbox[0].attachments[0][1]
+        self.assertTrue(signed.startswith(preview))
+        self.assertIn('Attendance_Consideration', mail.outbox[0].attachments[0][0])
+        sig = PdfFileReader(BytesIO(signed)).embedded_signatures[0]
+        validation = validate_pdf_signature(sig, signer_validation_context=ValidationContext(trust_roots=[sig.signer_cert], allow_fetching=False))
+        self.assertTrue(validation.intact and validation.valid)
+        self.assertEqual(bytes(RecommendationRequest.objects.get(pk=pk).pdf), signed)
+        self.auth(self.employee)
+        self.assertEqual(self.client.get(f'/recommendations/{pk}/pdf/').content, signed)
+
+    def test_attendance_end_date_validation_and_completed_internship(self):
+        self.auth(self.intern)
+        pk = self.client.post('/recommendations/', {'purpose': 'College', 'document_type': 'attendance'}, format='json').data['id']
+        self.auth(self.manager)
+        values = {'revision': 0, 'attendance_note': 'Please consider the internship period.', 'end_date': '2024-12-31'}
+        self.assertEqual(self.client.post(f'/recommendations/{pk}/draft/', values, format='json').status_code, 400)
+        values['end_date'] = '2025-02-01'
+        result = self.client.post(f'/recommendations/{pk}/draft/', values, format='json')
+        self.assertEqual(result.status_code, 200, result.data)
+        self.assertEqual(result.data['draft']['role'], 'intern')
+        self.assertEqual(result.data['draft']['end_date'], '2025-02-01')
+
     def test_request_auth_ownership_and_duplicate(self):
         self.assertEqual(self.client.get('/recommendations/').status_code, 401)
         pk = self.request_letter()

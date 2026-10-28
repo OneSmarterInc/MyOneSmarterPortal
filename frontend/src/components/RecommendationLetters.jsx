@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { getRecommendations, requestRecommendation, saveRecommendation, getRecommendationPDF, sendRecommendation, rejectRecommendation } from '../services/api';
 import './RecommendationLetters.css';
 
-const fields = [
+const recommendationFields = [
   ['designation', 'Designation / internship role', 120], ['department', 'Team / department', 120],
   ['responsibilities', 'Projects and responsibilities', 700], ['achievement', 'Specific achievement and verified outcome', 700],
   ['capability', 'Capability demonstrated', 300], ['strengths', 'Observed strengths', 300],
@@ -11,7 +11,7 @@ const fields = [
 ];
 const errorMessage = error => {
   const data = error.response?.data;
-  if (error.response?.status === 401) return 'Please sign out and sign in again to access recommendation letters.';
+  if (error.response?.status === 401) return 'Please sign out and sign in again to access documents.';
   if (data && typeof data === 'object' && !(data instanceof Blob)) {
     if (typeof data.error === 'string') return data.error;
     if (typeof data.detail === 'string') return data.detail;
@@ -23,7 +23,15 @@ const errorMessage = error => {
   return 'Unable to complete the request. Please check your connection and try again.';
 };
 
-export default function RecommendationLetters({ admin = false }) {
+export default function RecommendationLetters({ admin = false, documentType = 'recommendation', onBack }) {
+  const attendance = documentType === 'attendance';
+  const title = attendance ? 'Attendance consideration letters' : 'Recommendation letters';
+  const fields = attendance ? [
+    ['designation', 'Designation (optional)', 120], ['department', 'Team / department (optional)', 120],
+    ['institution', 'Institution / recipient (optional)', 200],
+    ['attendance_note', 'Reason for attendance consideration', 700],
+  ] : recommendationFields;
+  const ofType = list => list.filter(item => (item.document_type || 'recommendation') === documentType);
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -46,14 +54,14 @@ export default function RecommendationLetters({ admin = false }) {
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
   async function load() {
     setLoading(true); setError('');
-    try { const { data } = await getRecommendations(); setItems(data); }
+    try { const { data } = await getRecommendations(); setItems(ofType(data)); }
     catch (e) { setError(errorMessage(e)); }
     finally { setLoading(false); }
   }
   function replace(item) { setItems(list => list.map(old => old.id === item.id ? item : old)); setSelected(item); }
   function open(item) {
     setSelected(item); setError(''); setNotice(''); setPreview(''); setDirty(false); setReason(''); setFileCheck(null);
-    setForm({ ...Object.fromEntries(fields.map(([key]) => [key, ''])), designation: item.designation || '', recommendation_purpose: item.purpose, ...item.draft, end_date: item.draft?.end_date || '' });
+    setForm({ ...Object.fromEntries(fields.map(([key]) => [key, ''])), designation: item.designation || '', recommendation_purpose: item.purpose, attendance_note: item.purpose, ...item.draft, end_date: item.draft?.end_date || '' });
   }
   async function pdf(item) { const { data } = await getRecommendationPDF(item.id); setPreview(URL.createObjectURL(data)); }
   async function downloadLetter(item) {
@@ -63,7 +71,7 @@ export default function RecommendationLetters({ admin = false }) {
       const url = URL.createObjectURL(data);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `OneSmarter_Recommendation_${item.id}_signed.pdf`;
+      link.download = `OneSmarter_${attendance ? 'Attendance_Consideration' : 'Recommendation'}_${item.id}_signed.pdf`;
       document.body.appendChild(link);
       link.click();
       link.remove();
@@ -73,7 +81,7 @@ export default function RecommendationLetters({ admin = false }) {
   }
   async function submit(e) {
     e.preventDefault(); setBusy(true); setError('');
-    try { const { data } = await requestRecommendation({ purpose, notes }); setItems(list => [data, ...list]); setPurpose(''); setNotes(''); setNotice('Your request has been submitted for administrator review.'); }
+    try { const { data } = await requestRecommendation({ purpose, notes, document_type: documentType }); setItems(list => [data, ...list]); setPurpose(''); setNotes(''); setNotice('Your request has been submitted for administrator review.'); }
     catch (e) { setError(errorMessage(e)); } finally { setBusy(false); }
   }
   async function save(e) {
@@ -88,7 +96,7 @@ export default function RecommendationLetters({ admin = false }) {
       replace(data); setNotice(`Signed letter sent to ${data.sent_to}.`);
       try { await pdf(data); } catch { setError('The letter was sent, but its signed preview could not load. Open the saved letter again to download it.'); }
     }
-    catch (e) { setPreview(''); setError(errorMessage(e)); try { const { data } = await getRecommendations(); setItems(data); setSelected(data.find(item => item.id === selected.id)); } catch {} }
+    catch (e) { setPreview(''); setError(errorMessage(e)); try { const { data } = await getRecommendations(); setItems(ofType(data)); setSelected(data.find(item => item.id === selected.id)); } catch {} }
     finally { setBusy(false); }
   }
   async function checkFile(event) {
@@ -130,28 +138,29 @@ export default function RecommendationLetters({ admin = false }) {
   const firstHistoryRecord = (safeHistoryPage - 1) * historyPageSize;
   const pageRecords = visible.slice(firstHistoryRecord, firstHistoryRecord + historyPageSize);
   return <div className="lor-page w-full min-w-0 max-w-6xl">
-    <header className="admin-page-heading"><div><h1>Recommendation letters</h1><p>{admin ? 'Review requests, prepare a letter, and approve it for email delivery.' : 'Request a letter of recommendation and follow its progress.'}</p></div><button className="admin-button" disabled={busy || loading} onClick={load}>Refresh</button></header>
+    {onBack && <button type="button" className="admin-button mb-4" disabled={busy} onClick={onBack}>← All documents</button>}
+    <header className="admin-page-heading"><div><h1>{title}</h1><p>{admin ? 'Review requests, prepare a letter, and approve it for email delivery.' : 'Request an official letter and follow its progress.'}</p></div><button className="admin-button" disabled={busy || loading} onClick={load}>Refresh</button></header>
     {error && <div className="admin-error" role="alert">{error}</div>}
     {notice && <div className="admin-notice" role="status">{notice}</div>}
-    {!admin && <form className="admin-panel lor-form" onSubmit={submit}><h2>Request a recommendation</h2><label>What will you use the letter for?<input required maxLength={500} value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="e.g. Graduate program or job application" /></label><label>Additional details (optional)<textarea maxLength={2000} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Mention relevant projects or the application deadline." /></label><p>Your name and joining date will be taken from your account. The approved letter will be emailed to your account email address.</p><button className="admin-button primary" disabled={busy || loading || !!error || openItems.length > 0}>{busy ? 'Submitting…' : 'Submit request'}</button>{openItems.length > 0 && <p>You already have a request under review.</p>}</form>}
+    {!admin && <form className="admin-panel lor-form" onSubmit={submit}><h2>{attendance ? 'Request attendance consideration' : 'Request a recommendation'}</h2><label>What will you use the letter for?<input required maxLength={500} value={purpose} onChange={e => setPurpose(e.target.value)} placeholder={attendance ? 'e.g. College attendance consideration' : 'e.g. Graduate program or job application'} /></label><label>Additional details (optional)<textarea maxLength={2000} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Mention relevant projects or the application deadline." /></label><p>Your name and joining date will be taken from your account. The approved letter will be emailed to your account email address.</p><button className="admin-button primary" disabled={busy || loading || !!error || openItems.length > 0}>{busy ? 'Submitting…' : 'Submit request'}</button>{openItems.length > 0 && <p>You already have a request under review.</p>}</form>}
     <section className="admin-panel">
       {admin && <div className="admin-tabs">
         <button aria-pressed={filter === 'open'} onClick={() => { setFilter('open'); setHistoryPage(1); }}>Open requests ({openItems.length})</button>
         <button aria-pressed={filter === 'sent'} onClick={() => { setFilter('sent'); setHistoryPage(1); }}>Sent history ({sentItems.length})</button>
         <button aria-pressed={filter === 'all'} onClick={() => { setFilter('all'); setHistoryPage(1); }}>All requests ({items.length})</button>
       </div>}
-      {admin && <div className="lor-search"><label htmlFor="lor-search">Search recommendation letters</label><input id="lor-search" type="search" value={search} onChange={e => { setSearch(e.target.value); setHistoryPage(1); }} placeholder="Search name, purpose, status, date or verification ID" /></div>}
+      {admin && <div className="lor-search"><label htmlFor="lor-search">Search documents</label><input id="lor-search" type="search" value={search} onChange={e => { setSearch(e.target.value); setHistoryPage(1); }} placeholder="Search name, purpose, status, date or verification ID" /></div>}
       <div className="admin-table-scroll"><table className={`admin-table lor-history-table ${admin ? "lor-history-admin" : "lor-history-employee"}`}><thead><tr>{admin && <th>Team member</th>}<th>Purpose</th><th>Requested</th><th>Status</th><th>Actions</th></tr></thead><tbody>{pageRecords.map(item => <tr key={item.id}>{admin && <td>{item.name}</td>}<td className="lor-purpose">{item.purpose}{item.rejection_reason && <p>Reason: {item.rejection_reason}</p>}</td><td>{new Date(item.created_at).toLocaleDateString()}</td><td><span className={`lor-status lor-status-${item.status.toLowerCase().replace(/[^a-z]+/g, "-")}`}>{item.status}</span></td><td>{admin ? <button className="admin-button" disabled={busy} onClick={() => open(item)}>Open request</button> : item.can_download ? <div className="lor-row-actions"><button className="admin-button" disabled={busy} onClick={async () => { setBusy(true); setError(''); try { open(item); await pdf(item); } catch (e) { setError(errorMessage(e)); } finally { setBusy(false); } }}>View letter</button><button type="button" className="admin-button" disabled={busy} onClick={() => downloadLetter(item)}>Download letter</button></div> : 'Under review'}</td></tr>)}</tbody></table></div>{loading ? <p className="admin-empty">Loading requests…</p> : !visible.length && <p className="admin-empty">No requests match the selected view or search.</p>}
       <div className="lor-history-pagination">
         <span role="status">Showing {visible.length ? firstHistoryRecord + 1 : 0}–{Math.min(firstHistoryRecord + historyPageSize, visible.length)} of {visible.length} records</span>
-        <nav aria-label="Recommendation letters pagination" className="lor-history-pagination-controls">
+        <nav aria-label="Documents pagination" className="lor-history-pagination-controls">
           <button type="button" className="admin-button" disabled={safeHistoryPage <= 1} onClick={() => setHistoryPage(p => Math.max(1, p - 1))}>Previous</button>
           <span>Page {safeHistoryPage} of {totalHistoryPages}</span>
           <button type="button" className="admin-button" disabled={safeHistoryPage >= totalHistoryPages} onClick={() => setHistoryPage(p => Math.min(totalHistoryPages, p + 1))}>Next</button>
         </nav>
       </div>
     </section>
-    {selected && <section className="admin-panel lor-form"><div className="lor-section-heading"><h2>{admin ? `Letter for ${selected.name}` : 'Your recommendation letter'}</h2><button className="admin-button" disabled={busy} onClick={() => { setSelected(null); setPreview(''); }}>Close</button></div>
+    {selected && <section className="admin-panel lor-form"><div className="lor-section-heading"><h2>{admin ? `Letter for ${selected.name}` : 'Your letter'}</h2><button className="admin-button" disabled={busy} onClick={() => { setSelected(null); setPreview(''); }}>Close</button></div>
       {selected.verification_id && <p><strong>Verification ID:</strong> <code>{selected.verification_id}</code></p>}
       {admin && selected.status === 'Sent' && <section className="lor-verification">
         <h2>Background-check verification</h2>
@@ -163,11 +172,11 @@ export default function RecommendationLetters({ admin = false }) {
           {fileCheck?.id === selected.id && <p role="status" className={fileCheck.matches ? 'lor-match' : ''}>{fileCheck.message}</p>}
         </>}
       </section>}
-      {admin && <><p><strong>Account name:</strong> {selected.name}<br/><strong>Joining date:</strong> {selected.joining_date || 'Missing - update the account first'}<br/><strong>Recipient:</strong> {selected.email || 'Missing email'}</p>{selected.notes && <p><strong>Requester’s notes:</strong> {selected.notes}</p>}
-      {editable ? <form onSubmit={save}><fieldset disabled={busy} className="lor-fields">{fields.map(([key, label, max]) => <label key={key}>{label}{max <= 120 ? <input aria-label={label} required maxLength={max} value={form[key] || ''} onChange={e => { setForm({ ...form, [key]: e.target.value }); setDirty(true); setPreview(''); }} /> : <textarea aria-label={label} required maxLength={max} value={form[key] || ''} onChange={e => { setForm({ ...form, [key]: e.target.value }); setDirty(true); setPreview(''); }} />}</label>)}<label>End date (leave blank if still working)<input type="date" min={selected.joining_date || undefined} value={form.end_date || ''} onChange={e => { setForm({ ...form, end_date: e.target.value }); setDirty(true); setPreview(''); }} /></label></fieldset><p>Ongoing employment is described as continuing as of the letter’s issue date.</p><p><strong>Signatory:</strong> Akshay Agrawal · Global Delivery Manager<br/><strong>Official contact:</strong> akshay.kumar@onesmarter.com</p><button className="admin-button primary" disabled={busy || !selected.joining_date}>{busy ? 'Working…' : 'Save & preview'}</button></form> : <p>Status: {selected.status}{selected.sent_to ? ` · Sent to ${selected.sent_to}` : ''}</p>}
+      {admin && <><p><strong>Account name:</strong> {selected.name}<br/><strong>Role:</strong> {selected.role}<br/><strong>Joining date:</strong> {selected.joining_date || 'Missing - update the account first'}<br/><strong>Recipient:</strong> {selected.email || 'Missing email'}</p>{selected.notes && <p><strong>Requester’s notes:</strong> {selected.notes}</p>}
+      {editable ? <form onSubmit={save}><fieldset disabled={busy} className="lor-fields">{fields.map(([key, label, max]) => <label key={key}>{label}{max <= 120 ? <input aria-label={label} required={!attendance || key === 'attendance_note'} maxLength={max} value={form[key] || ''} onChange={e => { setForm({ ...form, [key]: e.target.value }); setDirty(true); setPreview(''); }} /> : <textarea aria-label={label} required={!attendance || key === 'attendance_note'} maxLength={max} value={form[key] || ''} onChange={e => { setForm({ ...form, [key]: e.target.value }); setDirty(true); setPreview(''); }} />}</label>)}<label>End date (leave blank if still working)<input type="date" min={selected.joining_date || undefined} value={form.end_date || ''} onChange={e => { setForm({ ...form, end_date: e.target.value }); setDirty(true); setPreview(''); }} /></label></fieldset>{attendance && <p>Working hours: <strong>1:00 PM–9:00 PM</strong>. The account role is included automatically.</p>}<p>Ongoing employment is described as continuing as of the letter’s issue date.</p><p><strong>Signatory:</strong> Akshay Agrawal · Global Delivery Manager<br/><strong>Official contact:</strong> akshay.kumar@onesmarter.com</p><button className="admin-button primary" disabled={busy || !selected.joining_date}>{busy ? 'Working…' : 'Save & preview'}</button></form> : <p>Status: {selected.status}{selected.sent_to ? ` · Sent to ${selected.sent_to}` : ''}</p>}
       {selected.revision > 0 && !dirty && !preview && <button className="admin-button" disabled={busy} onClick={async () => { setBusy(true); try { await pdf(selected); } catch (e) { setError(errorMessage(e)); } finally { setBusy(false); } }}>Preview saved letter</button>}
       </>}
-      {preview && <div className="lor-preview"><div className="lor-section-heading"><h2>{selected.status === 'Sent' ? 'Signed letter' : 'Letter preview'}</h2><a className="admin-button" href={preview} target="_blank" rel="noreferrer">Open PDF</a><a className="admin-button" href={preview} download={`OneSmarter_Recommendation_${selected.id}${selected.status === 'Sent' ? '_signed' : '_preview'}.pdf`}>Download PDF</a></div><iframe title="Recommendation letter preview" src={preview} />
+      {preview && <div className="lor-preview"><div className="lor-section-heading"><h2>{selected.status === 'Sent' ? 'Signed letter' : 'Letter preview'}</h2><a className="admin-button" href={preview} target="_blank" rel="noreferrer">Open PDF</a><a className="admin-button" href={preview} download={`OneSmarter_${attendance ? 'Attendance_Consideration' : 'Recommendation'}_${selected.id}${selected.status === 'Sent' ? '_signed' : '_preview'}.pdf`}>Download PDF</a></div><iframe title={`${title} preview`} src={preview} />
       {admin && editable && !dirty && <><p>Approval adds the digital signature and emails the signed PDF to <strong>{selected.email}</strong>.</p>{selected.status === 'Send failed' && <p>Check the recipient inbox before retrying; an earlier delivery may have succeeded.</p>}<button className="admin-button primary" disabled={busy} onClick={approve}>{busy ? 'Sending…' : selected.status === 'Send failed' ? 'Retry email delivery' : 'Approve & send'}</button></>}
       </div>}
       {admin && editable && <div className="lor-reject"><label>Reason for rejection<input maxLength={500} value={reason} disabled={busy} onChange={e => setReason(e.target.value)} /></label><button className="admin-button danger" disabled={busy || !reason.trim()} onClick={reject}>Reject request</button></div>}

@@ -1,4 +1,4 @@
-import RecommendationLetters from './RecommendationLetters';
+import Documents from './Documents';
 import './AdminUI.css';
 import React, { useState } from 'react';
 import { useWorkspacePage } from '../utils/useWorkspacePage';
@@ -25,7 +25,6 @@ export default function ManagerLayout() {
   const addEmployee = () => {navigatePage('dashboard');setCreateMode(true);};
 
   const navigation = [
-    { id: 'recommendations', label: 'Recommendation letters', icon: 'mail' },
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
     { id: 'pending-attendance', label: 'Attendance approvals', icon: 'clock' },
     { id: 'pending-leaves', label: 'Leave requests', icon: 'check' },
@@ -34,7 +33,8 @@ export default function ManagerLayout() {
     { id: 'leaves', label: 'Leave quotas', icon: 'calendar' },
     { id: 'wfh', label: 'Work from home', icon: 'home' },
     { id: 'report', label: 'Reports', icon: 'report' },
-    { id: 'email', label: 'Email settings', icon: 'mail' }
+    { id: 'email', label: 'Email settings', icon: 'mail' },
+    { id: 'recommendations', label: 'Documents', icon: 'mail' }
   ];
   return (
     <div className="admin-workspace flex w-full min-h-[calc(100vh-64px)] sm:min-h-[calc(100vh-80px)]">
@@ -52,7 +52,7 @@ export default function ManagerLayout() {
 
       {/* Main Content Area */}
       <div className="flex-grow p-4 sm:p-8 bg-[#f7f7f8] print:p-0 print:bg-white flex justify-center w-full min-w-0">
-        {activeTab === 'recommendations' && <RecommendationLetters admin />}
+        {activeTab === 'recommendations' && <Documents admin />}
         {activeTab === 'dashboard' && <ManagerDashboard setActiveTab={navigatePage} navigate={navigate} createMode={createMode} onCreateMode={setCreateMode} onSelectEmployee={openEmployee} />}
         {activeTab === 'pending-attendance' && <PendingAttendance key={approvalFilter} initialFilter={approvalFilter} />}
         {activeTab === 'pending-leaves' && <PendingLeaves />}
@@ -66,3 +66,4 @@ export default function ManagerLayout() {
     </div>
   );
 }
+

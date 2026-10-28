@@ -75,7 +75,9 @@ def render_letter(data):
     normal, bold = fonts()
     stream = BytesIO()
     c = canvas.Canvas(stream, pagesize=(612, 792))
-    c.setTitle('Letter of Recommendation - ' + data['name'])
+    attendance = data.get('document_type') == 'attendance'
+    heading = 'Attendance Consideration Letter' if attendance else 'Letter of Recommendation'
+    c.setTitle(heading + ' - ' + data['name'])
     style = ParagraphStyle('Letter', fontName=normal, fontSize=11, leading=16)
     page = 0
 
@@ -87,7 +89,7 @@ def render_letter(data):
         c.setFillColor(HexColor('#c7192d')); c.rect(0, 0, 612, 14, fill=1, stroke=0)
         c.setFillColor(HexColor('#ffffff')); c.setFont(normal, 8); c.drawCentredString(306, 4, 'www.onesmarter.com')
         c.setFillColor(HexColor('#222222')); c.setFont(bold, 17)
-        c.drawCentredString(306, 679, 'LETTER OF RECOMMENDATION')
+        c.drawCentredString(306, 679, heading.upper())
         c.setFillColor(HexColor('#c7192d')); c.rect(266, 664, 80, 2, fill=1, stroke=0)
         c.setFillColor(HexColor('#777777')); c.setFont(normal, 8); c.drawRightString(544, 28, str(page))
 
@@ -107,10 +109,23 @@ def render_letter(data):
     paragraph(f"<b>Date:</b> {d['issue_date']}", 18)
     paragraph('<b>To Whom It May Concern,</b>', 18)
     period = f"from {d['start_date']} to {d['end_date']}" if data.get('end_date') else f"since {d['start_date']} and continues in this role as of the date of this letter"
-    paragraph(f"I am pleased to recommend <b>{d['name']}</b>, who {'worked' if data.get('end_date') else 'has been working'} with <b>One Smarter, Inc.</b> as <b>{d['designation']}</b> in {d['department']} {period}. In my capacity as {TITLE}, I have had the opportunity to review their work and contributions.")
-    paragraph(f"During this period, {d['name']} contributed to {d['responsibilities']}. A notable contribution was {d['achievement']}, demonstrating {d['capability']}.")
-    paragraph(f"{d['name']} demonstrated {d['strengths']}. For example, {d['example']}.")
-    paragraph(f"Based on their contributions, I recommend {d['name']} for {d['recommendation_purpose']}. {d['endorsement']}")
+    if attendance:
+        if data.get('institution'):
+            paragraph(f"<b>Institution / recipient:</b> {d['institution']}")
+        role = 'intern' if data.get('role') == 'intern' else 'employee'
+        extra = f" ({d['designation']})" if data.get('designation') else ''
+        team = f" in {d['department']}" if data.get('department') else ''
+        paragraph(f"This is to confirm that <b>{d['name']}</b> {'worked' if data.get('end_date') else 'has been working'} with <b>One Smarter, Inc.</b> as an <b>{role}</b>{extra}{team} {period}.")
+        if data.get('employee_id'):
+            paragraph(f"<b>Employee / intern ID:</b> {d['employee_id']}")
+        paragraph(f"Their scheduled working hours {'were' if data.get('end_date') else 'are'} <b>1:00 PM to 9:00 PM</b> during this period.")
+        paragraph(f"We request your consideration of their attendance in light of these work commitments. {d['attendance_note']}")
+        paragraph('This letter confirms the employment period and scheduled working hours stated above. Any attendance concession remains subject to your institution\'s rules and approval.')
+    else:
+        paragraph(f"I am pleased to recommend <b>{d['name']}</b>, who {'worked' if data.get('end_date') else 'has been working'} with <b>One Smarter, Inc.</b> as <b>{d['designation']}</b> in {d['department']} {period}. In my capacity as {TITLE}, I have had the opportunity to review their work and contributions.")
+        paragraph(f"During this period, {d['name']} contributed to {d['responsibilities']}. A notable contribution was {d['achievement']}, demonstrating {d['capability']}.")
+        paragraph(f"{d['name']} demonstrated {d['strengths']}. For example, {d['example']}.")
+        paragraph(f"Based on their contributions, I recommend {d['name']} for {d['recommendation_purpose']}. {d['endorsement']}")
     paragraph(f'Please contact me at <b>{CONTACT}</b> if you require any additional information.', 18)
     # Reserve the full sign-off so the visible signature never covers letter text.
     if y - (SIGNATURE_HEIGHT + 36) < 70:

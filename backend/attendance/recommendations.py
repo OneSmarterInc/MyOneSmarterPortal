@@ -24,6 +24,7 @@ def manager(user):
 
 
 class RequestInput(serializers.Serializer):
+    document_type = serializers.ChoiceField(choices=['recommendation', 'attendance'], default='recommendation')
     purpose = serializers.CharField(max_length=500)
     notes = serializers.CharField(max_length=2000, allow_blank=True, default='')
 
@@ -42,6 +43,15 @@ class DraftInput(serializers.Serializer):
     endorsement = serializers.CharField(max_length=700)
 
 
+class AttendanceDraftInput(serializers.Serializer):
+    revision = serializers.IntegerField(min_value=0)
+    end_date = serializers.DateField(allow_null=True, required=False, default=None)
+    designation = serializers.CharField(max_length=120, allow_blank=True, default='')
+    department = serializers.CharField(max_length=120, allow_blank=True, default='')
+    institution = serializers.CharField(max_length=200, allow_blank=True, default='')
+    attendance_note = serializers.CharField(max_length=700)
+
+
 def details(item, admin=False):
     result = {'id': item.pk, 'name': item.user.get_full_name().strip() or item.user.username,
               'joining_date': item.user.profile.joining_date, 'designation': item.user.profile.designation,
@@ -50,6 +60,8 @@ def details(item, admin=False):
               'sent_to': item.sent_to, 'rejection_reason': item.rejection_reason,
               'revision': item.revision, 'can_download': item.status == 'Sent'}
     result['verification_id'] = item.draft.get('verification_id', '')
+    result['document_type'] = item.document_type
+    result['role'] = item.user.profile.role
     result['issued_name'] = item.draft.get('name', '')
     if admin:
         result['draft'] = item.draft
@@ -73,8 +85,8 @@ def requests(request):
     # Lock the account so two simultaneous submissions cannot create duplicates.
     with transaction.atomic():
         type(request.user).objects.select_for_update().get(pk=request.user.pk)
-        if RecommendationRequest.objects.filter(user=request.user, status__in=['Pending', 'Draft', 'Sending', 'Send failed']).exists():
-            return Response({'error': 'You already have an open recommendation request.'}, status=409)
+        if RecommendationRequest.objects.filter(user=request.user, document_type=form.validated_data['document_type'], status__in=['Pending', 'Draft', 'Sending', 'Send failed']).exists():
+            return Response({'error': 'You already have an open request for this document type.'}, status=409)
         item = RecommendationRequest.objects.create(user=request.user, **form.validated_data)
     return Response(details(item), status=201)
 
@@ -85,10 +97,11 @@ def requests(request):
 def draft(request, pk):
     if not manager(request.user):
         return Response({'error': 'Administrator access required.'}, status=403)
-    form = DraftInput(data=request.data); form.is_valid(raise_exception=True)
-    values = dict(form.validated_data)
     with transaction.atomic():
         item = get_object_or_404(RecommendationRequest.objects.select_for_update(), pk=pk)
+        form_class = AttendanceDraftInput if item.document_type == 'attendance' else DraftInput
+        form = form_class(data=request.data); form.is_valid(raise_exception=True)
+        values = dict(form.validated_data)
         if item.status not in ['Pending', 'Draft', 'Send failed'] or values.pop('revision') != item.revision:
             return Response({'error': 'This request changed. Reload it before saving.'}, status=409)
         start = item.user.profile.joining_date
@@ -100,6 +113,8 @@ def draft(request, pk):
         values.update(name=item.user.get_full_name().strip() or item.user.username,
                       start_date=start.isoformat(), end_date=end.isoformat() if end else '',
                       issue_date=timezone.localdate().isoformat(), verification_id=str(uuid4()))
+        values.update(document_type=item.document_type, role=item.user.profile.role,
+                      employee_id=item.user.profile.employee_id)
         item.pdf = render_letter(values)
         item.draft = values
         item.status = 'Draft'
@@ -120,7 +135,7 @@ def document(request, pk):
     if not item.pdf:
         return Response({'error': 'Save the letter before previewing it.'}, status=400)
     response = HttpResponse(bytes(item.pdf), content_type='application/pdf')
-    response['Content-Disposition'] = f'inline; filename="recommendation-{item.pk}.pdf"'
+    response['Content-Disposition'] = f'inline; filename="{item.document_type}-{item.pk}.pdf"'
     response['Cache-Control'] = 'no-store'
     return response
 
@@ -165,17 +180,19 @@ def send(request, pk):
         connection = get_connection(host=config.smtp_host, port=config.smtp_port,
                                     username=config.smtp_username, password=config.smtp_password,
                                     use_tls=config.security_protocol == 'TLS', use_ssl=config.security_protocol == 'SSL', timeout=30)
+        label = item.get_document_type_display()
         body = (f"Dear {item.draft['name']},\n\n"
-                "Your request for a Letter of Recommendation has been approved. "
+                f"Your request for a {label} has been approved. "
                 "Please find your digitally signed official letter attached to this email.\n\n"
                 "We appreciate your contributions to One Smarter, Inc. and wish you continued success in your future endeavors. "
                 f"If you have any questions, please contact {CONTACT}.\n\n"
                 f"Kind regards,\n{SIGNATORY}\n{TITLE}\nOne Smarter, Inc.\n{CONTACT}")
-        message = EmailMessage('Your Letter of Recommendation - One Smarter, Inc.', body,
+        message = EmailMessage(f'Your {label} - One Smarter, Inc.', body,
                                formataddr((config.sender_name, config.sender_email)), [item.sent_to],
                                reply_to=[CONTACT], connection=connection,
                                headers={'X-OneSmarter-PDF-SHA256': sha256(signed_pdf).hexdigest()})
-        message.attach(f'OneSmarter_Recommendation_{item.pk}_signed.pdf', signed_pdf, 'application/pdf')
+        file_label = 'Attendance_Consideration' if item.document_type == 'attendance' else 'Recommendation'
+        message.attach(f'OneSmarter_{file_label}_{item.pk}_signed.pdf', signed_pdf, 'application/pdf')
         if message.send(fail_silently=False) != 1:
             raise RuntimeError('Email not accepted')
     except Exception:

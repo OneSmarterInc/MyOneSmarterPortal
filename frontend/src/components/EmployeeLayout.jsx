@@ -1,4 +1,4 @@
-import RecommendationLetters from './RecommendationLetters';
+import Documents from './Documents';
 import React, { useState } from 'react';
 import { useWorkspacePage } from '../utils/useWorkspacePage';
 import WorkspaceNavigation from './WorkspaceNavigation';
@@ -21,11 +21,11 @@ export default function EmployeeLayout({ user }) {
 
   const navigation = [
     { id: 'dashboard', label: 'My overview', icon: 'dashboard' },
-    { id: 'recommendations', label: 'Recommendation letters', icon: 'mail' },
     { id: 'leave', label: 'Leave & time off', icon: 'calendar' },
     { id: 'wfh', label: 'Work from home', icon: 'home' },
     { id: 'policies', label: 'My Policies', icon: 'shield' },
-    { id: 'profile', label: 'My profile', icon: 'people' }
+    { id: 'profile', label: 'My profile', icon: 'people' },
+    { id: 'recommendations', label: 'Documents', icon: 'mail' }
   ];
 
   return (
@@ -41,7 +41,7 @@ export default function EmployeeLayout({ user }) {
         </nav>
       </WorkspaceNavigation>
       <div className="min-w-0 flex-1 bg-[#f7f7f8] px-3 py-4 sm:px-5 sm:py-6 lg:px-8 lg:py-8 print:p-0 print:bg-white flex justify-center w-full">
-        {activeTab === 'recommendations' && <RecommendationLetters />}
+        {activeTab === 'recommendations' && <Documents />}
         {activeTab === 'dashboard' && <EmployeeDashboard user={user} onNavigate={navigate} />}
         {activeTab === 'profile' && <EmployeeProfile user={user} />}
         {activeTab === 'leave' && <EmployeeLeave user={user} />}
@@ -51,3 +51,4 @@ export default function EmployeeLayout({ user }) {
     </div>
   );
 }
+

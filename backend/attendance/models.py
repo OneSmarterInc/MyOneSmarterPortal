@@ -155,6 +155,7 @@ class LeaveAllocation(models.Model):
 
 
 class RecommendationRequest(models.Model):
+    document_type = models.CharField(max_length=30, default='recommendation', choices=[('recommendation', 'Letter of Recommendation'), ('attendance', 'Attendance Consideration Letter')])
     user = models.ForeignKey(User, on_delete=models.PROTECT, related_name='recommendation_requests')
     purpose = models.CharField(max_length=500)
     notes = models.TextField(blank=True, default='')
