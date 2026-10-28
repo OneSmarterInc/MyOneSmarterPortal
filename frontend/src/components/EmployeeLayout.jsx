@@ -23,7 +23,7 @@ export default function EmployeeLayout({ user }) {
     { id: 'dashboard', label: 'My overview', icon: 'dashboard' },
     { id: 'leave', label: 'Leave & time off', icon: 'calendar' },
     { id: 'wfh', label: 'Work from home', icon: 'home' },
-    { id: 'policies', label: 'My Policies', icon: 'shield' },
+    { id: 'policies', label: 'Policies & Procedures', icon: 'shield' },
     { id: 'profile', label: 'My profile', icon: 'people' },
     { id: 'recommendations', label: 'Documents', icon: 'mail' }
   ];
