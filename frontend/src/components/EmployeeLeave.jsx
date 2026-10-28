@@ -116,7 +116,7 @@ export default function EmployeeLeave({ user }) {
   };
 
   return (
-    <div className="w-full max-w-7xl flex flex-col gap-5 relative">
+    <div className="w-full min-w-0 max-w-7xl flex flex-col gap-5 relative">
       
       <header>
         <p className="mb-1 text-xs font-semibold uppercase tracking-[.14em] text-red-700">Employee workspace / Time off</p>
@@ -163,7 +163,7 @@ export default function EmployeeLeave({ user }) {
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
         
         {/* Leave Application Form */}
-        <div className="lg:col-span-2 bg-white p-5 sm:p-6 rounded-xl border border-slate-200 h-fit">
+        <div className="min-w-0 lg:col-span-2 bg-white p-5 sm:p-6 rounded-xl border border-slate-200 h-fit">
           <h3 className="text-base font-semibold text-zinc-900 mb-4">Apply for leave</h3>
           
           {msg.text && (
@@ -200,7 +200,7 @@ export default function EmployeeLeave({ user }) {
                 <input type="date" required value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded" />
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-2">Start Date</label>
                   <input type="date" required value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} className="w-full border border-slate-300 p-2 text-xs outline-none focus:border-red-500 rounded" />
@@ -225,7 +225,7 @@ export default function EmployeeLeave({ user }) {
         </div>
 
         {/* Application History Table */}
-        <div className="lg:col-span-3 bg-white p-5 sm:p-6 rounded-xl border border-slate-200 flex flex-col min-h-[390px]">
+        <div className="min-w-0 lg:col-span-3 bg-white p-5 sm:p-6 rounded-xl border border-slate-200 flex flex-col min-h-[390px]">
           <h3 className="text-base font-semibold text-zinc-900 mb-4 shrink-0">Request history</h3>
           <div className="overflow-x-auto flex-grow border border-slate-200 rounded-xl">
             <table className="w-full min-w-[540px] text-left border-collapse text-sm">
