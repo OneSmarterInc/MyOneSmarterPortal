@@ -100,7 +100,7 @@ export default function RecommendationLetters({ admin = false }) {
   const query = search.trim().toLowerCase();
   const visible = (admin && filter === 'open' && !query ? openItems : items).filter(item =>
     !admin || !query || [item.name, item.issued_name, item.verification_id].some(value => value?.toLowerCase().includes(query)));
-  return <div className="lor-page w-full max-w-6xl">
+  return <div className="lor-page w-full min-w-0 max-w-6xl">
     <header className="admin-page-heading"><div><h1>Recommendation letters</h1><p>{admin ? 'Review requests, prepare a letter, and approve it for email delivery.' : 'Request a letter of recommendation and follow its progress.'}</p></div><button className="admin-button" disabled={busy || loading} onClick={load}>Refresh</button></header>
     {error && <div className="admin-error" role="alert">{error}</div>}
     {notice && <div className="admin-notice" role="status">{notice}</div>}
