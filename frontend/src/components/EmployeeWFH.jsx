@@ -52,6 +52,10 @@ export default function EmployeeWFH({ user }) {
     // Prevent submitting overlapping/duplicate dates
     const newStart = formData.start_date;
     const newEnd = formData.end_date;
+    if (!newStart || !newEnd || newEnd < newStart) {
+      setMsg({ text: 'Select a start date, then an end date on or after it.', type: 'error' });
+      return;
+    }
     
     const hasDuplicate = history.some(record => 
       record.status !== 'Rejected' && 
@@ -169,11 +173,11 @@ export default function EmployeeWFH({ user }) {
               <div className="min-w-0 w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1.5">Start Date</label>
-                  <input type="date" required min={todayStr} value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded-lg bg-slate-50" />
+                  <input aria-label="Start date" type="date" required min={todayStr} value={formData.start_date} onChange={e => { const start = e.target.value; setFormData(previous => ({ ...previous, start_date: start, end_date: !start || previous.end_date < start ? '' : previous.end_date })); }} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded-lg bg-slate-50" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1.5">End Date</label>
-                  <input type="date" required min={formData.start_date || todayStr} value={formData.end_date} onChange={e => setFormData({...formData, end_date: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded-lg bg-slate-50" />
+                  <input aria-label="End date" type="date" required disabled={!formData.start_date} min={formData.start_date || todayStr} value={formData.end_date} onChange={e => setFormData({...formData, end_date: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded-lg bg-slate-50" />
                 </div>
               </div>
 
