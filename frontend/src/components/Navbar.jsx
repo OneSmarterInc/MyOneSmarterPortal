@@ -86,20 +86,20 @@ export default function Navbar({ user, onLogout }) {
   useEffect(()=>{let active=true;setProfile(null);if(user?.user_id)getProfile(user.user_id).then(r=>{if(active)setProfile(r.data);}).catch(()=>{});return()=>{active=false;};},[user?.user_id]);
   return (
     <header className="workspace-topbar sticky top-0 z-50 border-b border-zinc-200 bg-white/95 shadow-[0_3px_20px_rgba(0,0,0,0.035)] backdrop-blur-xl print:hidden">
-      <nav aria-label="Top navigation" className="mx-auto flex h-[64px] w-full items-center justify-between gap-3 px-4 sm:px-7 lg:px-10">
-        <div className="flex min-w-0 items-center gap-3">
+      <nav aria-label="Top navigation" className="mx-auto flex min-h-[64px] w-full min-w-0 items-center justify-between gap-1.5 px-2 sm:gap-3 sm:px-7 lg:px-10">
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-3">
           {user && <button type="button" aria-label="Toggle navigation menu" aria-controls="workspace-navigation" aria-expanded={adminMenuOpen} onClick={() => window.dispatchEvent(new Event('toggleMobileMenu'))} className={`shrink-0 rounded-xl border border-zinc-200 p-2.5 text-zinc-800 transition hover:border-red-200 hover:bg-red-50`}>
             <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
           </button>}
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-red-100 bg-white p-1 shadow-sm sm:h-11 sm:w-11">
+          <div className="hidden sm:flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-red-100 bg-white p-1 shadow-sm sm:h-11 sm:w-11">
             <img src="/images/logo.png" alt="MyOnesmarterPortal logo" className="h-full w-full object-contain" onError={e => { e.currentTarget.style.display = 'none'; }} />
           </div>
           <div className="min-w-0">
-            <p className="truncate text-lg font-extrabold leading-tight tracking-[-.045em] text-zinc-950 sm:text-xl">My<span className="text-[#c7192d]">OneSmarter</span></p>
-            <p className="mt-0.5 text-[9px] font-bold uppercase tracking-[.22em] text-zinc-500 sm:text-[10px]">Company workspace</p>
+            <p className="truncate text-sm font-extrabold sm:text-lg leading-tight tracking-[-.045em] text-zinc-950 sm:text-xl">My<span className="text-[#c7192d]">OneSmarter</span></p>
+            <p className="hidden sm:block mt-0.5 text-[9px] font-bold uppercase tracking-[.22em] text-zinc-500 sm:text-[10px]">Company workspace</p>
           </div>
         </div>
-        {user ? <div className="flex shrink-0 items-center gap-3 sm:gap-4">
+        {user ? <div className="flex shrink-0 items-center gap-1.5 sm:gap-4">
           {isEmployee && <div className="relative">
             <button type="button" aria-label={`Notifications${unreadCount ? `, ${unreadCount} unread` : ''}`}
               aria-expanded={notificationsOpen} aria-haspopup="true" onClick={openNotifications}
