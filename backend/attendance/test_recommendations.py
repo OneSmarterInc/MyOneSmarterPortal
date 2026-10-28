@@ -3,6 +3,7 @@ from io import BytesIO
 from email import policy
 from email.parser import BytesParser
 from hashlib import sha256
+from uuid import UUID
 import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -95,6 +96,8 @@ class RecommendationTests(TestCase):
         self.assertEqual(saved.data['draft']['name'], 'employee')
         self.assertEqual(saved.data['draft']['start_date'], '2025-01-01')
         self.assertEqual(saved.data['draft']['end_date'], '')
+        verification_id = saved.data['verification_id']
+        self.assertEqual(str(UUID(verification_id)), verification_id)
         preview = self.client.get(f'/recommendations/{pk}/pdf/').content
         self.assertTrue(preview.startswith(b'%PDF'))
         response = self.client.post(f'/recommendations/{pk}/send/', {'revision': 1}, format='json')
@@ -106,6 +109,9 @@ class RecommendationTests(TestCase):
         # An incremental signature preserves the reviewed original PDF bytes.
         self.assertTrue(signed.startswith(preview))
         signatures = PdfFileReader(BytesIO(signed)).embedded_signatures
+        self.assertEqual(str(PdfFileReader(BytesIO(signed)).root['/OneSmarterVerificationID']), verification_id)
+        self.assertEqual(response.data['verification_id'], verification_id)
+        self.assertEqual(response.data['pdf_sha256'], sha256(signed).hexdigest())
         self.assertEqual(len(signatures), 1)
         x1, y1, x2, y2 = signatures[0].sig_field['/Rect']
         self.assertGreater(x2 - x1, 180)
@@ -133,6 +139,9 @@ class RecommendationTests(TestCase):
         self.assertEqual(len(mail.outbox), 1)
         self.auth(self.employee)
         self.assertEqual(self.client.get(f'/recommendations/{pk}/pdf/').content, signed)
+        own = self.client.get('/recommendations/').data[0]
+        self.assertEqual(own['verification_id'], verification_id)
+        self.assertNotIn('pdf_sha256', own)
         self.auth(self.intern)
         self.assertEqual(self.client.get(f'/recommendations/{pk}/pdf/').status_code, 404)
 
@@ -163,11 +172,13 @@ class RecommendationTests(TestCase):
 
     def test_edit_after_smtp_failure_requires_new_signature(self):
         pk = self.request_letter(); self.save(pk)
+        old_id = RecommendationRequest.objects.get(pk=pk).draft['verification_id']
         with patch('attendance.recommendations.EmailMessage.send', side_effect=OSError('offline')):
             self.client.post(f'/recommendations/{pk}/send/', {'revision': 1}, format='json')
         response = self.client.post(f'/recommendations/{pk}/draft/', {**self.fields, 'revision': 1}, format='json')
         self.assertEqual(response.status_code, 200)
         self.assertNotIn('_signed_revision', RecommendationRequest.objects.get(pk=pk).draft)
+        self.assertNotEqual(old_id, response.data['verification_id'])
         response = self.client.post(f'/recommendations/{pk}/send/', {'revision': 2}, format='json')
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(PdfFileReader(BytesIO(mail.outbox[0].attachments[0][1])).embedded_signatures), 1)
@@ -196,6 +207,15 @@ class RecommendationTests(TestCase):
         self.assertEqual(response.status_code, 503)
         self.assertEqual(len(mail.outbox), 0)
         self.assertEqual(RecommendationRequest.objects.get(pk=pk).status, 'Draft')
+
+    def test_verification_id_is_server_generated_and_unique(self):
+        pk = self.request_letter(); self.auth(self.manager)
+        first = self.client.post(f'/recommendations/{pk}/draft/', {**self.fields, 'verification_id': 'fake'}, format='json')
+        first_id = first.data['verification_id']
+        self.assertEqual(UUID(first_id).version, 4)
+        second = self.client.post(f'/recommendations/{pk}/draft/', {**self.fields, 'revision': 1}, format='json')
+        self.assertNotEqual(first_id, second.data['verification_id'])
+        self.assertNotIn('pdf_sha256', self.client.get('/recommendations/').data[0]['draft'])
 
     def test_long_letter_keeps_signature_on_last_page(self):
         pk = self.request_letter()

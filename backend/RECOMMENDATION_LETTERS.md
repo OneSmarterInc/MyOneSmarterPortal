@@ -62,7 +62,15 @@ After upgrading from invisible signing, save and preview any existing unsent dra
 
 Employees can only read their own requests and download their own sent letters. Drafts, approval, and rejection require a server-verified administrator account. All letter PDF responses use `Cache-Control: no-store`.
 
-## Validation
+## Internal background-check verification
+
+Newly saved letter revisions receive a server-generated UUID `verification_id`, persisted in the draft snapshot and printed above the signing date. The ID is embedded in the PDF catalog and in the visible signature appearance, both covered by the certificate signature. It identifies a specific revision, not a private key or independently verified identity. Saving another draft generates a new ID; SMTP retries retain the issued ID and signed bytes. Previously sent PDFs are not altered or assigned IDs retrospectively.
+
+Administrators can search all recommendation requests by name or verification ID. For a sent letter, the internal verification section shows the issued name, sending time and SHA-256 fingerprint of the stored PDF. Selecting a supplied file compares its SHA-256 locally in the browser; no file is uploaded. An exact match establishes that it is byte-for-byte identical to the stored original. A different result requires manual review (printing or re-exporting can change a file); it is not automatically a fraud finding. Compare only sent records and verify identity/details against the issued original before answering a background check. Matching the visible ID alone does not prove the file is authentic.
+
+No public verification endpoint is added. Existing letter authentication and per-person access restrictions still apply. Frontend deployment is required for ID search and file comparison. After approval, the frontend replaces the unsigned preview with the stored signed PDF; download filenames distinguish `_preview.pdf` from `_signed.pdf`.
+
+## Tests
 
 `python manage.py test attendance.test_recommendations --settings=test_settings`
 

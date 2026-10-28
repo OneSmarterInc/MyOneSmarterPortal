@@ -37,6 +37,8 @@ export default function RecommendationLetters({ admin = false }) {
   const [preview, setPreview] = useState('');
   const [reason, setReason] = useState('');
   const [filter, setFilter] = useState('open');
+  const [search, setSearch] = useState('');
+  const [fileCheck, setFileCheck] = useState(null);
 
   useEffect(() => { load(); }, []);
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
@@ -48,7 +50,7 @@ export default function RecommendationLetters({ admin = false }) {
   }
   function replace(item) { setItems(list => list.map(old => old.id === item.id ? item : old)); setSelected(item); }
   function open(item) {
-    setSelected(item); setError(''); setNotice(''); setPreview(''); setDirty(false); setReason('');
+    setSelected(item); setError(''); setNotice(''); setPreview(''); setDirty(false); setReason(''); setFileCheck(null);
     setForm({ ...Object.fromEntries(fields.map(([key]) => [key, ''])), designation: item.designation || '', recommendation_purpose: item.purpose, ...item.draft, end_date: item.draft?.end_date || '' });
   }
   async function pdf(item) { const { data } = await getRecommendationPDF(item.id); setPreview(URL.createObjectURL(data)); }
@@ -63,9 +65,29 @@ export default function RecommendationLetters({ admin = false }) {
     catch (e) { setError(errorMessage(e)); } finally { setBusy(false); }
   }
   async function approve() {
-    setBusy(true); setError('');
-    try { const { data } = await sendRecommendation(selected.id, selected.revision); replace(data); setNotice(`Letter sent to ${data.sent_to}.`); }
+    setBusy(true); setError(''); setPreview('');
+    try {
+      const { data } = await sendRecommendation(selected.id, selected.revision);
+      replace(data); setNotice(`Signed letter sent to ${data.sent_to}.`);
+      try { await pdf(data); } catch { setError('The letter was sent, but its signed preview could not load. Open the saved letter again to download it.'); }
+    }
     catch (e) { setPreview(''); setError(errorMessage(e)); try { const { data } = await getRecommendations(); setItems(data); setSelected(data.find(item => item.id === selected.id)); } catch {} }
+    finally { setBusy(false); }
+  }
+  async function checkFile(event) {
+    const file = event.target.files?.[0];
+    setFileCheck(null);
+    if (!file) return;
+    if (file.size > 20 * 1024 * 1024) { setFileCheck({ id: selected.id, message: 'Choose a PDF smaller than 20 MB.' }); return; }
+    setBusy(true);
+    try {
+      const digest = await crypto.subtle.digest('SHA-256', await file.arrayBuffer());
+      const hash = Array.from(new Uint8Array(digest), b => b.toString(16).padStart(2, '0')).join('');
+      const matches = hash === selected.pdf_sha256;
+      setFileCheck({ id: selected.id, matches, message: matches
+        ? 'Exact match: this file is identical to the signed original stored for this letter.'
+        : 'Different file: this does not match the stored signed original. Review the original before confirming the background check.' });
+    } catch { setFileCheck({ id: selected.id, message: 'Unable to compare this file. Download the stored original and compare it manually.' }); }
     finally { setBusy(false); }
   }
   async function reject() {
@@ -75,7 +97,9 @@ export default function RecommendationLetters({ admin = false }) {
   }
   const editable = selected && ['Pending', 'Draft', 'Send failed'].includes(selected.status);
   const openItems = items.filter(item => !['Sent', 'Rejected'].includes(item.status));
-  const visible = admin && filter === 'open' ? openItems : items;
+  const query = search.trim().toLowerCase();
+  const visible = (admin && filter === 'open' && !query ? openItems : items).filter(item =>
+    !admin || !query || [item.name, item.issued_name, item.verification_id].some(value => value?.toLowerCase().includes(query)));
   return <div className="lor-page w-full max-w-6xl">
     <header className="admin-page-heading"><div><h1>Recommendation letters</h1><p>{admin ? 'Review requests, prepare a letter, and approve it for email delivery.' : 'Request a letter of recommendation and follow its progress.'}</p></div><button className="admin-button" disabled={busy || loading} onClick={load}>Refresh</button></header>
     {error && <div className="admin-error" role="alert">{error}</div>}
@@ -83,17 +107,30 @@ export default function RecommendationLetters({ admin = false }) {
     {!admin && <form className="admin-panel lor-form" onSubmit={submit}><h2>Request a recommendation</h2><label>What will you use the letter for?<input required maxLength={500} value={purpose} onChange={e => setPurpose(e.target.value)} placeholder="e.g. Graduate program or job application" /></label><label>Additional details (optional)<textarea maxLength={2000} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Mention relevant projects or the application deadline." /></label><p>Your name and joining date will be taken from your account. The approved letter will be emailed to your account email address.</p><button className="admin-button primary" disabled={busy || loading || !!error || openItems.length > 0}>{busy ? 'Submitting…' : 'Submit request'}</button>{openItems.length > 0 && <p>You already have a request under review.</p>}</form>}
     <section className="admin-panel">
       {admin && <div className="admin-tabs"><button aria-pressed={filter === 'open'} onClick={() => setFilter('open')}>Open requests ({openItems.length})</button><button aria-pressed={filter === 'all'} onClick={() => setFilter('all')}>All requests</button></div>}
+      {admin && <div className="lor-search"><label htmlFor="lor-search">Find a letter for verification</label><input id="lor-search" type="search" value={search} onChange={e => { setSearch(e.target.value); if (e.target.value.trim()) setFilter('all'); }} placeholder="Search by name or verification ID" /></div>}
       <div className="admin-table-scroll"><table className="admin-table"><thead><tr>{admin && <th>Team member</th>}<th>Purpose</th><th>Requested</th><th>Status</th><th>Action</th></tr></thead><tbody>{visible.map(item => <tr key={item.id}>{admin && <td>{item.name}</td>}<td className="lor-purpose">{item.purpose}{item.rejection_reason && <p>Reason: {item.rejection_reason}</p>}</td><td>{new Date(item.created_at).toLocaleDateString()}</td><td>{item.status}</td><td>{admin ? <button className="admin-button" disabled={busy} onClick={() => open(item)}>Open request</button> : item.can_download ? <button className="admin-button" disabled={busy} onClick={async () => { setBusy(true); setError(''); try { open(item); await pdf(item); } catch (e) { setError(errorMessage(e)); } finally { setBusy(false); } }}>View letter</button> : 'Under review'}</td></tr>)}</tbody></table></div>{loading ? <p className="admin-empty">Loading requests…</p> : !visible.length && <p className="admin-empty">No requests to show.</p>}
     </section>
     {selected && <section className="admin-panel lor-form"><div className="lor-section-heading"><h2>{admin ? `Letter for ${selected.name}` : 'Your recommendation letter'}</h2><button className="admin-button" disabled={busy} onClick={() => { setSelected(null); setPreview(''); }}>Close</button></div>
+      {selected.verification_id && <p><strong>Verification ID:</strong> <code>{selected.verification_id}</code></p>}
+      {admin && selected.status === 'Sent' && <section className="lor-verification">
+        <h2>Background-check verification</h2>
+        <p><strong>Issued to:</strong> {selected.issued_name || selected.name}<br/><strong>Sent:</strong> {selected.sent_at ? new Date(selected.sent_at).toLocaleString() : 'Not recorded'}</p>
+        {!selected.verification_id && <p>This older letter has no verification ID. Compare against its stored original.</p>}
+        {selected.pdf_sha256 && <><p><strong>Original PDF SHA-256:</strong><br/><code>{selected.pdf_sha256}</code></p>
+          <label>Compare the PDF supplied for verification<input key={selected.id} type="file" accept="application/pdf,.pdf" disabled={busy} onChange={checkFile} /></label>
+          <p>The file is checked in your browser and is not uploaded. An ID match alone does not confirm the PDF is unchanged.</p>
+          {fileCheck?.id === selected.id && <p role="status" className={fileCheck.matches ? 'lor-match' : ''}>{fileCheck.message}</p>}
+        </>}
+      </section>}
       {admin && <><p><strong>Account name:</strong> {selected.name}<br/><strong>Joining date:</strong> {selected.joining_date || 'Missing - update the account first'}<br/><strong>Recipient:</strong> {selected.email || 'Missing email'}</p>{selected.notes && <p><strong>Requester’s notes:</strong> {selected.notes}</p>}
       {editable ? <form onSubmit={save}><fieldset disabled={busy} className="lor-fields">{fields.map(([key, label, max]) => <label key={key}>{label}{max <= 120 ? <input aria-label={label} required maxLength={max} value={form[key] || ''} onChange={e => { setForm({ ...form, [key]: e.target.value }); setDirty(true); setPreview(''); }} /> : <textarea aria-label={label} required maxLength={max} value={form[key] || ''} onChange={e => { setForm({ ...form, [key]: e.target.value }); setDirty(true); setPreview(''); }} />}</label>)}<label>End date (leave blank if still working)<input type="date" min={selected.joining_date || undefined} value={form.end_date || ''} onChange={e => { setForm({ ...form, end_date: e.target.value }); setDirty(true); setPreview(''); }} /></label></fieldset><p>Ongoing employment is described as continuing as of the letter’s issue date.</p><p><strong>Signatory:</strong> Akshay Agrawal · Global Delivery Manager<br/><strong>Official contact:</strong> akshay.kumar@onesmarter.com</p><button className="admin-button primary" disabled={busy || !selected.joining_date}>{busy ? 'Working…' : 'Save & preview'}</button></form> : <p>Status: {selected.status}{selected.sent_to ? ` · Sent to ${selected.sent_to}` : ''}</p>}
       {selected.revision > 0 && !dirty && !preview && <button className="admin-button" disabled={busy} onClick={async () => { setBusy(true); try { await pdf(selected); } catch (e) { setError(errorMessage(e)); } finally { setBusy(false); } }}>Preview saved letter</button>}
       </>}
-      {preview && <div className="lor-preview"><div className="lor-section-heading"><h2>Letter preview</h2><a className="admin-button" href={preview} target="_blank" rel="noreferrer">Open PDF</a><a className="admin-button" href={preview} download={`OneSmarter_Recommendation_${selected.id}.pdf`}>Download PDF</a></div><iframe title="Recommendation letter preview" src={preview} />
-      {admin && editable && !dirty && <><p>Approval emails this exact PDF to <strong>{selected.email}</strong> with a formal message from One Smarter, Inc.</p>{selected.status === 'Send failed' && <p>Check the recipient inbox before retrying; an earlier delivery may have succeeded.</p>}<button className="admin-button primary" disabled={busy} onClick={approve}>{busy ? 'Sending…' : selected.status === 'Send failed' ? 'Retry email delivery' : 'Approve & send'}</button></>}
+      {preview && <div className="lor-preview"><div className="lor-section-heading"><h2>{selected.status === 'Sent' ? 'Signed letter' : 'Letter preview'}</h2><a className="admin-button" href={preview} target="_blank" rel="noreferrer">Open PDF</a><a className="admin-button" href={preview} download={`OneSmarter_Recommendation_${selected.id}${selected.status === 'Sent' ? '_signed' : '_preview'}.pdf`}>Download PDF</a></div><iframe title="Recommendation letter preview" src={preview} />
+      {admin && editable && !dirty && <><p>Approval adds the digital signature and emails the signed PDF to <strong>{selected.email}</strong>.</p>{selected.status === 'Send failed' && <p>Check the recipient inbox before retrying; an earlier delivery may have succeeded.</p>}<button className="admin-button primary" disabled={busy} onClick={approve}>{busy ? 'Sending…' : selected.status === 'Send failed' ? 'Retry email delivery' : 'Approve & send'}</button></>}
       </div>}
       {admin && editable && <div className="lor-reject"><label>Reason for rejection<input maxLength={500} value={reason} disabled={busy} onChange={e => setReason(e.target.value)} /></label><button className="admin-button danger" disabled={busy || !reason.trim()} onClick={reject}>Reject request</button></div>}
     </section>}
   </div>;
 }
+

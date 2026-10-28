@@ -1,6 +1,7 @@
 from datetime import date
 from email.utils import formataddr
 from hashlib import sha256
+from uuid import uuid4
 from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404
@@ -48,8 +49,11 @@ def details(item, admin=False):
               'status': item.status, 'created_at': item.created_at, 'sent_at': item.sent_at,
               'sent_to': item.sent_to, 'rejection_reason': item.rejection_reason,
               'revision': item.revision, 'can_download': item.status == 'Sent'}
+    result['verification_id'] = item.draft.get('verification_id', '')
+    result['issued_name'] = item.draft.get('name', '')
     if admin:
         result['draft'] = item.draft
+        result['pdf_sha256'] = sha256(bytes(item.pdf)).hexdigest() if item.status == 'Sent' and item.pdf else ''
     return result
 
 
@@ -95,7 +99,7 @@ def draft(request, pk):
             return Response({'error': 'End date must be between the joining date and today.'}, status=400)
         values.update(name=item.user.get_full_name().strip() or item.user.username,
                       start_date=start.isoformat(), end_date=end.isoformat() if end else '',
-                      issue_date=timezone.localdate().isoformat())
+                      issue_date=timezone.localdate().isoformat(), verification_id=str(uuid4()))
         item.pdf = render_letter(values)
         item.draft = values
         item.status = 'Draft'

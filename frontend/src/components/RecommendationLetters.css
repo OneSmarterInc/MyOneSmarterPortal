@@ -12,4 +12,9 @@
 .lor-reject{border-top:1px solid #eee;padding-top:20px;display:flex;gap:12px;align-items:flex-end}
 .lor-reject label{flex:1}
 .lor-purpose{white-space:normal;min-width:180px;max-width:360px;overflow-wrap:anywhere}
+.lor-search{padding:18px 24px;display:flex;flex-direction:column;gap:8px;font-size:13px}
+.lor-search input{width:100%;padding:10px;border:1px solid #cfd2d7;background:white;border-radius:6px}
+.lor-verification{padding:18px;background:#f8f9fa;border:1px solid #e4e6e9;border-radius:8px;display:flex;flex-direction:column;gap:12px}
+.lor-verification code,.lor-form code{overflow-wrap:anywhere;user-select:all}
+.lor-verification .lor-match{color:#157347}
 @media(max-width:640px){.lor-fields{grid-template-columns:1fr}.lor-form{padding:16px}.lor-reject{flex-direction:column;align-items:stretch}.lor-preview iframe{height:500px}}

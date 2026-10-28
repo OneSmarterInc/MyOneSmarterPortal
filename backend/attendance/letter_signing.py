@@ -3,6 +3,7 @@ import os
 from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
+from uuid import UUID
 
 from cryptography import x509
 from cryptography.hazmat.primitives.serialization import pkcs12, Encoding, PrivateFormat, NoEncryption
@@ -59,10 +60,11 @@ def sign_letter(pdf):
     try:
         reader = PdfFileReader(BytesIO(pdf))
         has_field = any(name == SIGNATURE_FIELD and value is None for name, value, ref in enumerate_sig_fields(reader))
+        verification_id = str(UUID(str(reader.root.get('/OneSmarterVerificationID', ''))))
     except Exception:
         has_field = False
     if not has_field:
-        raise LetterSigningError('Save and preview this letter again to add the visible signature box before approving. No email was sent.')
+        raise LetterSigningError('Save and preview this letter again to refresh its signature box and verification ID before approving. No email was sent.')
     certificate_path = os.environ.get('LOR_SIGNING_P12_PATH')
     password_path = os.environ.get('LOR_SIGNING_PASSWORD_FILE')
     if not certificate_path or not password_path:
@@ -100,7 +102,7 @@ def sign_letter(pdf):
         signer_name = names[0].value if names else certificate.subject.rfc4514_string()
         signed_at = now.astimezone(ZoneInfo('Asia/Kolkata')).strftime('%d %b %Y, %I:%M %p IST')
         appearance = StaticStampStyle(
-            border_width=0, background=SignatureArtwork(signature_artwork(signer_name, signed_at)),
+            border_width=0, background=SignatureArtwork(signature_artwork(signer_name, signed_at, verification_id)),
             background_layout=SimpleBoxLayoutRule(
                 x_align=AxisAlignment.ALIGN_MIN, y_align=AxisAlignment.ALIGN_MIN, margins=Margins.uniform(0)),
         )
