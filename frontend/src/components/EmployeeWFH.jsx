@@ -129,7 +129,7 @@ export default function EmployeeWFH({ user }) {
     completed: history.filter(item => item.status === 'Approved' && item.end_date < todayStr).length,
   };
   return (
-    <div className="w-full max-w-7xl flex flex-col gap-5 relative">
+    <div className="w-full min-w-0 max-w-7xl flex flex-col gap-5 relative">
       
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
@@ -166,7 +166,7 @@ export default function EmployeeWFH({ user }) {
             <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-5 items-end">
               
               {/* Dates Block */}
-              <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="min-w-0 w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1.5">Start Date</label>
                   <input type="date" required min={todayStr} value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded-lg bg-slate-50" />
@@ -178,12 +178,12 @@ export default function EmployeeWFH({ user }) {
               </div>
 
               {/* Reason & Submit Button Block */}
-              <div className="w-full flex flex-col sm:flex-row gap-3 items-end">
+              <div className="min-w-0 w-full flex flex-col xl:flex-row gap-3 items-end">
                 <div className="flex-grow w-full">
                   <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1.5">Reason / Deliverables</label>
                   <input type="text" required placeholder="Brief reason or tasks planned..." value={formData.reason} onChange={e => setFormData({...formData, reason: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded-lg bg-slate-50" />
                 </div>
-                <button type="submit" disabled={loading} className="admin-button primary w-full sm:w-auto h-[42px] shrink-0">
+                <button type="submit" disabled={loading} className="admin-button primary w-full xl:w-auto h-[42px] shrink-0">
                   {loading ? 'Submitting...' : 'Submit Request'}
                 </button>
               </div>
