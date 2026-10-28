@@ -136,7 +136,7 @@ export default function EmployeeProfile({ user }) {
   };
 
   return (
-    <div className="w-full max-w-6xl space-y-5">
+    <div className="w-full min-w-0 max-w-6xl space-y-5">
       
       <header>
         <p className="mb-1 text-xs font-semibold uppercase tracking-[.14em] text-red-700">Employee workspace / Account</p>
@@ -171,7 +171,7 @@ export default function EmployeeProfile({ user }) {
         )}
 
         <form onSubmit={saveProfile} className="space-y-6">
-          <div className="flex flex-col sm:flex-row gap-6 items-center sm:items-start mb-6 border-b border-slate-100 pb-6">
+          <div className="flex flex-col sm:flex-row gap-6 items-stretch sm:items-start mb-6 border-b border-slate-100 pb-6">
             <div className="w-24 h-24 rounded-full overflow-hidden bg-slate-100 border border-slate-300 shrink-0">
               {photoPreview ? (
                 <img src={photoPreview} alt="Profile" className="w-full h-full object-cover" />
@@ -179,9 +179,9 @@ export default function EmployeeProfile({ user }) {
                 <div className="w-full h-full flex items-center justify-center text-slate-400 text-xs uppercase font-bold">No Image</div>
               )}
             </div>
-            <div className="flex-grow">
+            <div className="flex-grow min-w-0">
               <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-2">Profile Photo</label>
-              <input type="file" accept="image/*" onChange={handlePhotoChange} className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-bold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 transition" />
+              <input type="file" accept="image/*" onChange={handlePhotoChange} className="block max-w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:font-bold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 transition" />
             </div>
           </div>
 
