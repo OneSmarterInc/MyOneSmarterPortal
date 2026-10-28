@@ -6,7 +6,7 @@ export default function Documents({ admin = false }) {
   if (type) return <div className="w-full min-w-0">
     <RecommendationLetters key={type} admin={admin} documentType={type} onBack={() => setType(null)} />
   </div>;
-  return <div className="w-full max-w-6xl">
+  return <div className="w-full min-w-0 max-w-6xl mx-auto">
     <header className="admin-page-heading"><div><h1>Documents</h1><p>{admin ? 'Review requests and issue signed letters.' : 'Request an official letter and track its progress.'}</p></div></header>
     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
       {[

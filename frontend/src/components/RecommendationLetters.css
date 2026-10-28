@@ -1,4 +1,5 @@
-.lor-page{display:flex;flex-direction:column;gap:20px}
+.lor-page{display:flex;flex-direction:column;gap:20px;width:100%;min-width:0;margin-inline:auto}
+.lor-page > .admin-button{align-self:flex-start;width:auto}
 .lor-form{padding:24px;display:flex;flex-direction:column;gap:18px}
 .lor-form h2{font-size:17px;font-weight:600}
 .lor-form label{display:flex;flex-direction:column;gap:7px;font-size:13px;color:#4b515c}
