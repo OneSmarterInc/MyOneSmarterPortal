@@ -184,7 +184,7 @@ export default function EmployeeDashboard({ user, onNavigate }) {
   };
 
   return (
-    <div className="employee-workspace w-full max-w-7xl flex flex-col h-full gap-5">
+    <div className="employee-workspace w-full min-w-0 max-w-7xl flex flex-col gap-5">
       
       <div className="workspace-page-intro"><span>YOUR WORKDAY, AT A GLANCE</span><h1>My overview</h1><p>Everything you need to start your day and stay connected.</p></div>
       {/* Compact Welcome Panel */}
@@ -322,7 +322,7 @@ export default function EmployeeDashboard({ user, onNavigate }) {
           </div>
         </div>
         
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-3 flex-grow min-h-0">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7 gap-2 sm:gap-3 flex-grow min-h-0">
           {weekDays.map(day => {
             const dateStr = day.toLocaleDateString('en-CA');
             const record = history.find(h => h.date === dateStr);
@@ -364,7 +364,7 @@ export default function EmployeeDashboard({ user, onNavigate }) {
             const hours = calculateHours(record?.check_in, record?.check_out);
 
             return (
-              <div key={day.toISOString()} className={`flex flex-col items-center justify-between p-3 border border-slate-200 rounded-xl shadow-sm border-t-[6px] ${topBorderColor} ${bgClass} min-h-[130px] transition-transform hover:-translate-y-0.5`}>
+              <div key={day.toISOString()} className={`flex flex-col items-center justify-between p-3 border border-slate-200 rounded-xl shadow-sm border-t-[6px] ${topBorderColor} ${bgClass} min-h-[130px] min-w-0 transition-transform hover:-translate-y-0.5`}>
                 
                 <div className="text-center space-y-1 w-full">
                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
