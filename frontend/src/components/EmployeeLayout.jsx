@@ -29,7 +29,7 @@ export default function EmployeeLayout({ user }) {
   ];
 
   return (
-    <div className="admin-workspace flex w-full min-h-[calc(100vh-64px)] sm:min-h-[calc(100vh-80px)]">
+    <div className="admin-workspace flex w-full min-w-0 min-h-[calc(100dvh-64px)] overflow-x-clip">
       <WorkspaceNavigation isSidebarOpen={isSidebarOpen} setIsSidebarOpen={setIsSidebarOpen} title="My workspace">
         <nav aria-label="Employee navigation" className="flex min-h-0 flex-col gap-1 overflow-y-auto px-4 py-3">
           {navigation.map(item => <button type="button" key={item.id}
@@ -40,7 +40,7 @@ export default function EmployeeLayout({ user }) {
           </button>)}
         </nav>
       </WorkspaceNavigation>
-      <div className="flex-grow p-4 sm:p-8 bg-[#f7f7f8] print:p-0 print:bg-white flex justify-center w-full min-w-0">
+      <div className="min-w-0 flex-1 bg-[#f7f7f8] px-3 py-4 sm:px-5 sm:py-6 lg:px-8 lg:py-8 print:p-0 print:bg-white flex justify-center w-full">
         {activeTab === 'recommendations' && <RecommendationLetters />}
         {activeTab === 'dashboard' && <EmployeeDashboard user={user} onNavigate={navigate} />}
         {activeTab === 'profile' && <EmployeeProfile user={user} />}
