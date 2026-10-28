@@ -137,8 +137,10 @@ export default function EmployeeDashboard({ user, onNavigate }) {
   };
 
   const calculateHours = (inStr, outStr) => {
-    const hours = getHoursNum(inStr, outStr);
-    return hours > 0 ? hours.toFixed(2) : '0.00';
+    const totalMinutes = Math.max(0, Math.round(getHoursNum(inStr, outStr) * 60));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return `${hours}h ${String(minutes).padStart(2, '0')}m`;
   };
 
   const getDayConfiguration = (date) => {
@@ -386,14 +388,14 @@ export default function EmployeeDashboard({ user, onNavigate }) {
                     <div className="flex flex-col items-center gap-1">
                       <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest">Company Holiday</span>
                       {config.description && <span className="text-[10px] text-blue-700 break-words">{config.description}</span>}
-                      {record?.check_in && <span className="text-xs font-semibold text-blue-700">{hours} hrs logged</span>}
+                      {record?.check_in && <span className="text-xs font-semibold text-blue-700">{hours} logged</span>}
                     </div>
                   ) : isHalfDay ? (
                     <div className="flex flex-col items-center gap-1">
                       <span className="text-[10px] font-black text-amber-700 uppercase tracking-widest">Half-Day</span>
                       {config.description && <span className="text-[10px] text-amber-700 break-words">{config.description}</span>}
                       {config.start_time && config.end_time && <span className="text-[10px] text-amber-700">{formatTime(config.start_time)} – {formatTime(config.end_time)}</span>}
-                      {record?.check_in && <span className="text-xs font-semibold text-amber-700">{hours} hrs logged</span>}
+                      {record?.check_in && <span className="text-xs font-semibold text-amber-700">{hours} logged</span>}
                     </div>
                   ) : approvedLeave ? (
                     <div className="flex flex-col items-center">
