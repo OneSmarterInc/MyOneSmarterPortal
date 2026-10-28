@@ -116,27 +116,33 @@ export default function EmployeeLeave({ user }) {
   };
 
   return (
-    <div className="w-full max-w-7xl flex flex-col gap-4 relative h-full">
+    <div className="w-full max-w-7xl flex flex-col gap-5 relative">
       
-      {/* Welcome Panel */}
-      <div className="bg-white p-4 sm:px-6 sm:py-4 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row justify-between items-start md:items-center relative overflow-hidden shrink-0">
-        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-red-600 to-red-400"></div>
-        <div className="relative z-10">
-          <span className="text-[9px] font-bold text-red-600 uppercase tracking-widest">Time Off Console</span>
-          <h2 className="text-xl sm:text-2xl font-black text-zinc-900 mt-0.5 tracking-tight">Leave & Absences</h2>
-          <p className="text-xs text-slate-500 mt-0.5 font-medium">Monitor your dynamic leave balances and submit absence requests.</p>
-        </div>
+      <header>
+        <p className="mb-1 text-xs font-semibold uppercase tracking-[.14em] text-red-700">Employee workspace / Time off</p>
+        <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900">Leave & time off</h1>
+        <p className="mt-2 text-sm text-slate-600">Review your manager-assigned allowances, request leave, and track decisions.</p>
+      </header>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {[
+          { label: 'Available days', value: availableQuotas.reduce((sum, q) => sum + q.remaining, 0), tone:'text-emerald-700 bg-emerald-50' },
+          { label: 'Awaiting approval', value: history.filter(h => h.status === 'Pending').length, tone:'text-amber-700 bg-amber-50' },
+          { label: 'Approved requests', value: history.filter(h => h.status === 'Approved').length, tone:'text-blue-700 bg-blue-50' }
+        ].map(item => <div key={item.label} className="rounded-xl border border-slate-200 bg-white p-4 flex items-center justify-between">
+          <div><p className="text-xs text-slate-500">{item.label}</p><p className="mt-1 text-2xl font-semibold text-zinc-900 tabular-nums">{item.value}</p></div>
+          <span className={`h-10 w-10 rounded-xl flex items-center justify-center ${item.tone}`} aria-hidden="true">●</span>
+        </div>)}
       </div>
 
       {/* Dynamic Quotas Widget */}
-      <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm shrink-0">
-        <h3 className="text-[11px] font-bold uppercase tracking-widest text-zinc-900 mb-4">My Leave Balances</h3>
+      <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shrink-0">
+        <h3 className="text-base font-semibold text-zinc-900 mb-4">My leave balances</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
           {availableQuotas.length > 0 ? availableQuotas.map((quota, idx) => {
             const usagePercent = Math.min((quota.taken / quota.total) * 100, 100);
             return (
-              <div key={idx} className="bg-slate-50 border border-slate-200 p-4 rounded-lg flex flex-col justify-between">
-                <span className="text-[10px] font-black uppercase text-slate-700 truncate block mb-2" title={quota.name}>{quota.name}</span>
+              <div key={idx} className="bg-slate-50/70 border border-slate-200 p-4 rounded-xl flex flex-col justify-between gap-2">
+                <span className="text-sm font-semibold text-slate-700 truncate block mb-3" title={quota.name}>{quota.name}</span>
                 <div className="flex justify-between items-end mb-1.5">
                   <span className="text-2xl font-black text-zinc-900 tracking-tight leading-none">{quota.remaining} <span className="text-xs font-bold text-slate-400">left</span></span>
                   <span className="text-[9px] font-bold text-slate-400 uppercase">/ {quota.total} Total</span>
@@ -154,11 +160,11 @@ export default function EmployeeLeave({ user }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 flex-grow min-h-0">
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
         
         {/* Leave Application Form */}
-        <div className="lg:col-span-1 bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm h-fit">
-          <h3 className="text-[11px] font-bold uppercase tracking-widest text-zinc-900 mb-4">Submit Application</h3>
+        <div className="lg:col-span-2 bg-white p-5 sm:p-6 rounded-xl border border-slate-200 h-fit">
+          <h3 className="text-base font-semibold text-zinc-900 mb-4">Apply for leave</h3>
           
           {msg.text && (
             <div className={`p-2.5 mb-4 rounded text-[10px] font-bold uppercase tracking-wide ${msg.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
@@ -168,7 +174,7 @@ export default function EmployeeLeave({ user }) {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Leave Type</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-2">Leave Type</label>
               <select 
                 required
                 value={formData.request_type} 
@@ -190,17 +196,17 @@ export default function EmployeeLeave({ user }) {
 
             {isHalfDaySelected ? (
               <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Date (Half-Day)</label>
+                <label className="block text-xs font-semibold text-slate-700 mb-2">Date (Half-Day)</label>
                 <input type="date" required value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded" />
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Start Date</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-2">Start Date</label>
                   <input type="date" required value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} className="w-full border border-slate-300 p-2 text-xs outline-none focus:border-red-500 rounded" />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">End Date</label>
+                  <label className="block text-xs font-semibold text-slate-700 mb-2">End Date</label>
                   <input type="date" required value={formData.end_date} onChange={e => setFormData({...formData, end_date: e.target.value})} className="w-full border border-slate-300 p-2 text-xs outline-none focus:border-red-500 rounded" min={formData.start_date} />
                 </div>
               </div>
@@ -208,23 +214,23 @@ export default function EmployeeLeave({ user }) {
 
             {requestedDays > 0 && <p className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-xs text-slate-600">Requested duration: <strong>{requestedDays} day(s)</strong> · Subject to manager approval</p>}
             <div>
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-600 mb-1">Reason / Description</label>
+              <label className="block text-xs font-semibold text-slate-700 mb-2">Reason / Description</label>
               <textarea required placeholder="Brief reason for your request..." rows="3" value={formData.reason} onChange={e => setFormData({...formData, reason: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded resize-none" />
             </div>
 
-            <button type="submit" disabled={loading} className="w-full bg-zinc-900 hover:bg-black disabled:bg-slate-400 text-white px-4 py-3 rounded-lg text-xs font-bold uppercase tracking-wider transition shadow-sm">
+            <button type="submit" disabled={loading} className="admin-button primary w-full justify-center">
               {loading ? 'Submitting...' : 'Submit Request'}
             </button>
           </form>
         </div>
 
         {/* Application History Table */}
-        <div className="lg:col-span-2 bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col h-[500px]">
-          <h3 className="text-[11px] font-bold uppercase tracking-widest text-zinc-900 mb-4 shrink-0">Application History</h3>
-          <div className="overflow-y-auto no-scrollbar flex-grow border border-slate-100 rounded">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead className="sticky top-0 bg-slate-50 z-10 shadow-sm">
-                <tr className="border-b border-slate-200 text-slate-500 uppercase tracking-widest text-[9px]">
+        <div className="lg:col-span-3 bg-white p-5 sm:p-6 rounded-xl border border-slate-200 flex flex-col min-h-[390px]">
+          <h3 className="text-base font-semibold text-zinc-900 mb-4 shrink-0">Request history</h3>
+          <div className="overflow-x-auto flex-grow border border-slate-200 rounded-xl">
+            <table className="w-full min-w-[540px] text-left border-collapse text-sm">
+              <thead className="bg-slate-50">
+                <tr className="border-b border-slate-200 text-slate-600 text-xs">
                   <th className="p-3 font-bold">Type</th>
                   <th className="p-3 font-bold">Dates</th>
                   <th className="p-3 font-bold">Reason</th>
