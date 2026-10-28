@@ -25,12 +25,14 @@ export default function PendingAttendance({ initialFilter = 'all' }) {
   useEffect(()=>{refresh();},[]);
   const person = id => users.find(u=>u.id===id) || {};
   function review(record, status) { enqueueReview(record, status); }
-  const pendingRecords = records.filter(r => !(reviews[r.id]?.state === 'saved' && reviews[r.id].checkOut === (r.check_out || null)));
+  // Hide decisions immediately; the queue saves them serially in the background.
+  // Failed decisions become visible again so the administrator can retry.
+  const pendingRecords = records.filter(r => !(['queued', 'saving', 'saved'].includes(reviews[r.id]?.state) && reviews[r.id].checkOut === (r.check_out || null)));
   const visible=pendingRecords.filter(r=>(filter==='all'||(filter==='out'?!!r.check_out:!r.check_out))&&(!date||r.date===date)&&[person(r.user).username,person(r.user).designation,person(r.user).email].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
   return <div className="w-full max-w-7xl space-y-5">
     <header className="admin-page-heading"><div><h1>Attendance approvals</h1><p>Review your team’s check-in and check-out requests.</p></div><button className="admin-button" disabled={busy||queuedCount>0} onClick={refresh}>Refresh</button></header>
     {error&&<p className="admin-error" role="alert">{error}</p>}
-    {queuedCount > 0 && <p role="status" className="rounded-lg bg-blue-50 text-blue-800 p-3 text-sm">{queuedCount} decisions queued or processing. You can keep approving other rows. Keep this browser tab open until processing finishes.</p>}
+    <p role="status" className="rounded-lg bg-blue-50 text-blue-800 p-3 text-sm">{queuedCount > 0 ? `${queuedCount} decisions saving in the background. Keep this tab open until finished.` : 'Approve requests continuously. Each selected request disappears immediately and saves in order.'}</p>
     <section className="admin-panel">
       <div className="admin-tabs" aria-label="Request type">{[['all','All requests'],['in','Check-ins'],['out','Check-outs']].map(([key,label])=><button key={key} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label} <span className="admin-badge">{pendingRecords.filter(r=>key==='all'||(key==='out'?!!r.check_out:!r.check_out)).length}</span></button>)}</div>
       <div className="admin-toolbar p-4"><input aria-label="Search requests" type="search" placeholder="Search name or designation…" value={query} onChange={e=>setQuery(e.target.value)}/><input aria-label="Filter request date" type="date" value={date} onChange={e=>setDate(e.target.value)}/>{(query||date)&&<button className="admin-link" onClick={()=>{setQuery('');setDate('');}}>Clear filters</button>}<span className="text-xs text-slate-500">{visible.length} requests</span></div>
