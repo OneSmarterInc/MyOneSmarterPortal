@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
 from .letter_auth import issue_letter_token
+from .notifications import notify
 from django.core.mail import send_mail, get_connection, EmailMessage
 from django.conf import settings
 from .models import Attendance, UserProfile, SMTPSettings, CompanySchedule, CalendarAnnouncement, LeaveRequest, LeaveAllocation
@@ -556,17 +557,23 @@ def leave_requests_list(request):
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
     
 @api_view(['PATCH', 'DELETE'])
+@transaction.atomic
 def update_leave_request(request, pk):
     try:
-        leave = LeaveRequest.objects.get(pk=pk)
+        leave = LeaveRequest.objects.select_for_update().get(pk=pk)
         
         if request.method == 'DELETE':
             leave.delete()
             return Response({'message': 'Leave request deleted successfully.'}, status=status.HTTP_200_OK)
             
         # Existing PATCH logic
+        previous_status = leave.status
         leave.status = request.data.get('status', leave.status)
         leave.save()
+        if leave.status != previous_status and leave.status in ['Approved', 'Rejected']:
+            notify(leave.user_id, f'{leave.request_type} request {leave.status.lower()}',
+                   f'Your {leave.request_type} request for {leave.start_date} to {leave.end_date} was {leave.status.lower()}.',
+                   'wfh' if leave.request_type.lower() in ['wfh', 'work from home'] else 'leave')
         return Response({'message': 'Leave status updated successfully.'}, status=status.HTTP_200_OK)
     except LeaveRequest.DoesNotExist:
         return Response({'error': 'Leave request not found.'}, status=status.HTTP_404_NOT_FOUND)
@@ -646,6 +653,10 @@ def leave_requests_list(request):
                 reason=reason,
                 status=status_val # ADD THIS LINE to save the approved status
             )
+            if status_val in ['Approved', 'Rejected']:
+                notify(user.pk, f'{request_type} request {status_val.lower()}',
+                       f'Your {request_type} request for {start_date} to {end_date} was {status_val.lower()}.',
+                       'wfh' if request_type.lower() in ['wfh', 'work from home'] else 'leave')
             return Response({'message': f'{request_type} request submitted successfully!'}, status=status.HTTP_201_CREATED)
         except User.DoesNotExist:
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)

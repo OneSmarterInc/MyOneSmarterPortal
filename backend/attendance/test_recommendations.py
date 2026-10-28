@@ -22,7 +22,7 @@ from django.core import mail
 from django.db import connection
 from django.test.utils import CaptureQueriesContext
 from rest_framework.test import APIClient
-from .models import RecommendationRequest, SMTPSettings
+from .models import RecommendationRequest, SMTPSettings, Notification
 from .letter_auth import issue_letter_token
 
 
@@ -151,6 +151,8 @@ class RecommendationTests(TestCase):
         response = self.client.post(f'/recommendations/{pk}/send/', {'revision': 1}, format='json')
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(response.data['status'], 'Sent')
+        self.assertEqual(Notification.objects.filter(user=self.employee).count(), 1)
+        self.assertIn('approved', Notification.objects.get(user=self.employee).title)
         self.assertEqual(mail.outbox[0].to, ['employee@example.com'])
         signed = mail.outbox[0].attachments[0][1]
         self.assertNotEqual(signed, preview)
@@ -185,6 +187,7 @@ class RecommendationTests(TestCase):
         self.assertIn('Akshay Agrawal', mail.outbox[0].body)
         self.client.post(f'/recommendations/{pk}/send/', {'revision': 1}, format='json')
         self.assertEqual(len(mail.outbox), 1)
+        self.assertEqual(Notification.objects.filter(user=self.employee).count(), 1)
         self.auth(self.employee)
         self.assertEqual(self.client.get(f'/recommendations/{pk}/pdf/').content, signed)
         own = self.client.get('/recommendations/').data[0]
@@ -200,6 +203,7 @@ class RecommendationTests(TestCase):
         with patch('attendance.recommendations.EmailMessage.send', side_effect=OSError('offline')):
             self.assertEqual(self.client.post(f'/recommendations/{pk}/send/', {'revision': 1}, format='json').status_code, 502)
         self.assertEqual(RecommendationRequest.objects.get(pk=pk).status, 'Send failed')
+        self.assertEqual(Notification.objects.count(), 0)
         signed = bytes(RecommendationRequest.objects.get(pk=pk).pdf)
         with patch('attendance.recommendations.sign_letter', side_effect=AssertionError('Must reuse signature')):
             self.assertEqual(self.client.post(f'/recommendations/{pk}/send/', {'revision': 1}, format='json').data['status'], 'Sent')
@@ -292,6 +296,8 @@ class RecommendationTests(TestCase):
         self.assertEqual(self.client.post(f'/recommendations/{pk}/send/', {'revision': 0}, format='json').status_code, 403)
         self.auth(self.manager)
         self.assertEqual(self.client.post(f'/recommendations/{pk}/reject/', {'reason': 'Please discuss with your supervisor.'}, format='json').data['status'], 'Rejected')
+        self.assertEqual(Notification.objects.get(user=self.employee).title, 'Letter of Recommendation rejected')
+        self.assertIn('supervisor', Notification.objects.get(user=self.employee).message)
         self.auth(self.employee)
         self.assertIn('supervisor', self.client.get('/recommendations/').data[0]['rejection_reason'])
 

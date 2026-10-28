@@ -53,6 +53,7 @@ jobs:
             attendance.test_checkout_approval \
             attendance.test_employee_details \
             attendance.test_employee_ids \
+            attendance.test_notifications \
             attendance.test_birthdays \
             attendance.test_recommendations \
             --settings=test_settings --noinput

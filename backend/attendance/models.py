@@ -67,6 +67,19 @@ def create_user_profile(sender, instance, created, **kwargs):
         UserProfile.objects.create(user=instance)
 
 
+class Notification(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='portal_notifications')
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    destination = models.CharField(max_length=40)
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-id']
+        indexes = [models.Index(fields=['user', 'read_at'], name='notification_user_read')]
+
+
 class Attendance(models.Model):
     STATUS_CHOICES = [
         ('Pending', 'Pending Approval'),

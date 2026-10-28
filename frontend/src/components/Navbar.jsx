@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getProfile, getCalendarAnnouncements } from '../services/api';
+import { getProfile, getCalendarAnnouncements, getNotifications, readNotifications } from '../services/api';
 import { Avatar } from './AdminUI';
 
 export default function Navbar({ user, onLogout }) {
@@ -8,6 +8,10 @@ export default function Navbar({ user, onLogout }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [notificationError, setNotificationError] = useState('');
   const [readKeys, setReadKeys] = useState([]);
+  const [decisions, setDecisions] = useState([]);
+  const [decisionCount, setDecisionCount] = useState(0);
+  const [decisionError, setDecisionError] = useState('');
+  const [reading, setReading] = useState(false);
   const isEmployee = user && user.role !== 'manager';
   const storageKey = user?.user_id ? `employee-calendar-read:${user.user_id}` : '';
   const today = () => {
@@ -60,7 +64,40 @@ export default function Navbar({ user, onLogout }) {
       window.removeEventListener('calendarUpdated', onFocus);
     };
   }, [user?.user_id, user?.role]);
-  const unreadCount = notifications.filter(n => !readKeys.includes(n.key)).length;
+  useEffect(() => {
+    let active = true;
+    setDecisions([]); setDecisionCount(0); setDecisionError('');
+    if (!isEmployee) return;
+    let loading = false;
+    const refresh = async () => {
+      if (loading) return;
+      loading = true;
+      try {
+        const { data } = await getNotifications();
+        if (active) { setDecisions(data.results); setDecisionCount(data.unread_count); setDecisionError(''); }
+      } catch (error) {
+        if (active) setDecisionError(error.response?.status === 401 ? 'Please sign in again to load request notifications.' : 'Could not load request notifications. Calendar updates are still available.');
+      } finally { loading = false; }
+    };
+    refresh();
+    const interval = window.setInterval(refresh, 30000);
+    window.addEventListener('focus', refresh);
+    window.addEventListener('notificationsRead', refresh);
+    return () => { active = false; window.clearInterval(interval); window.removeEventListener('focus', refresh); window.removeEventListener('notificationsRead', refresh); };
+  }, [user?.user_id, user?.role, user?.letter_token]);
+  const markDecisionRead = async item => {
+    if (item.read_at || reading) return;
+    setReading(true);
+    try {
+      const { data } = await readNotifications([item.id]);
+      setDecisionCount(data.unread_count);
+      setDecisions(list => list.map(n => n.id === item.id ? { ...n, read_at: new Date().toISOString() } : n));
+      setDecisionError('');
+      window.dispatchEvent(new Event('notificationsRead'));
+    } catch { setDecisionError('Could not mark the notification as read. Please try again.'); }
+    finally { setReading(false); }
+  };
+  const unreadCount = decisionCount + notifications.filter(n => !readKeys.includes(n.key)).length;
   const dismissNotification = key => {
     const keys = [...new Set([...readStorage(), key])].slice(-500);
     setReadKeys(keys);
@@ -107,15 +144,25 @@ export default function Navbar({ user, onLogout }) {
               <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg>
               {unreadCount > 0 && <span className="absolute -right-1 -top-1 min-w-5 rounded-full bg-red-600 px-1 text-center text-[10px] font-bold leading-5 text-white">{unreadCount > 99 ? '99+' : unreadCount}</span>}
             </button>
-            {notificationsOpen && <div role="region" aria-label="Calendar notifications"
+            {notificationsOpen && <div role="region" aria-label="Notifications"
               className="fixed left-3 right-3 top-[72px] z-[100] w-auto max-h-[min(70dvh,420px)] overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-2xl sm:absolute sm:left-auto sm:right-0 sm:top-12 sm:w-[340px]">
               <div className="flex items-center justify-between border-b border-zinc-100 px-4 py-3">
-                <strong className="text-sm text-zinc-900">Calendar notifications</strong>
+                <strong className="text-sm text-zinc-900">Notifications</strong>
                 <button type="button" aria-label="Close notifications" onClick={() => setNotificationsOpen(false)} className="text-zinc-500 hover:text-red-600">✕</button>
               </div>
               <div className="max-h-[min(55dvh,340px)] overflow-y-auto p-2">
                 {notificationError && <p role="alert" className="p-3 text-xs text-red-700">{notificationError}</p>}
-                {!notificationError && notifications.length === 0 && <p className="p-4 text-center text-sm text-zinc-500">No upcoming holiday or half-day announcements.</p>}
+                {decisionError && <p role="alert" className="p-3 text-xs text-red-700">{decisionError}</p>}
+                {!notificationError && !decisionError && notifications.length === 0 && decisions.length === 0 && <p className="p-4 text-center text-sm text-zinc-500">No notifications yet.</p>}
+                {decisions.map(n => <div key={`decision-${n.id}`} className={`mb-2 rounded-lg border p-3 ${n.read_at ? 'border-zinc-100' : 'border-red-100 bg-red-50/40'}`}>
+                  <p className="text-sm font-semibold text-zinc-900">{n.title}{!n.read_at && <span className="ml-2 text-xs text-red-700">New</span>}</p>
+                  <p className="mt-1 text-xs text-zinc-600">{n.message}</p>
+                  <p className="mt-1 text-xs text-zinc-500">{new Date(n.created_at).toLocaleString()}</p>
+                  <div className="mt-2 flex flex-wrap gap-3">
+                    <a className="text-xs font-semibold text-red-700 underline" href={`#/employee/${n.destination}`} onClick={() => { markDecisionRead(n); setNotificationsOpen(false); }}>View request</a>
+                    {!n.read_at && <button type="button" disabled={reading} className="text-xs font-semibold text-red-700 underline" onClick={() => markDecisionRead(n)}>Mark as read</button>}
+                  </div>
+                </div>)}
                 {notifications.map(n => <div key={n.key} className="mb-1 rounded-lg border border-zinc-100 p-3 last:mb-0">
                   <p className="text-sm font-semibold text-zinc-900">{n.day_type === 'Holiday' ? 'Company holiday' : n.day_type === 'Cancelled' ? 'Holiday / half-day cancelled' : 'Company half-day'}</p>
                   <p className="mt-1 text-xs font-medium text-red-700">{new Date(`${n.date}T12:00:00`).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}</p>
@@ -134,3 +181,4 @@ export default function Navbar({ user, onLogout }) {
     </header>
   );
 }
+

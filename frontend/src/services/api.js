@@ -46,8 +46,11 @@ const letterConfig = () => {
     return { headers: { Authorization: `Bearer ${token}` } };
 };
 export const getRecommendations = () => API.get('recommendations/', letterConfig());
+export const getNotifications = () => API.get('notifications/', letterConfig());
+export const readNotifications = ids => API.post('notifications/', { ids }, letterConfig());
 export const requestRecommendation = data => API.post('recommendations/', data, letterConfig());
 export const saveRecommendation = (id, data) => API.post(`recommendations/${id}/draft/`, data, letterConfig());
 export const getRecommendationPDF = id => API.get(`recommendations/${id}/pdf/`, { ...letterConfig(), responseType: 'blob' });
 export const sendRecommendation = (id, revision) => API.post(`recommendations/${id}/send/`, { revision }, letterConfig());
 export const rejectRecommendation = (id, reason) => API.post(`recommendations/${id}/reject/`, { reason }, letterConfig());
+

@@ -17,6 +17,7 @@ from .letter_auth import LetterAuthentication
 from .letter_pdf import render_letter, CONTACT, SIGNATORY, TITLE
 from .letter_signing import sign_letter, verify_signed_letter, LetterSigningError
 from .models import RecommendationRequest, SMTPSettings
+from .notifications import notify
 
 
 def manager(user):
@@ -198,7 +199,11 @@ def send(request, pk):
     except Exception:
         RecommendationRequest.objects.filter(pk=item.pk, status='Sending').update(status='Send failed', updated_at=timezone.now())
         return Response({'error': 'Email delivery could not be confirmed. Check SMTP settings and the recipient inbox before retrying to avoid duplicates.'}, status=502)
-    RecommendationRequest.objects.filter(pk=item.pk, status='Sending').update(status='Sent', sent_at=timezone.now(), updated_at=timezone.now())
+    with transaction.atomic():
+        changed = RecommendationRequest.objects.filter(pk=item.pk, status='Sending').update(status='Sent', sent_at=timezone.now(), updated_at=timezone.now())
+        if changed:
+            notify(item.user_id, f'{item.get_document_type_display()} approved',
+                   f'Your {item.get_document_type_display().lower()} was approved, digitally signed and emailed to {item.sent_to}.', 'recommendations')
     item.refresh_from_db()
     return Response(details(item, True))
 
@@ -216,5 +221,7 @@ def reject(request, pk):
             return Response({'error': 'This request can no longer be rejected.'}, status=409)
         item.status = 'Rejected'; item.rejection_reason = reason; item.reviewed_by = request.user
         item.save()
+        notify(item.user_id, f'{item.get_document_type_display()} rejected',
+               f'Your {item.get_document_type_display().lower()} request was rejected. Reason: {reason}', 'recommendations')
     return Response(details(item, True))
 

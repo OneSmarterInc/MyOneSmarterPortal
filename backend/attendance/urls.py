@@ -1,6 +1,7 @@
 from .policy_views import policy_documents
 from django.urls import path, include
 from . import recommendations
+from . import notifications
 from rest_framework.routers import DefaultRouter
 from .views import (
     AttendanceViewSet,
@@ -27,6 +28,7 @@ router = DefaultRouter()
 router.register(r'attendance', AttendanceViewSet)
 
 urlpatterns = [
+    path('notifications/', notifications.inbox),
     path('my-policies/', policy_documents, name='my_policies'),
     path('recommendations/', recommendations.requests),
     path('recommendations/<int:pk>/draft/', recommendations.draft),
