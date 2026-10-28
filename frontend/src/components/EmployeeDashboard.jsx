@@ -323,7 +323,7 @@ export default function EmployeeDashboard({ user, onNavigate }) {
         </div>
         
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-7 gap-2 sm:gap-3 flex-grow min-h-0">
-          {weekDays.map(day => {
+          {weekDays.map((day, index) => {
             const dateStr = day.toLocaleDateString('en-CA');
             const record = history.find(h => h.date === dateStr);
             const status = record ? record.status : null;
@@ -364,7 +364,7 @@ export default function EmployeeDashboard({ user, onNavigate }) {
             const hours = calculateHours(record?.check_in, record?.check_out);
 
             return (
-              <div key={day.toISOString()} className={`flex flex-col items-center justify-between p-3 border border-slate-200 rounded-xl shadow-sm border-t-[6px] ${topBorderColor} ${bgClass} min-h-[130px] min-w-0 transition-transform hover:-translate-y-0.5`}>
+              <div key={day.toISOString()} className={`flex flex-col items-center justify-between p-3 border border-slate-200 rounded-xl shadow-sm border-t-[6px] ${topBorderColor} ${bgClass} min-h-[130px] min-w-0 transition-transform hover:-translate-y-0.5 ${index === 6 ? 'max-sm:col-span-2 max-sm:w-[calc(50%-0.25rem)] max-sm:justify-self-center' : ''}`}>
                 
                 <div className="text-center space-y-1 w-full">
                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
