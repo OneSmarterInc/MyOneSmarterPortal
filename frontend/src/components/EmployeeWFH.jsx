@@ -113,7 +113,7 @@ export default function EmployeeWFH({ user }) {
     return matchesText && matchesDate;
   });
 
-  const totalPages = Math.ceil(filteredRecords.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / itemsPerPage));
   const indexOfLastRecord = currentPage * itemsPerPage;
   const indexOfFirstRecord = indexOfLastRecord - itemsPerPage;
   const currentRecords = filteredRecords.slice(indexOfFirstRecord, indexOfLastRecord);
@@ -123,22 +123,37 @@ export default function EmployeeWFH({ user }) {
     if (direction === 'prev' && currentPage > 1) setCurrentPage(prev => prev - 1);
   };
 
+  const summary = {
+    pending: history.filter(item => item.status === 'Pending').length,
+    approved: history.filter(item => item.status === 'Approved' && item.end_date >= todayStr).length,
+    completed: history.filter(item => item.status === 'Approved' && item.end_date < todayStr).length,
+  };
   return (
-    <div className="w-full max-w-7xl flex flex-col gap-6 relative h-full">
+    <div className="w-full max-w-7xl flex flex-col gap-5 relative">
       
-      {/* Header Panel */}
-      <div className="bg-white p-6 sm:px-8 sm:py-7 rounded-[14px] shadow-sm border border-slate-200 border-t-[4px] border-t-indigo-600 flex flex-col relative shrink-0">
-        <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-1.5">Remote Work Console</span>
-        <h2 className="text-2xl sm:text-3xl font-black text-zinc-900 tracking-tight">Work From Home (WFH)</h2>
-        <p className="text-sm text-slate-500 mt-1 font-medium">Submit remote work applications and track your WFH history.</p>
+      <header className="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-[.14em] text-red-700">Employee workspace / Flexible work</p>
+          <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900">Work from home</h1>
+          <p className="mt-2 text-sm text-slate-600">Request remote work, review approvals, and manage upcoming plans.</p>
+        </div>
+      </header>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {[
+          {label:'Awaiting approval',value:summary.pending,accent:'text-amber-700',background:'bg-amber-50'},
+          {label:'Upcoming approved',value:summary.approved,accent:'text-emerald-700',background:'bg-emerald-50'},
+          {label:'Completed',value:summary.completed,accent:'text-slate-700',background:'bg-slate-100'}
+        ].map(item => <div key={item.label} className="rounded-xl border border-slate-200 bg-white p-4 flex items-center justify-between gap-3">
+          <div><p className="text-xs font-medium text-slate-500">{item.label}</p><p className="mt-1 text-2xl font-semibold tabular-nums text-zinc-900">{item.value}</p></div>
+          <span className={`h-10 w-10 flex items-center justify-center rounded-xl ${item.background} ${item.accent}`} aria-hidden="true">●</span>
+        </div>)}
       </div>
-
       <div className="flex flex-col gap-6 flex-grow min-h-0">
         
         {/* TOP ROW: Application Form */}
-        <div className="bg-white rounded-[14px] border border-slate-200 shadow-sm flex flex-col shrink-0 z-20">
-          <div className="p-5 border-b border-slate-100">
-            <h3 className="text-[11px] font-black uppercase tracking-widest text-zinc-900">1. Apply for WFH</h3>
+        <div className="bg-white rounded-xl border border-slate-200 flex flex-col shrink-0">
+          <div className="px-5 py-4 border-b border-slate-100">
+            <h3 className="text-base font-semibold text-zinc-900">Request work from home</h3>
           </div>
           
           <div className="p-5">
@@ -148,27 +163,27 @@ export default function EmployeeWFH({ user }) {
               </div>
             )}
 
-            <form onSubmit={handleSubmit} className="flex flex-col md:flex-row gap-5">
+            <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-5 items-end">
               
               {/* Dates Block */}
-              <div className="w-full md:w-1/3 grid grid-cols-2 gap-4 shrink-0">
+              <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1.5">Start Date</label>
-                  <input type="date" required min={todayStr} value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-indigo-500 rounded-lg bg-slate-50" />
+                  <input type="date" required min={todayStr} value={formData.start_date} onChange={e => setFormData({...formData, start_date: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded-lg bg-slate-50" />
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1.5">End Date</label>
-                  <input type="date" required min={formData.start_date || todayStr} value={formData.end_date} onChange={e => setFormData({...formData, end_date: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-indigo-500 rounded-lg bg-slate-50" />
+                  <input type="date" required min={formData.start_date || todayStr} value={formData.end_date} onChange={e => setFormData({...formData, end_date: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded-lg bg-slate-50" />
                 </div>
               </div>
 
               {/* Reason & Submit Button Block */}
-              <div className="w-full md:w-2/3 flex flex-col sm:flex-row gap-4 items-end">
+              <div className="w-full flex flex-col sm:flex-row gap-3 items-end">
                 <div className="flex-grow w-full">
                   <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1.5">Reason / Deliverables</label>
-                  <input type="text" required placeholder="Brief reason or tasks planned..." value={formData.reason} onChange={e => setFormData({...formData, reason: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-indigo-500 rounded-lg bg-slate-50" />
+                  <input type="text" required placeholder="Brief reason or tasks planned..." value={formData.reason} onChange={e => setFormData({...formData, reason: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded-lg bg-slate-50" />
                 </div>
-                <button type="submit" disabled={loading} className="w-full sm:w-auto bg-zinc-900 hover:bg-black disabled:bg-slate-400 text-white px-8 py-2.5 rounded-lg text-[11px] font-bold uppercase tracking-wider transition shadow-sm h-[42px] shrink-0">
+                <button type="submit" disabled={loading} className="admin-button primary w-full sm:w-auto h-[42px] shrink-0">
                   {loading ? 'Submitting...' : 'Submit Request'}
                 </button>
               </div>
@@ -178,9 +193,9 @@ export default function EmployeeWFH({ user }) {
         </div>
 
         {/* BOTTOM ROW: WFH History */}
-        <div className="bg-white rounded-[14px] border border-slate-200 shadow-sm flex flex-col flex-grow min-h-[400px] z-10">
-          <div className="p-4 border-b border-slate-100 shrink-0 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-            <h3 className="text-[11px] font-black uppercase tracking-widest text-zinc-900 shrink-0">2. WFH History</h3>
+        <div className="bg-white rounded-xl border border-slate-200 flex flex-col flex-grow min-h-[360px]">
+          <div className="p-5 border-b border-slate-100 shrink-0 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+            <h3 className="text-base font-semibold text-zinc-900 shrink-0">Request history</h3>
             
             {/* Filter Controls */}
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
@@ -189,7 +204,7 @@ export default function EmployeeWFH({ user }) {
                 placeholder="Search reason..." 
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
-                className="border border-slate-300 p-2 rounded-lg text-xs w-full md:w-48 outline-none focus:border-indigo-500 bg-slate-50"
+                className="border border-slate-300 p-2 rounded-lg text-xs w-full md:w-48 outline-none focus:border-red-500 bg-slate-50"
               />
               <div className="flex items-center gap-2">
                 <span className="text-[9px] font-bold text-slate-400 uppercase">Date</span>
@@ -197,19 +212,19 @@ export default function EmployeeWFH({ user }) {
                   type="date" 
                   value={filterDate}
                   onChange={e => setFilterDate(e.target.value)}
-                  className="border border-slate-300 p-2 rounded-lg text-xs outline-none focus:border-indigo-500 bg-slate-50"
+                  className="border border-slate-300 p-2 rounded-lg text-xs outline-none focus:border-red-500 bg-slate-50"
                 />
               </div>
             </div>
           </div>
           
-          <div className="overflow-y-auto no-scrollbar flex-grow p-5">
-            <div className="border border-slate-200 rounded-xl overflow-hidden flex flex-col h-full">
-              <div className="overflow-y-auto no-scrollbar flex-grow">
-                <table className="w-full text-left text-xs border-collapse bg-white">
-                  <thead className="sticky top-0 bg-slate-50 z-10">
-                    <tr className="border-b border-slate-200 text-slate-400 uppercase text-[9px] tracking-widest">
-                      <th className="p-4 font-bold">Start Date</th>
+          <div className="overflow-x-auto flex-grow p-4 sm:p-5">
+            <div className="border border-slate-200 rounded-xl overflow-hidden flex flex-col">
+              <div className="overflow-x-auto flex-grow">
+                <table className="w-full min-w-[650px] text-left text-sm border-collapse bg-white">
+                  <thead className="bg-slate-50">
+                    <tr className="border-b border-slate-200 text-slate-600 text-xs">
+                      <th className="p-4 font-semibold">Start Date</th>
                       <th className="p-4 font-bold">End Date</th>
                       <th className="p-4 font-bold">Reason</th>
                       <th className="p-4 font-bold text-right">Status</th>
@@ -269,8 +284,8 @@ export default function EmployeeWFH({ user }) {
 
               {/* Pagination Controls */}
               {filteredRecords.length > 0 && (
-                <div className="p-4 border-t border-slate-100 flex justify-between items-center bg-slate-50 shrink-0">
-                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                <div className="p-4 border-t border-slate-100 flex flex-wrap justify-between items-center gap-3 bg-white shrink-0">
+                  <span className="text-sm text-slate-600">
                     Showing {indexOfFirstRecord + 1} to {Math.min(indexOfLastRecord, filteredRecords.length)} of {filteredRecords.length}
                   </span>
                   <div className="flex gap-2">
@@ -278,7 +293,7 @@ export default function EmployeeWFH({ user }) {
                       type="button"
                       onClick={() => handlePageChange('prev')} 
                       disabled={currentPage === 1}
-                      className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-[10px] font-bold uppercase tracking-wider disabled:opacity-50 hover:bg-slate-100 transition shadow-sm"
+                      className="admin-button"
                     >
                       Prev
                     </button>
