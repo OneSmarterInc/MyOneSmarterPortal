@@ -1,13 +1,15 @@
 # Automatic employee and intern IDs
 
-Employees receive an ID such as `E-7K4M9Q`; interns receive `I-8H6P2R`. Six random uppercase letters/digits follow the prefix. The alphabet omits 0, 1, I and O to reduce transcription mistakes. IDs are public account references, not authentication credentials.
+IDs follow EmployeeDetails.xlsx: uppercase first/last initials + joining date YYMMDD + a number padded to at least two digits. Both employees and interns use the same format, without an E/I prefix. Example: SA26081006. IDs are public references, not authentication credentials.
 
-Migration `0017_automatic_employee_ids` assigns IDs to every existing employee and intern, including inactive accounts, replacing blank or old manually entered IDs. Existing IDs already matching the new format are retained when unique. The migration must run before the new code serves requests; the backend deployment workflow already runs migrations. The reverse migration retains assigned ID values.
+Migration 0018 replaces existing IDs for employees and interns, including inactive accounts. It imports spreadsheet names and joining dates only for unambiguous matches: full name, username or email local-part matching the full name; otherwise a first-name-only match must be unique in both source and accounts. Ambiguous matches use account data without guessing identities. Managers and students are not updated.
 
-Normal model saves assign IDs automatically and preserve existing IDs against manual changes. A database uniqueness constraint protects employees and interns against duplicate IDs, and generation retries collisions. Bulk creation or raw SQL bypasses model hooks and should not be used to provision profiles. Account creation emails contain the generated ID.
+The initial number is the alphabetical position by first name and then last name within the joining date, across both roles. Duplicate names use profile primary key as a stable tiebreaker to guarantee unique IDs. New accounts receive the next available daily number. A locked database counter prevents concurrent allocation of the same number and retains consumed numbers after deletion.
 
-Changing an intern's role to employee automatically changes the prefix from I to E, preserving the suffix unless it collides with another employee's ID. Other profile edits never change the ID. Managers and legacy student accounts do not receive these team IDs until their role becomes employee or intern.
+Once assigned, an ID stays fixed across name, joining-date and role changes. API and model saves reject or ignore manual ID edits. The creation form collects first/last names and a joining date; the welcome email contains the generated ID.
 
-Create forms no longer require ID entry. Directory edit forms and personal profiles show read-only IDs, and directory search includes the ID. Both profile-update endpoints reject changed ID values before saving any other fields. The model field is also non-editable for generated model forms. This does not change the existing authentication system.
+For accounts outside the spreadsheet, existing first/last names are used, falling back to the username's first/last words. A single name produces one initial, as Excel does with a blank last name. No joining date is invented: missing-date accounts retain their previous ID (or remain blank if new), and receive the new format when the administrator supplies a joining date. Migration output identifies deferred profile IDs.
+
+Deploy migrations before serving new code. Do not create profiles with bulk_create/raw SQL, which bypass automatic allocation. Reversing the data migration does not restore previous IDs or spreadsheet-updated details.
 
 Validate with `python manage.py test attendance.test_employee_ids --settings=test_settings --noinput`.

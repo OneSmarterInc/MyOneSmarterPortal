@@ -109,9 +109,13 @@ def register_user(request):
     if User.objects.filter(username=username).exists():
         return Response({'error': 'Username already exists'}, status=status.HTTP_400_BAD_REQUEST)
 
-    user = User.objects.create_user(username=username, password=password, email=email)
+    joining_date = serializers.DateField(allow_null=True).run_validation(request.data.get('joining_date') or None)
+    first_name = serializers.CharField(max_length=150, allow_blank=True).run_validation(request.data.get('first_name', ''))
+    last_name = serializers.CharField(max_length=150, allow_blank=True).run_validation(request.data.get('last_name', ''))
+    user = User.objects.create_user(username=username, password=password, email=email, first_name=first_name, last_name=last_name)
     profile, created = UserProfile.objects.get_or_create(user=user)
     profile.role = role
+    profile.joining_date = joining_date
     profile.save()
 
     return Response({'message': 'User registered successfully!', 'role': role, 'employee_id': profile.employee_id}, status=status.HTTP_201_CREATED)
@@ -122,7 +126,9 @@ def manager_create_user(request):
     username = request.data.get('username')
     email = request.data.get('email')
     role = request.data.get('role', 'intern')
-    joining_date = request.data.get('joining_date')
+    joining_date = serializers.DateField(allow_null=True).run_validation(request.data.get('joining_date') or None)
+    first_name = serializers.CharField(max_length=150, allow_blank=True).run_validation(request.data.get('first_name', ''))
+    last_name = serializers.CharField(max_length=150, allow_blank=True).run_validation(request.data.get('last_name', ''))
     date_of_birth = validated_birth_date(request.data.get('date_of_birth'))
 
     if not username or not email:
@@ -138,7 +144,7 @@ def manager_create_user(request):
     temp_password = ''.join(random.choices(string.ascii_letters + string.digits, k=8))
 
     # Create the User
-    user = User.objects.create_user(username=username, email=email, password=temp_password)
+    user = User.objects.create_user(username=username, email=email, password=temp_password, first_name=first_name, last_name=last_name)
     
     # Safely fetch or create the profile and save Employee ID
     profile, created = UserProfile.objects.get_or_create(user=user)

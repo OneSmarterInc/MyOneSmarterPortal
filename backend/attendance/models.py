@@ -1,6 +1,5 @@
 from django.db import models, transaction, IntegrityError
 import re
-import secrets
 from django.contrib.auth.models import User
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -35,37 +34,32 @@ class UserProfile(models.Model):
         )]
 
     def save(self, *args, **kwargs):
-        # The database constraint resolves races between simultaneous creations.
-        # Existing IDs are read from the locked row, never accepted from callers.
-        for attempt in range(10):
-            generated = False
-            try:
-                with transaction.atomic():
-                    old = type(self).objects.select_for_update().filter(pk=self.pk).first() if self.pk else None
-                    fields = kwargs.get('update_fields')
-                    role = old.role if old and fields is not None and 'role' not in fields else self.role
-                    previous = old.employee_id if old else ''
-                    if role in ('employee', 'intern'):
-                        prefix = 'E' if role == 'employee' else 'I'
-                        if attempt == 0 and re.fullmatch(r'[EI]-[A-HJ-NP-Z2-9]{6}', previous):
-                            self.employee_id = prefix + previous[1:]
-                            generated = self.employee_id != previous
-                        else:
-                            self.employee_id = prefix + '-' + ''.join(secrets.choice('ABCDEFGHJKLMNPQRSTUVWXYZ23456789') for _ in range(6))
-                            generated = True
-                    else:
-                        self.employee_id = previous
-                    if fields is not None:
-                        if not fields:
-                            return
-                        kwargs['update_fields'] = set(fields) | {'employee_id'}
-                    return super().save(*args, **kwargs)
-            except IntegrityError:
-                if not generated or attempt == 9:
-                    raise
+        from django.db import router
+        from .employee_ids import assign_id
+        database = kwargs.get('using') or router.db_for_write(type(self), instance=self)
+        with transaction.atomic(using=database):
+            old = type(self).objects.using(database).select_for_update().filter(pk=self.pk).first() if self.pk else None
+            fields = kwargs.get('update_fields')
+            if fields is not None and not fields:
+                return
+            role = old.role if old and fields is not None and 'role' not in fields else self.role
+            previous = old.employee_id if old else ''
+            self.employee_id = previous
+            if role in ('employee', 'intern') and (not previous or re.fullmatch(r'[EI]-[A-HJ-NP-Z2-9]{6}', previous)):
+                if old and fields is not None and 'joining_date' not in fields:
+                    self.joining_date = old.joining_date
+                self.employee_id = assign_id(self, database) or previous
+            if fields is not None:
+                kwargs['update_fields'] = set(fields) | {'employee_id'}
+            return super().save(*args, **kwargs)
 
     def __str__(self):
         return f"{self.user.username} ({self.role})"
+
+class EmployeeIDSequence(models.Model):
+    joining_date = models.DateField(unique=True)
+    next_number = models.PositiveIntegerField(default=1)
+
 
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):

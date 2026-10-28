@@ -15,6 +15,8 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
   const [dataError, setDataError] = useState('');
   // Create Employee State
   const [username, setUsername] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('intern'); 
   const [designation, setDesignation] = useState('');
@@ -67,6 +69,8 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
         designation,
         tags: tags.split(',').map(tag => tag.trim()).filter(Boolean), 
         username, 
+        first_name: firstName,
+        last_name: lastName,
         email, 
         role, 
         joining_date: joiningDate,
@@ -76,6 +80,8 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
       setDesignation('');
       setTags(''); 
       setUsername(''); 
+      setFirstName('');
+      setLastName('');
       setEmail(''); 
       setRole('intern'); 
       setJoiningDate('');
@@ -142,6 +148,14 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
           <div>
             <label htmlFor="managerdashboard-field-2" className="block text-xs font-bold normal-case text-slate-600 mb-1">Username</label>
             <input id="managerdashboard-field-2" type="text" value={username} onChange={(e) => setUsername(e.target.value)} className="w-full border border-slate-300 rounded p-2 text-xs outline-none focus:border-red-500" required />
+          </div>
+          <div>
+            <label htmlFor="new-employee-first-name" className="block text-xs font-bold text-slate-600 mb-1">First name</label>
+            <input id="new-employee-first-name" value={firstName} onChange={e => setFirstName(e.target.value)} maxLength={150} required className="w-full border border-slate-300 rounded p-2 text-xs" />
+          </div>
+          <div>
+            <label htmlFor="new-employee-last-name" className="block text-xs font-bold text-slate-600 mb-1">Last name</label>
+            <input id="new-employee-last-name" value={lastName} onChange={e => setLastName(e.target.value)} maxLength={150} className="w-full border border-slate-300 rounded p-2 text-xs" />
           </div>
           <div>
             <label htmlFor="managerdashboard-field-3" className="block text-xs font-bold normal-case text-slate-600 mb-1">Employee Email</label>
