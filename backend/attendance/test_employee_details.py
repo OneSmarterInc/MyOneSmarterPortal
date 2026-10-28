@@ -7,6 +7,8 @@ from unittest.mock import patch
 class EmployeeDetailsTests(TestCase):
     def setUp(self):
         self.client = APIClient()
+        manager = User.objects.create_user("test-admin", is_superuser=True)
+        self.client.force_authenticate(user=manager)
         self.user = User.objects.create_user('alex', email='alex@example.com', password='OriginalPass123!')
         self.user.profile.role = 'intern'
         self.user.profile.is_first_login = False
@@ -29,7 +31,7 @@ class EmployeeDetailsTests(TestCase):
         self.assertEqual(self.user.profile.tags, ['Engineering', 'Remote'])
         self.assertEqual(self.user.profile.designation, 'Software Engineer')
         self.assertEqual(self.client.get(f'/profile/{self.user.id}/').data['designation'], 'Software Engineer')
-        self.assertEqual(self.client.get('/users/').data[0]['tags'], ['Engineering', 'Remote'])
+        self.assertEqual(next(row for row in self.client.get('/users/').data if row['id'] == self.user.pk)['tags'], ['Engineering', 'Remote'])
 
     def test_explicit_password_reset_requires_change_and_can_be_completed(self):
         response = self.client.put(self.url, {'reset_password': True, 'password': 'NewTemporary123!'}, format='json')
@@ -136,6 +138,7 @@ class EmployeeDetailsTests(TestCase):
         self.assertEqual(self.user.username, 'alex')
 
     def test_employees_and_interns_can_rename_without_resetting_password(self):
+        self.client.force_authenticate(user=self.user)
         for role in ('employee', 'intern'):
             self.user.profile.role = role
             self.user.profile.save()
@@ -152,6 +155,7 @@ class EmployeeDetailsTests(TestCase):
         self.assertEqual(self.login().status_code, 400)
 
     def test_invalid_or_duplicate_username_does_not_modify_profile(self):
+        self.client.force_authenticate(user=self.user)
         User.objects.create_user('taken')
         for name in ('', '   ', 'invalid name', 'x' * 151, 'TAKEN', None):
             response = self.client.put(f'/profile/{self.user.pk}/', {

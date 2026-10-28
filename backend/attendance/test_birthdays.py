@@ -9,6 +9,8 @@ from unittest.mock import patch
 class BirthdayTests(TestCase):
     def setUp(self):
         self.client = APIClient()
+        manager = User.objects.create_user("test-admin", is_superuser=True)
+        self.client.force_authenticate(user=manager)
         self.user = User.objects.create_user(username='alex', first_name='Alex', last_name='Smith')
         self.user.profile.role = 'intern'
         self.user.profile.date_of_birth = date(2000, 12, 31)

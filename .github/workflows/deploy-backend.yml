@@ -52,6 +52,7 @@ jobs:
           "$TEST_ENV/bin/python" manage.py test \
             attendance.test_checkout_approval \
             attendance.test_attendance_clock \
+            attendance.test_tag_visibility \
             attendance.test_employee_details \
             attendance.test_employee_ids \
             attendance.test_notifications \

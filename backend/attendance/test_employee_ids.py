@@ -10,6 +10,12 @@ from .models import UserProfile, EmployeeIDSequence
 
 
 class EmployeeIDTests(TestCase):
+    def manager_client(self):
+        manager, _ = User.objects.get_or_create(username="test-admin", defaults={"is_superuser": True})
+        client = APIClient()
+        client.force_authenticate(user=manager)
+        return client
+
     def person(self, username, role='employee', first='Sahil', last='Asarkar', day='2026-08-10'):
         user = User.objects.create_user(username, first_name=first, last_name=last)
         profile = user.profile
@@ -57,7 +63,7 @@ class EmployeeIDTests(TestCase):
     def test_api_rejects_id_changes_without_other_mutations(self):
         profile = self.person('owner', 'intern')
         for url in [f'/users/{profile.user_id}/', f'/profile/{profile.user_id}/']:
-            result = APIClient().put(url, {'employee_id': 'CUSTOM', 'email': 'changed@example.com'}, format='json')
+            result = self.manager_client().put(url, {'employee_id': 'CUSTOM', 'email': 'changed@example.com'}, format='json')
             self.assertEqual(result.status_code, 400)
         profile.refresh_from_db()
         profile.user.refresh_from_db()
@@ -65,7 +71,7 @@ class EmployeeIDTests(TestCase):
         self.assertEqual(profile.user.email, '')
 
     def test_manager_creation_uses_generated_id_in_email(self):
-        response = APIClient().post('/manager/create-user/', {
+        response = self.manager_client().post('/manager/create-user/', {
             'username': 'new-person', 'email': 'new@example.com', 'role': 'employee', 'employee_id': 'SPOOFED',
             'first_name': 'Sahil', 'last_name': 'Asarkar', 'joining_date': '2026-08-10',
         }, format='json')

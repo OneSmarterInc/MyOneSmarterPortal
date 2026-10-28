@@ -3,7 +3,7 @@ import axios from 'axios';
 const API = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/',
 });
-export const getProfile = (userId) => API.get(`profile/${userId}/`);
+export const getProfile = (userId) => API.get(`profile/${userId}/`, letterConfig());
 export const updateProfile = (userId, formData) => API.put(`profile/${userId}/`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
 });
@@ -11,7 +11,7 @@ export const updateProfile = (userId, formData) => API.put(`profile/${userId}/`,
 export const updateAttendance = (id, data) => API.patch(`attendance/${id}/`, data);
 export const registerUser = (data) => API.post('register/', data);
 export const loginUser = (data) => API.post('login/', data);
-export const managerCreateUser = (data) => API.post('manager/create-user/', data);
+export const managerCreateUser = (data) => API.post('manager/create-user/', data, letterConfig());
 export const getAttendance = () => API.get('attendance/');
 export const markAttendance = (data) => API.post('attendance/', data);
 export const getSMTPSettings = () => API.get('smtp-settings/');
@@ -19,9 +19,9 @@ export const saveSMTPSettings = (data) => API.post('smtp-settings/', data);
 // Add this line to your existing exports
 export const changePassword = (data) => API.post('change-password/', data);
 // Add these exports at the bottom of the file
-export const getUsers = () => API.get('users/');
-export const updateUser = (id, data) => API.put(`users/${id}/`, data);
-export const deleteUser = (id) => API.delete(`users/${id}/`);
+export const getUsers = () => API.get('users/', letterConfig());
+export const updateUser = (id, data) => API.put(`users/${id}/`, data, letterConfig());
+export const deleteUser = (id) => API.delete(`users/${id}/`, letterConfig());
 // Append these to your api.js exports
 export const getSchedules = () => API.get('schedules/');
 export const saveSchedule = (data) => API.post('schedules/save/', data);

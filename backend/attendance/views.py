@@ -4,11 +4,11 @@ import string
 import random
 from rest_framework import viewsets, status, serializers
 from django.utils import timezone
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, authentication_classes
 from rest_framework.response import Response
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate
-from .letter_auth import issue_letter_token
+from .letter_auth import issue_letter_token, LetterAuthentication
 from .notifications import notify
 from django.core.mail import send_mail, get_connection, EmailMessage
 from django.conf import settings
@@ -98,11 +98,14 @@ def smtp_settings_view(request):
         return Response({'message': 'Configuration saved successfully!'}, status=status.HTTP_200_OK)
 
 @api_view(['POST'])
+@authentication_classes([LetterAuthentication])
 def register_user(request):
     username = request.data.get('username')
     password = request.data.get('password')
     email = request.data.get('email', '')
     role = request.data.get('role', 'student')
+    if role == 'manager' and not is_manager(request.user):
+        return Response({'error': 'Only managers can create manager accounts.'}, status=403)
 
     if not username or not password:
         return Response({'error': 'Username and password are required'}, status=status.HTTP_400_BAD_REQUEST)
@@ -122,7 +125,10 @@ def register_user(request):
     return Response({'message': 'User registered successfully!', 'role': role, 'employee_id': profile.employee_id}, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
+@authentication_classes([LetterAuthentication])
 def manager_create_user(request):
+    if not is_manager(request.user):
+        return Response({'error': 'Manager access required.'}, status=403)
     details = employee_details(request.data)
     username = request.data.get('username')
     email = request.data.get('email')
@@ -301,7 +307,21 @@ def change_password(request):
         return Response({'message': 'Password updated successfully!'}, status=status.HTTP_200_OK)
     return Response({'error': 'Invalid current password.'}, status=status.HTTP_400_BAD_REQUEST)
 
+def is_manager(user):
+    return user.is_authenticated and (user.is_superuser or getattr(getattr(user, 'profile', None), 'role', None) == 'manager')
+
+
+def visible_tags(request, user, profile):
+    viewer = request.user
+    can_view = viewer.is_authenticated and (
+        viewer.pk == user.pk or viewer.is_superuser
+        or getattr(getattr(viewer, 'profile', None), 'role', None) == 'manager'
+    )
+    return profile.tags if profile and can_view else []
+
+
 @api_view(['GET'])
+@authentication_classes([LetterAuthentication])
 def get_all_users(request):
     users = User.objects.all().order_by('-date_joined')
     data = []
@@ -319,13 +339,16 @@ def get_all_users(request):
             'employee_id': profile.employee_id if profile else '',
             'joining_date': joining_date,
             'designation': profile.designation if profile else '',
-            'tags': profile.tags if profile else [],
+            'tags': visible_tags(request, u, profile),
             'profile_photo': photo_url
         })
-    return Response(data, status=status.HTTP_200_OK)
+    return Response(data, status=status.HTTP_200_OK, headers={'Cache-Control': 'private, no-store'})
 
 @api_view(['PUT', 'DELETE'])
+@authentication_classes([LetterAuthentication])
 def manage_user(request, pk):
+    if not is_manager(request.user):
+        return Response({'error': 'Manager access required.'}, status=403)
     try:
         user = User.objects.get(pk=pk)
     except User.DoesNotExist:
@@ -374,6 +397,7 @@ def manage_user(request, pk):
         return Response({'message': 'Password reset successful. Employee must change it at next login.' if reset_password else 'User updated successfully', 'password_reset': reset_password}, status=status.HTTP_200_OK)
     
 @api_view(['GET', 'PUT'])
+@authentication_classes([LetterAuthentication])
 def employee_profile(request, user_id):
     try:
         user = User.objects.get(id=user_id)
@@ -394,9 +418,9 @@ def employee_profile(request, user_id):
             'employee_id': profile.employee_id,
             'date_of_birth': profile.date_of_birth,
             'designation': profile.designation,
-            'tags': profile.tags,
+            'tags': visible_tags(request, user, profile),
             'profile_photo': photo_url
-        }, status=status.HTTP_200_OK)
+        }, status=status.HTTP_200_OK, headers={'Cache-Control': 'private, no-store'})
 
     if request.method == 'PUT':
         if 'employee_id' in request.data and request.data['employee_id'] != profile.employee_id:
