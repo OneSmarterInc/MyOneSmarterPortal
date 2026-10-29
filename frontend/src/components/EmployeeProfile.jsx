@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { getProfile, updateProfile, changePassword } from '../services/api';
 
 export default function EmployeeProfile({ user }) {
+  const isManager = user.role === 'manager';
   const [profile, setProfile] = useState({
     first_name: '',
     last_name: '',
@@ -146,20 +147,20 @@ export default function EmployeeProfile({ user }) {
     <div className="w-full min-w-0 max-w-6xl space-y-5">
       
       <header>
-        <p className="mb-1 text-xs font-semibold uppercase tracking-[.14em] text-red-700">Employee workspace / Account</p>
+        <p className="mb-1 text-xs font-semibold uppercase tracking-[.14em] text-red-700">{isManager ? 'Administration' : 'Employee workspace'} / Account</p>
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900">My profile</h1>
         <p className="mt-2 text-sm text-slate-600">Keep your contact details current and manage your account securely.</p>
       </header>
       <section className="rounded-xl border border-slate-200 bg-white p-5 sm:p-6 flex flex-wrap items-center gap-5">
         <div className="h-16 w-16 shrink-0 rounded-full overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center text-xl font-semibold text-red-700">
-          {photoPreview ? <img src={photoPreview} alt="Profile" className="h-full w-full object-cover"/> : currentUsername?.charAt(0).toUpperCase()}
+          {photoPreview ? <img src={photoPreview} alt="Profile" className="h-full w-full object-cover"/> : personName(profile).charAt(0).toUpperCase()}
         </div>
         <div className="min-w-0"><h2 className="text-lg font-semibold text-zinc-900 break-words">{personName(profile)}</h2>
           <p className="text-sm text-slate-600 break-all">{profile.email}</p>
-          <span className="mt-2 inline-flex rounded-md bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">{employment.designation?.trim() || (user.role === 'intern' ? 'Intern' : 'Employee')}</span>
+          <span className="mt-2 inline-flex rounded-md bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">{isManager ? 'Administrator' : employment.designation?.trim() || (user.role === 'intern' ? 'Intern' : 'Employee')}</span>
         </div>
       </section>
-      <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200">
+      {!isManager && <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200">
         <h2 className="text-lg font-semibold text-zinc-900 mb-1">Employment details</h2>
         <p className="text-xs text-slate-500 mb-4">Managed by your administrator.</p>
         <p className="text-xs font-bold text-slate-500">{user.role === 'intern' ? 'Intern ID' : 'Employee ID'}</p>
@@ -168,7 +169,7 @@ export default function EmployeeProfile({ user }) {
         <p className="text-sm font-semibold mt-1 mb-3">{employment.designation || 'Not assigned'}</p>
         <p className="text-xs font-bold text-slate-500 mb-2">Tags</p>
         <div className="flex flex-wrap gap-2">{employment.tags.length ? employment.tags.map(tag => <span key={tag} className="rounded-full bg-red-50 text-red-700 px-3 py-1 text-xs break-all">{tag}</span>) : <span className="text-sm text-slate-500">No tags assigned</span>}</div>
-      </div>
+      </div>}
       {/* Personal Info Card */}
       <div className="bg-white p-5 sm:p-6 rounded-xl border border-slate-200">
         <h2 className="text-lg font-semibold text-zinc-900 mb-6">Personal information</h2>

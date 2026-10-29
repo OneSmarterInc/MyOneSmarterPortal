@@ -46,7 +46,7 @@ export default function App() {
           </div>
         ) : (
           <NameGate user={user}>{user.role === 'manager' ? (
-            <ManagerLayout />
+            <ManagerLayout user={user} />
           ) : (
             <EmployeeLayout user={user} />
           )}</NameGate>

@@ -1,4 +1,5 @@
 import AddEmployeeDialog from './AddEmployeeDialog';
+import EmployeeProfile from './EmployeeProfile';
 import Documents from './Documents';
 import './AdminUI.css';
 import React, { useState } from 'react';
@@ -15,8 +16,8 @@ import PendingAttendance from './PendingAttendance';
 import PendingLeaves from './PendingLeaves';
 import ManageWFH from './ManageWFH'; // <-- Import the new component
 
-export default function ManagerLayout() {
-  const [activeTab, navigatePage] = useWorkspacePage('manager', ['dashboard', 'pending-attendance', 'pending-leaves', 'schedule', 'employees', 'leaves', 'wfh', 'report', 'email', 'recommendations']);
+export default function ManagerLayout({ user }) {
+  const [activeTab, navigatePage] = useWorkspacePage('manager', ['dashboard', 'pending-attendance', 'pending-leaves', 'schedule', 'employees', 'leaves', 'wfh', 'report', 'email', 'profile', 'recommendations']);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [createMode,setCreateMode] = useState(false);
   const [approvalFilter,setApprovalFilter] = useState('all');
@@ -35,6 +36,7 @@ export default function ManagerLayout() {
     { id: 'wfh', label: 'Work from home', icon: 'home' },
     { id: 'report', label: 'Reports', icon: 'report' },
     { id: 'email', label: 'Email settings', icon: 'mail' },
+    { id: 'profile', label: 'My profile', icon: 'people' },
     { id: 'recommendations', label: 'Documents', icon: 'mail' }
   ];
   return (
@@ -64,6 +66,7 @@ export default function ManagerLayout() {
         {activeTab === 'wfh' && <ManageWFH />} {/* <-- Render new component */}
         {activeTab === 'report' && <ManagerReport />}
         {activeTab === 'email' && <EmailSettings />}
+        {activeTab === 'profile' && <EmployeeProfile user={user} />}
       </div>
     </div>
   );
