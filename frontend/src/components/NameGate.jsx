@@ -3,6 +3,7 @@ import { completeName, getProfile } from '../services/api';
 
 export default function NameGate({ user, children }) {
   const [ready, setReady] = useState(false);
+  const [checked, setChecked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [first, setFirst] = useState('');
   const [last, setLast] = useState('');
@@ -10,11 +11,12 @@ export default function NameGate({ user, children }) {
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
     let active = true;
-    setLoading(true); setError(''); setReady(false);
+    setLoading(true); setError(''); setReady(false); setChecked(false);
     getProfile(user.user_id).then(({ data }) => {
       if (!active) return;
       setFirst(data.first_name || ''); setLast(data.last_name || '');
       setReady(Boolean(data.first_name?.trim() && data.last_name?.trim()));
+      setChecked(true);
       const saved = JSON.parse(localStorage.getItem('user') || '{}');
       if (saved.first_name !== data.first_name || saved.last_name !== data.last_name) {
         localStorage.setItem('user', JSON.stringify({ ...saved, first_name: data.first_name, last_name: data.last_name, full_name: data.full_name }));
@@ -35,6 +37,10 @@ export default function NameGate({ user, children }) {
     } catch { setError('Unable to save. Enter your first and last name, then try again.'); }
     finally { setLoading(false); }
   }
+  if (!checked) return <div className="flex w-full items-center justify-center p-5 sm:p-10">
+    {error ? <div role="alert" className="text-sm text-red-700">{error} <button type="button" className="underline" onClick={() => setAttempt(n => n + 1)}>Retry</button></div>
+      : <p role="status" className="text-sm text-slate-500">Loading your workspace…</p>}
+  </div>;
   if (ready) return children;
   return <div className="flex w-full items-center justify-center p-5 sm:p-10"><section className="w-full max-w-md rounded-xl border border-slate-200 bg-white p-7">
     <h1 className="text-2xl font-semibold">Complete your name</h1>
