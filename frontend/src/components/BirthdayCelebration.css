@@ -1,0 +1,16 @@
+.birthday-corner{position:fixed;right:16px;bottom:16px;z-index:40;display:flex;align-items:center;gap:12px;width:min(320px,calc(100vw - 32px));padding:18px 28px 18px 14px;border:1px solid #fecdd3;border-radius:14px;background:linear-gradient(120deg,#fff1f2,#fff7ed);box-shadow:0 8px 28px #88133720;overflow:hidden;animation:birthday-corner-in .25s ease-out}
+.birthday-corner-close{position:absolute;right:4px;top:4px;width:28px;height:28px;border-radius:8px;color:#64748b;font-size:22px;line-height:1;z-index:2}
+.birthday-corner-close:hover{background:#ffe4e6;color:#9f1239}
+.birthday-corner-close:focus-visible{outline:2px solid #be123c;outline-offset:-2px}
+.birthday-corner-photo,.birthday-corner-cake{width:54px;height:64px;flex-shrink:0;border-radius:10px;object-fit:contain;background:white}
+.birthday-corner-cake{display:grid;place-items:center;font-size:32px}
+.birthday-corner-copy{min-width:0;position:relative}
+.birthday-corner-copy p{font-size:9px;letter-spacing:.07em;text-transform:uppercase;color:#9f1239;margin:0 0 4px}
+.birthday-corner-copy h2{font-size:15px;line-height:1.35;font-weight:700;color:#881337;margin:0 0 4px}
+.birthday-corner-copy span{display:block;font-size:11px;line-height:1.5;color:#64748b}
+.birthday-corner-confetti{position:absolute;inset:0;overflow:hidden;pointer-events:none}
+.birthday-corner-confetti i{position:absolute;top:-12px;width:5px;height:8px;background:hsl(calc(var(--i)*47) 85% 65%);animation:birthday-corner-fall 2s ease-in 1 both}
+@keyframes birthday-corner-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+@keyframes birthday-corner-fall{to{transform:translateY(180px) rotate(260deg);opacity:0}}
+@media(prefers-reduced-motion:reduce){.birthday-corner{animation:none}.birthday-corner-confetti{display:none}}
+@media print{.birthday-corner{display:none}}

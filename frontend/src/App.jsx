@@ -5,6 +5,7 @@ import EmployeeLayout from './components/EmployeeLayout';
 import ManagerLayout from './components/ManagerLayout';
 import ChangePassword from './components/ChangePassword';
 import NameGate from './components/NameGate';
+import BirthdayCelebration from './components/BirthdayCelebration';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -49,7 +50,7 @@ export default function App() {
             <ManagerLayout user={user} />
           ) : (
             <EmployeeLayout user={user} />
-          )}</NameGate>
+          )}<BirthdayCelebration user={user} /></NameGate>
         )}
       </main>
 
