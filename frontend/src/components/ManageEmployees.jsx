@@ -1,3 +1,4 @@
+import { personName } from '../utils/personName';
 import { portalAlert, portalConfirm } from './PortalDialog';
 import { Avatar, Status } from './AdminUI';
 import React, { useState, useEffect } from 'react';
@@ -15,7 +16,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
   const [fetchError, setFetchError] = useState('');
   const team = users.filter(u=>['employee','intern','student'].includes(u.role));
   const tagOptions = [...new Set(team.flatMap(u=>u.tags||[]))].sort();
-  const visible = team.filter(u=>(!roleFilter||u.role===roleFilter)&&(!tagFilter||(u.tags||[]).includes(tagFilter))&&[u.username,u.employee_id,u.email,u.designation,...(u.tags||[])].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
+  const visible = team.filter(u=>(!roleFilter||u.role===roleFilter)&&(!tagFilter||(u.tags||[]).includes(tagFilter))&&[personName(u),u.employee_id,u.email,u.designation,...(u.tags||[])].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
   
   const totalPages = Math.max(1, Math.ceil(visible.length / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -44,6 +45,8 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
 
   useEffect(() => {
     fetchUsers();
+    window.addEventListener('peopleUpdated', fetchUsers);
+    return () => window.removeEventListener('peopleUpdated', fetchUsers);
   }, []);
 
   async function fetchUsers() {
@@ -68,12 +71,14 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
   };
 
   const handleDelete = async (id) => {
-    if (!await portalConfirm('Are you sure you want to permanently delete this employee?', true)) return;
+    if (!await portalConfirm('Remove this person from the team? Login will be disabled. Issued document records will be retained for verification.', true)) return;
     try {
-      await deleteUser(id);
-      fetchUsers();
-    } catch {
-      portalAlert('Failed to delete user.');
+      const response = await deleteUser(id);
+      setUsers(previous => previous.filter(person => person.id !== id));
+      setMsg({ text: response.data.message, type: 'success' });
+      await fetchUsers();
+    } catch (err) {
+      portalAlert(err.response?.data?.error || 'Unable to delete. Please sign in again and retry.');
     }
   };
 
@@ -156,6 +161,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
       <header className="admin-page-heading"><div><h1>People directory</h1><p>Manage your team’s profiles, designations and tags.</p></div><button className="admin-button primary" onClick={onAddEmployee}>+ Add employee</button></header>
       <div className="admin-toolbar"><input type="search" aria-label="Search people" placeholder="Search name, email, designation or tag…" value={query} onChange={e=>{setQuery(e.target.value);setPage(1);}}/><select aria-label="Filter by role" value={roleFilter} onChange={e=>{setRoleFilter(e.target.value);setPage(1);}}><option value="">All roles</option><option value="employee">Employees</option><option value="intern">Interns</option></select><select aria-label="Filter by tag" value={tagFilter} onChange={e=>{setTagFilter(e.target.value);setPage(1);}}><option value="">All tags</option>{tagOptions.map(t=><option key={t}>{t}</option>)}</select><span className="text-xs text-slate-500">{visible.length} people</span></div>
       {fetchError && <p role="alert" className="admin-error">{fetchError} <button onClick={fetchUsers}>Try again</button></p>}
+      {msg.type === 'success' && msg.text && <p role="status" className="text-sm text-emerald-700">{msg.text}</p>}
       {copiedEmail && <p role="status" className="text-sm text-emerald-700">Copied email: {copiedEmail}</p>}
       {msg.type === 'error' && msg.text && <p role="alert" className="admin-error">{msg.text}</p>}
       {fetching ? <p className="admin-empty">Loading people…</p> : <div className="admin-panel overflow-hidden">
@@ -163,12 +169,12 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
           <table className="admin-table w-full">
             <thead><tr><th>Employee</th><th>Role</th><th>Designation</th><th>Email (click to copy)</th><th>Tags</th><th className="text-right">Actions</th></tr></thead>
             <tbody>{paginatedPeople.map(u => <tr key={u.id}>
-              <td><button type="button" onClick={() => openProfileView(u)} className="admin-person text-left hover:text-red-700" aria-label={`View profile for ${u.username}`}><Avatar person={u}/><span><span className="font-semibold">{u.username}</span><span className="block text-xs text-slate-500 mt-1">{u.employee_id}</span></span></button></td>
+              <td><button type="button" onClick={() => openProfileView(u)} className="admin-person text-left hover:text-red-700" aria-label={`View profile for ${personName(u)}`}><Avatar person={u}/><span><span className="font-semibold">{personName(u)}</span><span className="block text-xs text-slate-500 mt-1">{u.employee_id}</span></span></button></td>
               <td><Status value={u.role}/></td>
               <td>{u.designation || '—'}</td>
               <td>{u.email ? <button type="button" title="Copy email address" aria-label={`Copy email address ${u.email}`} className="text-red-700 hover:underline break-all text-left" onClick={() => copyEmail(u.email)}>{u.email} {copiedEmail === u.email ? '✓ Copied' : '⧉'}</button> : <span className="text-slate-400">No email</span>}</td>
               <td><div className="flex flex-wrap gap-1">{(u.tags || []).length ? u.tags.map(tag => <span key={tag} className="admin-badge">{tag}</span>) : '—'}</div></td>
-              <td><div className="flex flex-wrap justify-end gap-2"><button type="button" className="admin-button" onClick={() => openProfileView(u)}>View profile</button><button type="button" className="admin-button" onClick={() => startEdit(u)}>Edit</button><button type="button" className="admin-link" aria-label={`Delete ${u.username}`} onClick={() => handleDelete(u.id)}>Delete</button></div></td>
+              <td><div className="flex flex-wrap justify-end gap-2"><button type="button" className="admin-button" onClick={() => openProfileView(u)}>View profile</button><button type="button" className="admin-button" onClick={() => startEdit(u)}>Edit</button><button type="button" className="admin-link" aria-label={`Delete ${personName(u)}`} onClick={() => handleDelete(u.id)}>Delete</button></div></td>
             </tr>)}</tbody>
           </table>
         </div>
@@ -198,7 +204,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
                 </div>
                 <div>
                   <div className="text-xs font-bold text-red-600 normal-case tracking-normal">{viewingProfile.role}</div>
-                  <h3 className="text-2xl font-bold text-zinc-900 mt-1">@{viewingProfile.username}</h3>
+                  <h3 className="text-2xl font-bold text-zinc-900 mt-1">{personName(viewingProfile)}</h3>
                   <div className="text-sm font-medium text-slate-500 mt-0.5">Employee ID: {viewingProfile.employee_id || 'Not assigned'}</div>
                 </div>
               </div>
@@ -265,7 +271,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
               </div>
               <div>
                 <h3 className="text-lg font-bold text-zinc-900">Edit Employee</h3>
-                <p className="text-xs font-medium text-slate-500">@{editingUser.username}</p>
+                <p className="text-xs font-medium text-slate-500">{personName(editingUser)}</p>
               </div>
             </div>
             
@@ -279,8 +285,8 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
               <div className="space-y-4 overflow-y-auto min-h-0 flex-1 px-6 py-5">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="manageemployees-field-1" className="block text-xs font-bold normal-case tracking-normal text-slate-600 mb-1">Username</label>
-                  <input id="manageemployees-field-1" type="text" value={editingUser.username} readOnly aria-readonly="true" className="w-full border border-slate-200 bg-slate-50 text-slate-500 p-2 text-sm rounded" />
+                  <label htmlFor="manageemployees-field-1" className="block text-xs font-bold normal-case tracking-normal text-slate-600 mb-1">Full name</label>
+                  <input id="manageemployees-field-1" type="text" value={personName(editingUser)} readOnly aria-readonly="true" className="w-full border border-slate-200 bg-slate-50 text-slate-500 p-2 text-sm rounded" />
                 </div>
                 <div>
                   <label htmlFor="manageemployees-field-2" className="block text-xs font-bold normal-case tracking-normal text-slate-600 mb-1">Joining Date</label>

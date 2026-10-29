@@ -54,7 +54,7 @@ class AttendanceDraftInput(serializers.Serializer):
 
 
 def details(item, admin=False):
-    result = {'id': item.pk, 'name': item.user.get_full_name().strip() or item.user.username,
+    result = {'id': item.pk, 'name': item.user.get_full_name().strip() or 'Name not provided',
               'joining_date': item.user.profile.joining_date, 'designation': item.user.profile.designation,
               'email': item.user.email, 'purpose': item.purpose, 'notes': item.notes,
               'status': item.status, 'created_at': item.created_at, 'sent_at': item.sent_at,
@@ -108,10 +108,10 @@ def draft(request, pk):
         start = item.user.profile.joining_date
         end = values.pop('end_date')
         if not start or start > timezone.localdate():
-            return Response({'error': 'Set a valid joining date in this person’s account first.'}, status=400)
+            return Response({'error': 'Set a valid joining date in this personâ€™s account first.'}, status=400)
         if end and (end < start or end > timezone.localdate()):
             return Response({'error': 'End date must be between the joining date and today.'}, status=400)
-        values.update(name=item.user.get_full_name().strip() or item.user.username,
+        values.update(name=item.user.get_full_name().strip() or 'Name not provided',
                       start_date=start.isoformat(), end_date=end.isoformat() if end else '',
                       issue_date=timezone.localdate().isoformat(), verification_id=str(uuid4()))
         values.update(document_type=item.document_type, role=item.user.profile.role,
@@ -156,7 +156,7 @@ def send(request, pk):
         try:
             validate_email(item.user.email)
         except ValidationError:
-            return Response({'error': 'Correct the recipient’s account email before sending.'}, status=400)
+            return Response({'error': 'Correct the recipientâ€™s account email before sending.'}, status=400)
         # Sign the saved preview before claiming email delivery. Keep the signed
         # bytes on SMTP failure so retries cannot create different attachments.
         if item.draft.get('_signed_revision') != item.revision:

@@ -1,3 +1,4 @@
+import { personName } from '../utils/personName';
 import AttendanceTimeEditor from './AttendanceTimeEditor';
 import React, { useState, useEffect } from 'react';
 import { getUsers, getAttendance } from '../services/api';
@@ -138,7 +139,7 @@ export default function ManagerReport() {
             <div><label htmlFor="report-employee" className="block text-sm mb-1">Select Employee</label>
               <select id="report-employee" disabled={fetching || users.length === 0} value={selectedUser} onChange={e => resetPage(setSelectedUser)(e.target.value)} className="w-full border border-slate-300 p-2.5 rounded-lg bg-white">
                 <option value="">{fetching ? 'Loading employees…' : users.length ? 'All employees' : 'No employees available'}</option>
-                {users.map(u => <option key={u.id} value={u.id}>@{u.username} ({u.email})</option>)}
+                {users.map(u => <option key={u.id} value={u.id}>{personName(u)} ({u.email})</option>)}
               </select>
             </div>
             <div><label htmlFor="report-start" className="block text-sm mb-1">Start Date</label><input id="report-start" type="date" value={startDate} onChange={e => resetPage(setStartDate)(e.target.value)} className="w-full border border-slate-300 p-2.5 rounded-lg" /></div>
@@ -153,12 +154,12 @@ export default function ManagerReport() {
                 <th className="p-4">Employee</th><th className="p-4">Date</th><th className="p-4">Start Time</th><th className="p-4">End Time</th><th className="p-4">Status</th><th className="p-4">Actions</th>
               </tr></thead>
               <tbody>{fetching ? <tr><td colSpan="6" className="p-8 text-center text-slate-500">Loading attendance records…</td></tr> : visibleRecords.length ? visibleRecords.map(item => <tr key={item.id} className="border-b border-slate-100">
-                <td className="p-4">{users.find(u => String(u.id) === String(item.user))?.username || 'Unknown'}</td>
+                <td className="p-4">{personName(users.find(u => String(u.id) === String(item.user)))}</td>
                 <td className="p-4 font-semibold">{item.date}</td>
                 <td className="p-4">{formatTime(item.check_in)}</td>
                 <td className="p-4">{formatTime(item.check_out)}</td>
                 <td className="p-4"><span className={`px-3 py-1 rounded-full text-xs font-semibold border ${item.status === 'Present' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : item.status === 'Late' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>{item.status}</span></td>
-                <td className="p-4"><AttendanceTimeEditor record={item} name={users.find(u => String(u.id) === String(item.user))?.username} onSaved={updated => setAllRecords(previous => previous.map(record => record.id === updated.id ? updated : record))}/></td>
+                <td className="p-4"><AttendanceTimeEditor record={item} name={personName(users.find(u => String(u.id) === String(item.user)))} onSaved={updated => setAllRecords(previous => previous.map(record => record.id === updated.id ? updated : record))}/></td>
               </tr>) : <tr><td colSpan="6" className="p-8 text-center text-slate-500">No attendance records found for the selected criteria.</td></tr>}</tbody>
             </table>
           </div>
@@ -178,13 +179,13 @@ export default function ManagerReport() {
           <div className="report-letterhead"><img src="/images/logo.png" alt="" />One Smarter Inc., USA</div>
           <h1 className="report-title">ATTENDANCE RECORD</h1>
           <div className="report-info"><table><tbody>
-            {selectedUserInfo ? <tr><td className="report-label">Employee Name:</td><td className="report-value">{selectedUserInfo.username}</td><td className="report-label">Employee ID:</td><td>{selectedUserInfo.employee_id || 'Not assigned'}</td></tr> : <tr><td className="report-label">Report Scope:</td><td colSpan="3">All employees</td></tr>}
+            {selectedUserInfo ? <tr><td className="report-label">Employee Name:</td><td className="report-value">{personName(selectedUserInfo)}</td><td className="report-label">Employee ID:</td><td>{selectedUserInfo.employee_id || 'Not assigned'}</td></tr> : <tr><td className="report-label">Report Scope:</td><td colSpan="3">All employees</td></tr>}
             <tr><td className="report-label">Period:</td><td colSpan="3">{period}</td></tr>
           </tbody></table></div>
           </>}
           <table className="report-table"><thead><tr><th style={{width:'12%'}}>Sr. No.</th>{!selectedUserInfo && <th>Employee</th>}<th>Date</th><th>Start Time</th><th>End Time</th><th>Status</th></tr></thead>
             <tbody>{records.map((record, row) => <tr key={record.id}>
-              <td>{start + row + 1}</td>{!selectedUserInfo && <td>{users.find(u => String(u.id) === String(record.user))?.username || 'Unknown'}</td>}<td>{formatDate(record.date)}</td><td>{formatTime(record.check_in)}</td><td>{formatTime(record.check_out)}</td><td>{record.status}</td>
+              <td>{start + row + 1}</td>{!selectedUserInfo && <td>{personName(users.find(u => String(u.id) === String(record.user)))}</td>}<td>{formatDate(record.date)}</td><td>{formatTime(record.check_in)}</td><td>{formatTime(record.check_out)}</td><td>{record.status}</td>
             </tr>)}</tbody>
           </table>
           {index === printPages.length - 1 && <>

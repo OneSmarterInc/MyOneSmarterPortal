@@ -1,6 +1,5 @@
-import { portalAlert } from './PortalDialog';
+import { personName } from '../utils/personName';
 import React, { useState, useEffect } from 'react';
-import { formatAttendanceTime } from '../utils/attendanceTime';
 import { getAttendance, updateAttendance, getLeaveRequests, updateLeaveRequest, getUsers } from '../services/api';
 
 export default function ManagerApprovals() {
@@ -32,7 +31,7 @@ export default function ManagerApprovals() {
       await updateAttendance(id, { status: newStatus });
       fetchAllData(); 
     } catch (err) {
-      portalAlert('Failed to update status.');
+      alert('Failed to update status.');
     }
   };
 
@@ -41,7 +40,7 @@ export default function ManagerApprovals() {
       await updateLeaveRequest(id, { status });
       fetchAllData();
     } catch (err) {
-      portalAlert('Failed to update leave status.');
+      alert('Failed to update leave status.');
     }
   };
 
@@ -87,7 +86,7 @@ export default function ManagerApprovals() {
                   return (
                     <tr key={l.id} className="border-b border-slate-100 hover:bg-slate-50/50">
                       <td className="p-3">
-                        <div className="font-bold text-zinc-900">@{l.username}</div>
+                        <div className="font-bold text-zinc-900">{personName(l)}</div>
                         <div className="flex gap-1 items-center mt-0.5">
                           <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{empInfo.role}</span>
                           <span className={`px-1.5 py-0.5 rounded text-[8px] uppercase tracking-wider font-bold ${l.request_type === 'WFH' ? 'bg-indigo-100 text-indigo-700' : 'bg-orange-100 text-orange-700'}`}>
@@ -134,13 +133,13 @@ export default function ManagerApprovals() {
                   return (
                     <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50">
                       <td className="p-3">
-                        <div className="font-bold text-zinc-900">@{emp.username}</div>
+                        <div className="font-bold text-zinc-900">{personName(emp)}</div>
                         <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{emp.role}</div>
                       </td>
                       <td className="p-3">
                         <div className="text-[10px] font-semibold text-slate-700">{item.date}</div>
-                        <div className="text-[10px] text-slate-500 mt-0.5">In: <span className="font-medium text-slate-800">{formatAttendanceTime(item.check_in, '--:--')}</span></div>
-                        {item.check_out && <div className="text-[10px] text-slate-500">Out: <span className="font-medium text-slate-800">{formatAttendanceTime(item.check_out)}</span></div>}
+                        <div className="text-[10px] text-slate-500 mt-0.5">In: <span className="font-medium text-slate-800">{item.check_in || '--:--'}</span></div>
+                        {item.check_out && <div className="text-[10px] text-slate-500">Out: <span className="font-medium text-slate-800">{item.check_out}</span></div>}
                       </td>
                       <td className="p-3 text-right space-y-1 sm:space-y-0 sm:space-x-1">
                         <button onClick={() => handleApproval(item.id, 'Present')} className="bg-emerald-500 hover:bg-emerald-600 text-white text-[9px] uppercase tracking-wider font-bold px-2 py-1 rounded transition">Present</button>

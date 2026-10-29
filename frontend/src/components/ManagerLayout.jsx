@@ -1,3 +1,4 @@
+import AddEmployeeDialog from './AddEmployeeDialog';
 import Documents from './Documents';
 import './AdminUI.css';
 import React, { useState } from 'react';
@@ -22,7 +23,7 @@ export default function ManagerLayout() {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
   const navigate = (tab,filter = 'all') => {setIsSidebarOpen(false);setSelectedEmployeeId(null);setApprovalFilter(filter);navigatePage(tab);setCreateMode(false);};
   const openEmployee = id => {navigate('employees');setSelectedEmployeeId(id);};
-  const addEmployee = () => {navigatePage('dashboard');setCreateMode(true);};
+  const addEmployee = () => setCreateMode(true);
 
   const navigation = [
     { id: 'dashboard', label: 'Dashboard', icon: 'dashboard' },
@@ -50,6 +51,7 @@ export default function ManagerLayout() {
         </nav>
       </WorkspaceNavigation>
 
+      {createMode && <AddEmployeeDialog onClose={() => setCreateMode(false)} onCreated={() => window.dispatchEvent(new Event('peopleUpdated'))} />}
       {/* Main Content Area */}
       <div className="flex-grow p-4 sm:p-8 bg-[#f7f7f8] print:p-0 print:bg-white flex justify-center w-full min-w-0">
         {activeTab === 'recommendations' && <Documents admin />}

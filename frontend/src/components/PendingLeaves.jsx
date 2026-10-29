@@ -1,3 +1,4 @@
+import { personName } from '../utils/personName';
 import React, { useState, useEffect } from 'react';
 import { getLeaveRequests, updateLeaveRequest, getUsers } from '../services/api';
 import { Person, Status } from './AdminUI';
@@ -20,10 +21,10 @@ export default function PendingLeaves() {
   useEffect(()=>{refresh();},[]);
   const remote = r => ['WFH','Work From Home'].includes(r.request_type);
   const person = r => users.find(u=>u.id===r.user_id || u.username===r.username) || {username:r.username};
-  const visible=leaves.filter(r=>(filter==='all'||(filter==='remote'?remote(r):!remote(r)))&&[r.username,r.reason,r.request_type].join(' ').toLowerCase().includes(query.toLowerCase().trim()));
+  const visible=leaves.filter(r=>(filter==='all'||(filter==='remote'?remote(r):!remote(r)))&&[personName(person(r)),r.reason,r.request_type].join(' ').toLowerCase().includes(query.toLowerCase().trim()));
   async function review(record,status) {
     setSaving(record.id);setError('');setNotice('');
-    try {await updateLeaveRequest(record.id,{status});setLeaves(p=>p.filter(r=>r.id!==record.id));setNotice(`${record.username}’s request ${status.toLowerCase()}.`);}
+    try {await updateLeaveRequest(record.id,{status});setLeaves(p=>p.filter(r=>r.id!==record.id));setNotice(`${personName(record)}’s request ${status.toLowerCase()}.`);}
     catch {setError('The decision could not be saved. Please try again.');}
     finally {setSaving(null);}
   }

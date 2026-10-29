@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError, transaction
+from django.db.models.deletion import ProtectedError
 import string
 import random
 from rest_framework import viewsets, status, serializers
@@ -55,7 +56,7 @@ def birthdays(request):
     return Response([
         {
             'id': profile.user_id,
-            'name': profile.user.get_full_name().strip() or profile.user.username,
+            'name': profile.user.get_full_name().strip() or 'Name not provided',
             'role': profile.role,
             'birthday_month': profile.date_of_birth.month,
             'birthday_day': profile.date_of_birth.day,
@@ -269,7 +270,16 @@ def manager_create_user(request):
 def login_user(request):
     username = request.data.get('username')
     password = request.data.get('password')
-    user = authenticate(username=username, password=password)
+    if not isinstance(username, str) or not isinstance(password, str) or not username.strip() or not password:
+        return Response({'error': 'Enter your username and password.'}, status=status.HTTP_400_BAD_REQUEST)
+    # Prefer the exact account. Only normalize when there is one unambiguous match.
+    account = User.objects.filter(username=username).first()
+    if account is None:
+        account = User.objects.filter(username=username.strip()).first()
+    if account is None:
+        matches = list(User.objects.filter(username__iexact=username.strip())[:2])
+        account = matches[0] if len(matches) == 1 else None
+    user = authenticate(username=account.username if account else username, password=password)
     
     if user is not None:
         if user.is_superuser:
@@ -284,7 +294,10 @@ def login_user(request):
             'message': 'Login successful', 
             'user_id': user.id, 
             'letter_token': issue_letter_token(user),
-            'username': user.username, 
+            'username': user.username,
+            'first_name': user.first_name, 'last_name': user.last_name,
+            'full_name': user.get_full_name().strip(),
+            'needs_name': not (user.first_name.strip() and user.last_name.strip()),
             'role': role,
             'is_first_login': is_first_login
         }, status=status.HTTP_200_OK)
@@ -304,7 +317,7 @@ def change_password(request):
         if hasattr(user, 'profile'):
             user.profile.is_first_login = False
             user.profile.save()
-        return Response({'message': 'Password updated successfully!'}, status=status.HTTP_200_OK)
+        return Response({'message': 'Password updated successfully!', 'letter_token': issue_letter_token(user)}, status=status.HTTP_200_OK)
     return Response({'error': 'Invalid current password.'}, status=status.HTTP_400_BAD_REQUEST)
 
 def is_manager(user):
@@ -323,7 +336,7 @@ def visible_tags(request, user, profile):
 @api_view(['GET'])
 @authentication_classes([LetterAuthentication])
 def get_all_users(request):
-    users = User.objects.all().order_by('-date_joined')
+    users = User.objects.filter(is_active=True).order_by('-date_joined')
     data = []
     for u in users:
         profile = u.profile if hasattr(u, 'profile') else None
@@ -334,6 +347,7 @@ def get_all_users(request):
         data.append({
             'id': u.id,
             'username': u.username,
+            'first_name': u.first_name, 'last_name': u.last_name, 'full_name': u.get_full_name().strip(),
             'email': u.email,
             'role': role,
             'employee_id': profile.employee_id if profile else '',
@@ -355,7 +369,14 @@ def manage_user(request, pk):
         return Response({'error': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'DELETE':
-        user.delete()
+        if user.pk == request.user.pk or is_manager(user):
+            return Response({'error': 'Manager accounts cannot be deleted here.'}, status=403)
+        try:
+            user.delete()
+        except ProtectedError:
+            user.is_active = False
+            user.save(update_fields=['is_active'])
+            return Response({'message': 'Removed from the team. Login disabled; document records retained for verification.'})
         return Response({'message': 'User deleted successfully'}, status=status.HTTP_200_OK)
     
     if request.method == 'PUT':
@@ -411,6 +432,7 @@ def employee_profile(request, user_id):
             'username': user.username,
             'first_name': user.first_name,
             'last_name': user.last_name,
+            'full_name': user.get_full_name().strip(),
             'email': user.email,
             'phone': profile.phone,
             'address': profile.address,
@@ -451,8 +473,10 @@ def employee_profile(request, user_id):
                 return Response({'error': 'This username is already in use.'}, status=status.HTTP_400_BAD_REQUEST)
             return Response({'message': 'Username updated successfully.', 'username': user.username}, status=status.HTTP_200_OK)
         birth_date = validated_birth_date(request.data['date_of_birth']) if 'date_of_birth' in request.data else profile.date_of_birth
-        user.first_name = request.data.get('first_name', user.first_name)
-        user.last_name = request.data.get('last_name', user.last_name)
+        for field in ('first_name', 'last_name'):
+            if field in request.data:
+                value = serializers.CharField(max_length=150, allow_blank=False).run_validation(request.data[field])
+                setattr(user, field, value)
         
         new_email = request.data.get('email')
         if new_email:
@@ -551,6 +575,7 @@ def leave_requests_list(request):
             'id': l.id,
             'user_id': l.user.id,
             'username': l.user.username,
+            'full_name': l.user.get_full_name().strip(),
             'request_type': l.request_type,
             'start_date': str(l.start_date),
             'end_date': str(l.end_date),
@@ -610,6 +635,7 @@ def leave_allocation_view(request):
             'id': a.id,
             'user_id': a.user.id,
             'username': a.user.username,
+            'full_name': a.user.get_full_name().strip(),
             'leave_type': a.leave_type,
             'total_days': a.total_days,
             'allocated_on': str(a.allocated_on)
@@ -649,6 +675,7 @@ def leave_requests_list(request):
             'id': l.id,
             'user_id': l.user.id,
             'username': l.user.username,
+            'full_name': l.user.get_full_name().strip(),
             'request_type': l.request_type,
             'start_date': str(l.start_date),
             'end_date': str(l.end_date),
@@ -684,3 +711,16 @@ def leave_requests_list(request):
             return Response({'message': f'{request_type} request submitted successfully!'}, status=status.HTTP_201_CREATED)
         except User.DoesNotExist:
             return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+
+@api_view(['POST'])
+@authentication_classes([LetterAuthentication])
+def complete_name(request):
+    if not request.user.is_authenticated:
+        return Response({'error': 'Please sign in again.'}, status=401)
+    first = serializers.CharField(max_length=150, allow_blank=False).run_validation(request.data.get('first_name'))
+    last = serializers.CharField(max_length=150, allow_blank=False).run_validation(request.data.get('last_name'))
+    user = request.user
+    user.first_name, user.last_name = first, last
+    user.save(update_fields=['first_name', 'last_name'])
+    return Response({'first_name': first, 'last_name': last, 'full_name': user.get_full_name(), 'needs_name': False})

@@ -3,7 +3,15 @@ import axios from 'axios';
 const API = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api/',
 });
+API.interceptors.response.use(response => response, error => {
+    if (error.response?.status === 401 && error.config?.headers?.Authorization) {
+        localStorage.removeItem('user');
+        window.dispatchEvent(new Event('userUpdated'));
+    }
+    return Promise.reject(error);
+});
 export const getProfile = (userId) => API.get(`profile/${userId}/`, letterConfig());
+export const completeName = data => API.post('profile/complete-name/', data, letterConfig());
 export const updateProfile = (userId, formData) => API.put(`profile/${userId}/`, formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
 });

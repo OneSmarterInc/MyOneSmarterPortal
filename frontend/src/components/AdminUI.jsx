@@ -1,8 +1,9 @@
+import { personName } from '../utils/personName';
 import React, { useState } from 'react';
 
 export function Avatar({ person = {}, large = false }) {
   const [failedUrl, setFailedUrl] = useState(null);
-  const name = person.username || 'Unknown';
+  const name = personName(person);
   return <span className={`admin-avatar ${large ? 'admin-avatar-large' : ''}`}>
     {person.profile_photo && failedUrl !== person.profile_photo
       ? <img src={person.profile_photo} alt="" onError={() => setFailedUrl(person.profile_photo)} />
@@ -10,7 +11,7 @@ export function Avatar({ person = {}, large = false }) {
   </span>;
 }
 export function Person({ person = {} }) {
-  return <div className="admin-person"><Avatar person={person} /><div><strong>{person.username || 'Unknown'}</strong><small>{person.designation || person.role || 'Team member'}</small></div></div>;
+  return <div className="admin-person"><Avatar person={person} /><div><strong>{personName(person)}</strong><small>{person.designation || person.role || 'Team member'}</small></div></div>;
 }
 export function Status({ value }) {
   return <span className={`admin-badge status-${String(value).toLowerCase()}`}>{value}</span>;

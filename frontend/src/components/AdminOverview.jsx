@@ -1,3 +1,4 @@
+import { personName } from '../utils/personName';
 import AttendanceTimeEditor from './AttendanceTimeEditor';
 import React from 'react';
 import { formatAttendanceTime } from '../utils/attendanceTime';
@@ -30,7 +31,7 @@ export default function AdminOverview({ records, users, pendingLeaves, leaveRequ
     ...leaveRequests.map(r => ({ key: `leave-${r.id}`, person: users.find(u => u.id === r.user_id || u.username === r.username) || { username: r.username }, label: ['WFH', 'Work From Home'].includes(r.request_type) ? 'Work from home' : 'Leave request', date: r.start_date, action: () => navigate('pending-leaves') }))
   ].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
   let name = '';
-  try { name = JSON.parse(localStorage.getItem('user') || '{}')?.username || ''; } catch { /* A missing session name does not block the dashboard. */ }
+  try { name = personName(JSON.parse(localStorage.getItem('user') || '{}')); } catch { /* A missing session name does not block the dashboard. */ }
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening';
   const unavailable = busy || error;
   return <div className="calm-dashboard">
@@ -51,7 +52,7 @@ export default function AdminOverview({ records, users, pendingLeaves, leaveRequ
         </section>
         <section className="admin-panel" id="today-attendance"><div className="admin-panel-title"><div><h2>Team activity</h2><p>Today’s recorded check-ins and check-outs</p></div><button className="admin-link" onClick={retry} disabled={busy}>Refresh</button></div>
           <div className="admin-table-scroll"><table className="admin-table"><thead><tr><th>Team member</th><th>Check-in</th><th>Check-out</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-            {!unavailable && todays.map(r => <tr key={r.id}><td><Person person={person(r.user)}/></td><td>{formatAttendanceTime(r.check_in)}</td><td>{formatAttendanceTime(r.check_out)}</td><td><Status value={r.status}/></td><td><AttendanceTimeEditor record={r} name={person(r.user).username} onSaved={retry}/></td></tr>)}
+            {!unavailable && todays.map(r => <tr key={r.id}><td><Person person={person(r.user)}/></td><td>{formatAttendanceTime(r.check_in)}</td><td>{formatAttendanceTime(r.check_out)}</td><td><Status value={r.status}/></td><td><AttendanceTimeEditor record={r} name={personName(person(r.user))} onSaved={retry}/></td></tr>)}
             {(unavailable || !todays.length) && <tr><td colSpan="5" className="admin-empty">{busy ? 'Loading attendance…' : error ? 'Attendance unavailable.' : 'No attendance recorded today.'}</td></tr>}
           </tbody></table></div>
           <div className="calm-panel-footer">{unavailable ? '—' : `${todays.length} attendance records today`}<button className="admin-link" onClick={() => navigate('employees')}>View people →</button></div>
@@ -62,11 +63,11 @@ export default function AdminOverview({ records, users, pendingLeaves, leaveRequ
       </div>
       <div className="calm-column calm-team-column">
         <section className="admin-panel"><div className="admin-panel-title"><h2>Needs your review <span className="calm-count">{unavailable ? '—' : requests.length}</span></h2></div>
-          {unavailable || !requests.length ? <p className="admin-empty">{busy ? 'Loading requests…' : error ? 'Requests unavailable.' : 'You’re all caught up. No requests waiting.'}</p> : <div className="calm-requests">{requests.slice(0, 5).map(r => <div className="calm-request" key={r.key}><div><Person person={r.person}/><p>{r.label}<small>{r.date}</small></p></div><button className="admin-button" onClick={r.action} aria-label={`Review ${r.label.toLowerCase()} for ${r.person.username || 'team member'}`}>Review</button></div>)}</div>}
+          {unavailable || !requests.length ? <p className="admin-empty">{busy ? 'Loading requests…' : error ? 'Requests unavailable.' : 'You’re all caught up. No requests waiting.'}</p> : <div className="calm-requests">{requests.slice(0, 5).map(r => <div className="calm-request" key={r.key}><div><Person person={r.person}/><p>{r.label}<small>{r.date}</small></p></div><button className="admin-button" onClick={r.action} aria-label={`Review ${r.label.toLowerCase()} for ${personName(r.person)}`}>Review</button></div>)}</div>}
           <div className="calm-review-links"><button className="admin-link" onClick={() => navigate('pending-attendance')}>Attendance requests →</button><button className="admin-link" onClick={() => navigate('pending-leaves')}>Leave & WFH requests →</button></div>
         </section>
         <section className="admin-panel calm-team-panel"><div className="admin-panel-title"><div><h2>Your team</h2><p>{unavailable ? 'Team overview' : `${team.length} employees and interns`}</p></div><button className="admin-link" onClick={() => navigate('employees')}>View all →</button></div>
-          {unavailable || !team.length ? <p className="admin-empty">{busy ? 'Loading team…' : error ? 'Team unavailable.' : 'Add your first team member to get started.'}</p> : <div className="calm-team" tabIndex={0} role="region" aria-label="Employees and interns">{team.map(u => <button type="button" key={u.id} className="calm-team-member" aria-label={`View ${u.username} in people directory`} onClick={() => onSelectEmployee(u.id)}><Avatar person={u}/><strong>{u.username}</strong><small>{u.designation?.trim() || (u.role === 'intern' ? 'Intern' : 'Employee')}</small></button>)}</div>}
+          {unavailable || !team.length ? <p className="admin-empty">{busy ? 'Loading team…' : error ? 'Team unavailable.' : 'Add your first team member to get started.'}</p> : <div className="calm-team" tabIndex={0} role="region" aria-label="Employees and interns">{team.map(u => <button type="button" key={u.id} className="calm-team-member" aria-label={`View ${personName(u)} in people directory`} onClick={() => onSelectEmployee(u.id)}><Avatar person={u}/><strong>{personName(u)}</strong><small>{u.designation?.trim() || (u.role === 'intern' ? 'Intern' : 'Employee')}</small></button>)}</div>}
         </section>
       </div>
     </div>

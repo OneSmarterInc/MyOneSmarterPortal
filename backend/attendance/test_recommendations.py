@@ -62,7 +62,7 @@ class RecommendationTests(TestCase):
                            endorsement='I believe they will contribute positively to your institution.', end_date=None)
 
     def user(self, name, role):
-        u = User.objects.create_user(name, email=name+'@example.com', password='test-password')
+        u = User.objects.create_user(name, email=name+'@example.com', password='test-password', first_name=name.title(), last_name='Person')
         u.profile.role = role; u.profile.joining_date = date(2025, 1, 1); u.profile.save()
         return u
 
@@ -101,7 +101,7 @@ class RecommendationTests(TestCase):
         self.assertEqual(saved.data['draft']['role'], 'employee')
         self.assertEqual(saved.data['draft']['document_type'], 'attendance')
         self.assertEqual(saved.data['draft']['start_date'], '2025-01-01')
-        self.assertEqual(saved.data['draft']['name'], 'employee')
+        self.assertEqual(saved.data['draft']['name'], 'Employee Person')
         self.assertEqual(saved.data['draft']['end_date'], '')
         preview = self.client.get(f'/recommendations/{pk}/pdf/').content
         response = self.client.post(f'/recommendations/{pk}/send/', {'revision': 1}, format='json')
@@ -141,7 +141,7 @@ class RecommendationTests(TestCase):
 
     def test_preview_and_exact_attachment_send_idempotent(self):
         pk = self.request_letter(); saved = self.save(pk)
-        self.assertEqual(saved.data['draft']['name'], 'employee')
+        self.assertEqual(saved.data['draft']['name'], 'Employee Person')
         self.assertEqual(saved.data['draft']['start_date'], '2025-01-01')
         self.assertEqual(saved.data['draft']['end_date'], '')
         verification_id = saved.data['verification_id']

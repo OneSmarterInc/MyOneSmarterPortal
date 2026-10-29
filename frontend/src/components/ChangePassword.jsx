@@ -21,12 +21,12 @@ export default function ChangePassword({ user, onComplete }) {
 
     setLoading(true);
     try {
-      await changePassword({
+      const response = await changePassword({
         username: user.username,
         old_password: oldPassword,
         new_password: newPassword
       });
-      onComplete(); // Triggers the dashboard load
+      onComplete(response.data.letter_token);
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to update password.');
     } finally {

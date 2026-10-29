@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import './workspace.css';
 import Navbar from './components/Navbar';
 import Login from './components/Login';
 import EmployeeLayout from './components/EmployeeLayout';
 import ManagerLayout from './components/ManagerLayout';
 import ChangePassword from './components/ChangePassword';
+import NameGate from './components/NameGate';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -12,7 +12,8 @@ export default function App() {
   useEffect(() => {
     const syncUser = () => {
       const savedUser = localStorage.getItem('user');
-      setUser(savedUser ? JSON.parse(savedUser) : null);
+      try { setUser(savedUser ? JSON.parse(savedUser) : null); }
+      catch { localStorage.removeItem('user'); setUser(null); }
     };
     syncUser();
     window.addEventListener('userUpdated', syncUser);
@@ -24,8 +25,8 @@ export default function App() {
     setUser(null);
   };
 
-  const handlePasswordChanged = () => {
-    const updatedUser = { ...user, is_first_login: false };
+  const handlePasswordChanged = (token) => {
+    const updatedUser = { ...user, letter_token: token, is_first_login: false };
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
   };
@@ -44,11 +45,11 @@ export default function App() {
             <ChangePassword user={user} onComplete={handlePasswordChanged} />
           </div>
         ) : (
-          user.role === 'manager' ? (
+          <NameGate user={user}>{user.role === 'manager' ? (
             <ManagerLayout />
           ) : (
             <EmployeeLayout user={user} />
-          )
+          )}</NameGate>
         )}
       </main>
 

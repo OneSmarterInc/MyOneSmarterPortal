@@ -1,4 +1,4 @@
-import { portalAlert, portalConfirm } from './PortalDialog';
+import { personName } from '../utils/personName';
 import React, { useState, useEffect } from 'react';
 import { getUsers, getLeaveAllocations, createLeaveAllocation, deleteLeaveAllocation, getLeaveRequests } from '../services/api';
 
@@ -24,7 +24,7 @@ export default function ManageLeaves() {
   const [assignmentTag, setAssignmentTag] = useState('');
   const tagOptions = [...new Set(users.flatMap(user => user.tags || []))].sort();
   const filteredUsers = users.filter(user =>
-    (user.username || '').toLowerCase().includes(assignmentSearch.trim().toLowerCase()) &&
+    personName(user).toLowerCase().includes(assignmentSearch.trim().toLowerCase()) &&
     (!assignmentRole || user.role === assignmentRole) &&
     (!assignmentTag || (user.tags || []).includes(assignmentTag))
   );
@@ -81,7 +81,7 @@ export default function ManageLeaves() {
     const name = policyForm.name.trim();
     const days = Number(policyForm.days);
     if (!name || !Number.isFinite(days) || days <= 0 || !Number.isInteger(days * 2)) {
-      portalAlert('Enter a leave name and a positive number of days in half-day increments.');
+      alert('Enter a leave name and a positive number of days in half-day increments.');
       return;
     }
     setPolicies(previous => [...previous, {
@@ -91,8 +91,8 @@ export default function ManageLeaves() {
     setPolicyForm({ name: '', description: '', days: '' });
   };
 
-  const handleDeletePolicy = async (id) => {
-    if (await portalConfirm('Delete this leave type?', true)) {
+  const handleDeletePolicy = (id) => {
+    if (window.confirm('Delete this leave type?')) {
       setPolicies(policies.filter(p => p.id !== id));
     }
   };
@@ -145,12 +145,12 @@ export default function ManageLeaves() {
   };
 
   const handleDeleteAllocation = async (id) => {
-    if (!await portalConfirm('Remove this leave assignment from the employee?', true)) return;
+    if (!window.confirm('Remove this leave assignment from the employee?')) return;
     try {
       await deleteLeaveAllocation(id);
       fetchData();
     } catch (err) {
-      portalAlert('Failed to remove assignment.');
+      alert('Failed to remove assignment.');
     }
   };
 
@@ -250,7 +250,7 @@ export default function ManageLeaves() {
             
             {viewingEmployee && (
               <span className="bg-white border border-slate-200 px-3 py-1 rounded-md text-xs font-semibold text-slate-500 normal-case tracking-normal shadow-none">
-                @{viewingEmployee.username} • {viewingEmployee.role}
+                {personName(viewingEmployee)} • {viewingEmployee.role}
               </span>
             )}
           </div>
@@ -265,7 +265,7 @@ export default function ManageLeaves() {
                   return (
                     <div key={u.id} className="bg-white border border-slate-200 p-5 rounded-xl flex justify-between items-center shadow-none hover:border-slate-300 transition">
                       <div>
-                        <div className="font-semibold text-zinc-900 text-[15px]">@{u.username}</div>
+                        <div className="font-semibold text-zinc-900 text-[15px]">{personName(u)}</div>
                         <div className="text-xs font-bold text-slate-400 normal-case tracking-normal mt-1.5">{u.role}</div>
                       </div>
                       <div className="flex flex-col items-end gap-3">
@@ -428,7 +428,7 @@ export default function ManageLeaves() {
                     className="w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500 cursor-pointer"
                   />
                   <div className="flex flex-col">
-                    <span className="text-sm font-bold text-zinc-900">@{u.username}</span>
+                    <span className="text-sm font-bold text-zinc-900">{personName(u)}</span>
                     <span className="text-xs font-bold text-slate-400 normal-case tracking-normal mt-0.5">{u.role}</span>
                   </div>
                 </label>

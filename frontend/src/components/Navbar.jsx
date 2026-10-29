@@ -1,3 +1,4 @@
+import { personName } from '../utils/personName';
 import React, { useState, useEffect } from 'react';
 import { getProfile, getCalendarAnnouncements, getNotifications, readNotifications } from '../services/api';
 import { Avatar } from './AdminUI';
@@ -120,7 +121,7 @@ export default function Navbar({ user, onLogout }) {
     return () => window.removeEventListener('adminMenuState', syncMenu);
   }, []);
   const [profile,setProfile] = useState(null);
-  useEffect(()=>{let active=true;setProfile(null);if(user?.user_id)getProfile(user.user_id).then(r=>{if(active)setProfile(r.data);}).catch(()=>{});return()=>{active=false;};},[user?.user_id]);
+  useEffect(()=>{let active=true;setProfile(null);if(user?.user_id)getProfile(user.user_id).then(r=>{if(active)setProfile(r.data);}).catch(()=>{});return()=>{active=false;};},[user?.user_id, user?.first_name, user?.last_name]);
   return (
     <header className="workspace-topbar sticky top-0 z-50 border-b border-zinc-200 bg-white/95 shadow-[0_3px_20px_rgba(0,0,0,0.035)] backdrop-blur-xl print:hidden">
       <nav aria-label="Top navigation" className="mx-auto flex min-h-[64px] w-full min-w-0 items-center justify-between gap-1.5 px-2 sm:gap-3 sm:px-7 lg:px-10">
@@ -173,7 +174,7 @@ export default function Navbar({ user, onLogout }) {
               </div>
             </div>}
           </div>}
-          <div className="hidden text-right sm:block"><p className="text-sm font-bold text-zinc-900">{user.username}</p><p className="max-w-[220px] break-words text-[10px] font-semibold uppercase tracking-widest text-red-600">{user.role === 'manager' ? 'Administrator' : profile?.designation?.trim() || (user.role === 'intern' ? 'Intern' : user.role === 'employee' ? 'Employee' : 'Team member')}</p></div>
+          <div className="hidden text-right sm:block"><p className="text-sm font-bold text-zinc-900">{personName(profile || user)}</p><p className="max-w-[220px] break-words text-[10px] font-semibold uppercase tracking-widest text-red-600">{user.role === 'manager' ? 'Administrator' : profile?.designation?.trim() || (user.role === 'intern' ? 'Intern' : user.role === 'employee' ? 'Employee' : 'Team member')}</p></div>
           <span className="hidden sm:inline-flex"><Avatar person={{...profile,username:user.username}} /></span>
           <button type="button" onClick={onLogout} className="rounded-xl border border-zinc-200 bg-white px-3 py-2.5 text-xs font-bold text-zinc-800 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700 sm:px-5">Sign out</button>
         </div> : <div className="flex items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-zinc-600"><span className="h-2 w-2 rounded-full bg-[#c7192d]"/>Secure portal</div>}

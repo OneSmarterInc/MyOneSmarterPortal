@@ -1,3 +1,4 @@
+import { personName } from '../utils/personName';
 import React, { useState, useEffect } from 'react';
 import { getProfile, updateProfile, changePassword } from '../services/api';
 
@@ -103,6 +104,9 @@ export default function EmployeeProfile({ user }) {
 
     try {
       const res = await updateProfile(user.user_id, formData);
+      const saved = JSON.parse(localStorage.getItem('user') || '{}');
+      localStorage.setItem('user', JSON.stringify({ ...saved, first_name: profile.first_name.trim(), last_name: profile.last_name.trim(), full_name: `${profile.first_name.trim()} ${profile.last_name.trim()}` }));
+      window.dispatchEvent(new Event('userUpdated'));
       setMsg({ text: res.data.message, type: 'success' });
     } catch (err) {
       setMsg({ text: 'Failed to update profile.', type: 'error' });
@@ -121,11 +125,14 @@ export default function EmployeeProfile({ user }) {
 
     setPwdLoading(true);
     try {
-      await changePassword({
+      const response = await changePassword({
         username: currentUsername,
         old_password: pwdData.old_password,
         new_password: pwdData.new_password
       });
+      const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      localStorage.setItem('user', JSON.stringify({ ...savedUser, letter_token: response.data.letter_token }));
+      window.dispatchEvent(new Event('userUpdated'));
       setPwdMsg({ text: 'Password updated successfully!', type: 'success' });
       setPwdData({ old_password: '', new_password: '', confirm_password: '' });
     } catch (err) {
@@ -147,7 +154,7 @@ export default function EmployeeProfile({ user }) {
         <div className="h-16 w-16 shrink-0 rounded-full overflow-hidden border border-slate-200 bg-slate-100 flex items-center justify-center text-xl font-semibold text-red-700">
           {photoPreview ? <img src={photoPreview} alt="Profile" className="h-full w-full object-cover"/> : currentUsername?.charAt(0).toUpperCase()}
         </div>
-        <div className="min-w-0"><h2 className="text-lg font-semibold text-zinc-900 break-words">{profile.first_name || profile.last_name ? [profile.first_name,profile.last_name].filter(Boolean).join(' ') : currentUsername}</h2>
+        <div className="min-w-0"><h2 className="text-lg font-semibold text-zinc-900 break-words">{personName(profile)}</h2>
           <p className="text-sm text-slate-600 break-all">{profile.email}</p>
           <span className="mt-2 inline-flex rounded-md bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">{employment.designation?.trim() || (user.role === 'intern' ? 'Intern' : 'Employee')}</span>
         </div>

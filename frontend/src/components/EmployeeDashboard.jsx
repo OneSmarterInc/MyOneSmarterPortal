@@ -1,3 +1,4 @@
+import { personName } from '../utils/personName';
 import React, { useState, useEffect, useRef } from 'react';
 import { getAttendance, getSchedules, getProfile, getLeaveRequests, getLeaveAllocations, getRecommendations } from '../services/api';
 import { Avatar, Icon, Status, localDate } from './AdminUI';
@@ -59,7 +60,7 @@ export default function EmployeeDashboard({ user, onNavigate }) {
   const leaves = own(data.leaves || [], user.user_id, 'user_id');
   const allocations = own(data.allocations || [], user.user_id, 'user_id');
   const profile = data.profile || {};
-  const name = [profile.first_name, profile.last_name].filter(Boolean).join(' ') || user.username;
+  const name = personName(profile);
   const record = history.find(item => item.date === today);
   const configFor = date => (data.schedules || []).find(item => item.date === localDate(date)) || (date.getDay() === 0 ? { day_type: 'Holiday', description: 'Sunday' } : { day_type: 'Working', start_time: '13:00', end_time: '21:00' });
   const config = configFor(now);
@@ -101,7 +102,7 @@ export default function EmployeeDashboard({ user, onNavigate }) {
   }
   const valueOrDash = (ready, value) => !busy && ready ? value : '—';
   return <div className="employee-home">
-    <header className="employee-greeting"><div><h1>{greeting}, {profile.first_name || user.username}</h1><p>Here’s your workday at a glance.</p></div><div className="employee-date"><span>{now.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</span><button className="admin-link" onClick={refresh} disabled={busy || saving}>{busy ? 'Loading…' : 'Refresh'}</button></div></header>
+    <header className="employee-greeting"><div><h1>{greeting}, {personName(profile)}</h1><p>Here’s your workday at a glance.</p></div><div className="employee-date"><span>{now.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</span><button className="admin-link" onClick={refresh} disabled={busy || saving}>{busy ? 'Loading…' : 'Refresh'}</button></div></header>
     {errors.length > 0 && <p className="admin-error" role="alert">Unable to load {errors.join(', ')}. Refresh to try again. Unavailable figures are shown as —.</p>}
     {message && <p className="employee-notice" role="status">{message}</p>}
     {assigned && dismissed !== String(assigned.id) && <div className="employee-notice employee-assignment"><span>Work from home assigned: {dateLabel(assigned.start_date)} – {dateLabel(assigned.end_date)}.</span><button className="admin-link" onClick={() => { localStorage.setItem(`wfh-dismissed-${user.user_id}`, String(assigned.id)); setDismissed(String(assigned.id)); }}>Dismiss</button></div>}

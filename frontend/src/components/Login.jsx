@@ -9,8 +9,8 @@ export default function Login({ setUser }) {
   const [loading, setLoading] = useState(false);
   const handleLogin = async e => {
     e.preventDefault(); setLoading(true); setError('');
-    try { const res = await loginUser({ username, password }); setUser(res.data); localStorage.setItem('user', JSON.stringify(res.data)); }
-    catch (err) { setError(err.response?.data?.error || 'Invalid credentials or connection error.'); }
+    try { const res = await loginUser({ username, password }); localStorage.setItem('user', JSON.stringify(res.data)); setUser(res.data); }
+    catch (err) { setError(err.response?.data?.error || (err.response ? 'Sign-in is temporarily unavailable. Please try again.' : 'Unable to reach the server. Check your connection and try again.')); }
     finally { setLoading(false); }
   };
   return <div className="grid w-full max-w-[1040px] overflow-hidden rounded-[28px] border border-zinc-200 bg-white shadow-[0_30px_90px_rgba(22,22,28,.12)] lg:min-h-[540px] lg:grid-cols-[1.05fr_1fr]">
@@ -32,3 +32,4 @@ export default function Login({ setUser }) {
     </section>
   </div>;
 }
+

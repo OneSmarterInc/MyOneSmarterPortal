@@ -1,4 +1,4 @@
-import { portalAlert, portalConfirm } from './PortalDialog';
+import { personName } from '../utils/personName';
 import React, { useState, useEffect } from 'react';
 import { getUsers, getLeaveRequests, updateLeaveRequest } from '../services/api';
 
@@ -40,7 +40,7 @@ export default function ManageWFH() {
       await updateLeaveRequest(id, { status });
       fetchData();
     } catch (err) {
-      portalAlert('Failed to update status.');
+      alert('Failed to update status.');
     }
   };
 
@@ -61,7 +61,7 @@ export default function ManageWFH() {
     
     // 1. Text match (Name, ID, Reason)
     const matchesText = 
-      item.username.toLowerCase().includes(searchLower) ||
+      personName(emp).toLowerCase().includes(searchLower) ||
       (emp.employee_id && emp.employee_id.toLowerCase().includes(searchLower)) ||
       item.reason.toLowerCase().includes(searchLower);
 
@@ -151,7 +151,7 @@ export default function ManageWFH() {
                             <span className="font-semibold text-slate-500 normal-case">{emp.employee_id || '-'}</span>
                           </td>
                           <td className="p-4">
-                            <div className="font-bold text-zinc-900 text-sm">@{item.username}</div>
+                            <div className="font-bold text-zinc-900 text-sm">{personName(item)}</div>
                             <div className="text-xs font-bold text-slate-400 normal-case tracking-normal mt-0.5">{emp.role}</div>
                           </td>
                           <td className="p-4 font-medium text-zinc-800">{item.start_date}</td>
@@ -195,14 +195,14 @@ export default function ManageWFH() {
                               
                               {/* Action: Reject an Approved Request */}
                               {displayStatus === 'Approved' && !isPast && (
-                                <button onClick={async () => { if (await portalConfirm('Reject this WFH request?')) handleStatusUpdate(item.id, 'Rejected'); }} className="admin-button danger " title="Reject Request">
+                                <button onClick={() => { if(window.confirm('Reject this WFH request?')) handleStatusUpdate(item.id, 'Rejected') }} className="admin-button danger " title="Reject Request">
                                   Reject
                                 </button>
                               )}
 
                               {/* Action: Approve a Rejected Request */}
                               {displayStatus === 'Rejected' && !isPast && (
-                                <button onClick={async () => { if (await portalConfirm('Approve this WFH request?')) handleStatusUpdate(item.id, 'Approved'); }} className="admin-button  " title="Approve Request">
+                                <button onClick={() => { if(window.confirm('Approve this WFH request?')) handleStatusUpdate(item.id, 'Approved') }} className="admin-button  " title="Approve Request">
                                   Approve
                                 </button>
                               )}
