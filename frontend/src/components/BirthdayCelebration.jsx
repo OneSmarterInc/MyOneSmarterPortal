@@ -2,9 +2,13 @@ import React, { useEffect, useState } from 'react';
 import './BirthdayCelebration.css';
 
 const EVENT_DATE = '2026-10-29';
-const dateInIndia = () => new Intl.DateTimeFormat('en-CA', {
-  timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit'
-}).format(new Date()).replace(/^(\d{2})\/(\d{2})\/(\d{4})$/, '$3-$1-$2');
+const dateInIndia = () => {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit'
+  }).formatToParts(new Date());
+  const get = type => parts.find(part => part.type === type)?.value;
+  return `${get('year')}-${get('month')}-${get('day')}`;
+};
 
 export default function BirthdayCelebration({ user }) {
   const [visible, setVisible] = useState(false);
