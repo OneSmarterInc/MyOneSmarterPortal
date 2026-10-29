@@ -108,7 +108,7 @@ export default function EmployeeDashboard({ user, onNavigate }) {
         <h2>Happy Birthday, Sahil! 🎂</h2>
         <p>Wishing Sahil a wonderful birthday filled with happiness, success, and unforgettable moments!</p>
       </div>
-      <img src="/images/sahil-birthday.png" alt="Happy Birthday Sahil celebration poster"
+      <img src="/images/sahil-birthday.jpg" alt="Happy Birthday Sahil celebration poster"
         className="employee-birthday-image" onError={event => { event.currentTarget.style.display = 'none'; }} />
     </section>
     <header className="employee-greeting"><div><h1>{greeting}, {personName(profile)}</h1><p>Here’s your workday at a glance.</p></div><div className="employee-date"><span>{now.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</span><button className="admin-link" onClick={refresh} disabled={busy || saving}>{busy ? 'Loading…' : 'Refresh'}</button></div></header>
