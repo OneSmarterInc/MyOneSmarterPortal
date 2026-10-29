@@ -19,3 +19,11 @@
 .employee-week>div.week-tone-other {border:1px solid #fecaca;border-top:4px solid #ef4444;background:#fff7f7}
 .employee-week>div.week-tone-other span {color:#b91c1c;font-weight:600}
 .employee-week>div.is-today {outline:2px solid #e11d48;outline-offset:2px}
+
+/* Permanent celebration banner above the employee greeting. */
+.employee-birthday-card{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(180px,.7fr);align-items:center;gap:22px;border:1px solid #f9cdd8;background:linear-gradient(120deg,#fff1f2,#fff7ed 60%,#fff);border-radius:16px;padding:20px 24px;overflow:hidden;box-shadow:0 4px 18px #a61b3012}
+.employee-birthday-copy{min-width:0}.employee-birthday-eyebrow{display:inline-block;color:#be123c;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.employee-birthday-copy h2{font-size:clamp(22px,3vw,32px);line-height:1.18;color:#93162d;margin:8px 0 10px;font-weight:800}
+.employee-birthday-copy p{font-size:14px;color:#714353;line-height:1.65;max-width:620px}
+.employee-birthday-image{display:block;width:100%;height:200px;object-fit:cover;object-position:center 38%;border-radius:13px;border:2px solid white;box-shadow:0 6px 22px #6b213523}
+@media(max-width:640px){.employee-birthday-card{grid-template-columns:1fr;padding:16px;gap:14px}.employee-birthday-image{height:190px}.employee-birthday-copy h2{font-size:24px}}
