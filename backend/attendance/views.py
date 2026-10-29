@@ -47,26 +47,6 @@ def validated_birth_date(value):
     return value
 
 
-@api_view(['GET'])
-def birthdays(request):
-    profiles = UserProfile.objects.select_related('user').filter(
-        user__is_active=True, role__in=['employee', 'intern'],
-        date_of_birth__isnull=False,
-    )
-    return Response([
-        {
-            'id': profile.user_id,
-            'name': profile.user.get_full_name().strip() or 'Name not provided',
-            'role': profile.role,
-            'birthday_month': profile.date_of_birth.month,
-            'birthday_day': profile.date_of_birth.day,
-            'profile_photo': request.build_absolute_uri(profile.profile_photo.url)
-                if profile.profile_photo else None,
-        }
-        for profile in profiles
-    ])
-
-
 @api_view(['GET', 'POST'])
 def smtp_settings_view(request):
     settings_obj, created = SMTPSettings.objects.get_or_create(id=1)

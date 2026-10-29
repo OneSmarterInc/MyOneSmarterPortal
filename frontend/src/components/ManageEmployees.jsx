@@ -125,7 +125,6 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
         joining_date: joiningDate,
         date_of_birth: birthDate || null 
       });
-      window.dispatchEvent(new Event('birthdaysUpdated'));
       setMsg({ text: resetPassword ? 'Password reset saved. The employee must sign in with the new temporary password and change it.' : 'Employee updated successfully.', type: 'success' });
       fetchUsers();
       setTimeout(() => setEditingUser(null), 1500);
@@ -314,7 +313,6 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
               <div>
                 <label htmlFor="employee-birthday" className="block text-xs font-bold normal-case tracking-normal text-slate-600 mb-1">Date of Birth</label>
                 <input id="employee-birthday" type="date" value={birthDate} max={today} onChange={e => setBirthDate(e.target.value)} className="w-full border border-slate-300 p-2 text-sm outline-none focus:border-red-500 rounded" />
-                <p className="mt-1 text-xs text-slate-500">Celebrations appear seven days before their birthday. Clear this field to remove it.</p>
               </div>
 
               <div>

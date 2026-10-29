@@ -16,23 +16,8 @@ class BirthdayTests(TestCase):
         self.user.profile.date_of_birth = date(2000, 12, 31)
         self.user.profile.save()
 
-    def test_feed_includes_name_photo_and_month_day_without_birth_year(self):
-        response = self.client.get('/birthdays/')
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.data[0]['name'], 'Alex Smith')
-        self.assertEqual(response.data[0]['birthday_month'], 12)
-        self.assertEqual(response.data[0]['birthday_day'], 31)
-        self.assertIsNone(response.data[0]['profile_photo'])
-        self.assertNotIn('date_of_birth', response.data[0])
-
-    def test_feed_excludes_managers_inactive_users_and_missing_birthdays(self):
-        for role, active, dob in [('manager', True, date(2000, 1, 1)), ('employee', False, date(2000, 1, 1)), ('intern', True, None)]:
-            self.user.profile.role = role
-            self.user.profile.date_of_birth = dob
-            self.user.profile.save()
-            self.user.is_active = active
-            self.user.save()
-            self.assertEqual(self.client.get('/birthdays/').data, [])
+    def test_announcement_feed_removed(self):
+        self.assertEqual(self.client.get('/birthdays/').status_code, 404)
 
     def test_manager_can_set_clear_and_preserve_birthday(self):
         url = f'/users/{self.user.pk}/'

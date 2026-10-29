@@ -48,7 +48,6 @@ export default function AddEmployeeDialog({ onClose, onCreated }) {
       setRole('intern'); 
       setJoiningDate('');
       setBirthDate('');
-      window.dispatchEvent(new Event('birthdaysUpdated'));
       onCreated(); 
     } catch (err) {
       setError(err.response?.data?.error || (err.response?.data ? JSON.stringify(err.response.data) : 'Failed to create account.'));

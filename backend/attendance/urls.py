@@ -7,7 +7,6 @@ from rest_framework.routers import DefaultRouter
 from .views import (
     complete_name,
     AttendanceViewSet,
-    birthdays, 
     register_user, 
     login_user, 
     manager_create_user, 
@@ -41,7 +40,6 @@ urlpatterns = [
     path('recommendations/<int:pk>/pdf/', recommendations.document),
     path('recommendations/<int:pk>/send/', recommendations.send),
     path('recommendations/<int:pk>/reject/', recommendations.reject),
-    path('birthdays/', birthdays, name='birthdays'),
 
 # ... keep existing paths ...
     path('leave-allocations/', leave_allocation_view, name='leave_allocation_view'),

@@ -5,7 +5,6 @@ import EmployeeLayout from './components/EmployeeLayout';
 import ManagerLayout from './components/ManagerLayout';
 import ChangePassword from './components/ChangePassword';
 import NameGate from './components/NameGate';
-import BirthdayCelebration from './components/BirthdayCelebration';
 
 export default function App() {
   const [user, setUser] = useState(null);
@@ -35,7 +34,6 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#f7f7f8] text-zinc-900 flex flex-col justify-between font-sans">
       <Navbar user={user} onLogout={handleLogout} />
-      {user && <BirthdayCelebration user={user} />}
 
       <main className="flex-grow flex w-full">
         {!user ? (
