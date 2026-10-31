@@ -57,6 +57,7 @@ export default function EmployeeDashboard({ user, onNavigate }) {
 
   const today = localDate(now);
   const history = own(data.attendance || [], user.user_id, 'user').sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+  const firstCheckin = history.filter(r => r.check_in).map(r => r.date).sort()[0];
   const leaves = own(data.leaves || [], user.user_id, 'user_id');
   const allocations = own(data.allocations || [], user.user_id, 'user_id');
   const profile = data.profile || {};
@@ -129,6 +130,7 @@ export default function EmployeeDashboard({ user, onNavigate }) {
     </div>
     <section className="employee-card"><div className="employee-card-heading"><h2>Week of {dateLabel(localDate(weekStart))}</h2><div className="employee-week-actions"><button className="admin-button" onClick={() => setWeekOffset(weekOffset - 1)} aria-label="Previous week">←</button><button className="admin-button" onClick={() => setWeekOffset(0)}>Today</button><button className="admin-button" onClick={() => setWeekOffset(weekOffset + 1)} aria-label="Next week">→</button></div></div><div className="employee-week">{week.map(day => { const date = localDate(day), entry = history.find(r => r.date === date), dayConfig = configFor(day);
       const status = !data.attendance || !data.schedules || !data.leaves ? 'Unavailable'
+        : (!firstCheckin || date < firstCheckin) && date < today ? 'Not applicable'
         : approvedLeave(date) ? 'On leave'
         : dayConfig.day_type === 'Holiday' ? 'Holiday'
         : dayConfig.day_type === 'Half-Day' && !entry ? 'Half-day'

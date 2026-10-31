@@ -1,6 +1,9 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
+from django.db.models import OuterRef, Subquery
+import re
+from .attendance_time import current_ist
 import string
 import random
 from rest_framework import viewsets, status, serializers
@@ -547,6 +550,17 @@ class AttendanceViewSet(viewsets.ModelViewSet):
     queryset = Attendance.objects.all().order_by('-date')
     serializer_class = AttendanceSerializer
 
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if self.action == 'list':
+            # Reporting starts at the first actual check-in, including existing
+            # accounts. Retain older rows in storage without counting them.
+            first_checkin = Attendance.objects.filter(
+                user_id=OuterRef('user_id'), check_in__isnull=False
+            ).order_by('date').values('date')[:1]
+            queryset = queryset.filter(date__gte=Subquery(first_checkin))
+        return queryset
+
 @api_view(['GET', 'POST'])
 def leave_requests_list(request):
     if request.method == 'GET':
@@ -695,12 +709,22 @@ def leave_requests_list(request):
 
 @api_view(['POST'])
 @authentication_classes([LetterAuthentication])
+@transaction.atomic
 def complete_name(request):
     if not request.user.is_authenticated:
         return Response({'error': 'Please sign in again.'}, status=401)
     first = serializers.CharField(max_length=150, allow_blank=False).run_validation(request.data.get('first_name'))
     last = serializers.CharField(max_length=150, allow_blank=False).run_validation(request.data.get('last_name'))
+    birth_date = serializers.DateField().run_validation(request.data.get('date_of_birth'))
+    if birth_date > current_ist().date():
+        raise serializers.ValidationError({'date_of_birth': 'Birthday cannot be in the future.'})
+    phone = serializers.CharField(max_length=20, allow_blank=False).run_validation(request.data.get('phone'))
+    if not re.fullmatch(r'\+?[0-9 ()-]+', phone) or not 7 <= len(re.sub(r'\D', '', phone)) <= 15:
+        raise serializers.ValidationError({'phone': 'Enter a valid phone number with 7–15 digits.'})
     user = request.user
+    profile = user.profile
+    profile.date_of_birth, profile.phone = birth_date, phone
+    profile.save(update_fields=['date_of_birth', 'phone'])
     user.first_name, user.last_name = first, last
     user.save(update_fields=['first_name', 'last_name'])
     return Response({'first_name': first, 'last_name': last, 'full_name': user.get_full_name(), 'needs_name': False})
