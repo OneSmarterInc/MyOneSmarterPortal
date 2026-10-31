@@ -6,6 +6,7 @@ import re
 from .attendance_time import current_ist
 import string
 import random
+import smtplib
 from rest_framework import viewsets, status, serializers
 from django.utils import timezone
 from rest_framework.decorators import api_view, authentication_classes
@@ -227,14 +228,15 @@ def manager_create_user(request):
                 username=smtp_config.smtp_username,
                 password=smtp_config.smtp_password,
                 use_tls=use_tls,
-                use_ssl=use_ssl
+                use_ssl=use_ssl,
+                timeout=30
             )
             from_email = smtp_config.sender_email
         else:
             connection = None
             from_email = settings.EMAIL_HOST_USER
 
-        send_mail(
+        delivered = send_mail(
             subject='Welcome to MyOnesmarter - Your Portal Credentials',
             message=plain_message,  
             from_email=from_email,
@@ -243,11 +245,17 @@ def manager_create_user(request):
             html_message=html_content,
             connection=connection
         )
+        if delivered != 1:
+            raise RuntimeError('Email backend did not confirm delivery')
     except Exception as e:
         print("Email sending failed:", e)
-        return Response({'message': f'Account created for {username}, but failed to send email. Password: {temp_password}', 'employee_id': employee_id}, status=status.HTTP_201_CREATED)
+        authentication_error = isinstance(e, smtplib.SMTPAuthenticationError) or getattr(e, 'smtp_code', None) in (530, 535)
+        reason = ('The mail server requires valid authentication. Open Email settings and save the sending mailbox username and password.'
+                  if authentication_error else 'Check the mail server, sender and credentials in Email settings before trying again.')
+        return Response({'message': f'Account created for {user.get_full_name().strip() or username}, but the welcome email was not sent. {reason} Do not create this account again.',
+                         'email_sent': False, 'temporary_password': temp_password, 'employee_id': employee_id}, status=status.HTTP_201_CREATED)
 
-    return Response({'message': f'Account successfully created for {username}. Credentials emailed.', 'employee_id': employee_id}, status=status.HTTP_201_CREATED)
+    return Response({'message': f'Account successfully created for {username}. Credentials emailed.', 'email_sent': True, 'employee_id': employee_id}, status=status.HTTP_201_CREATED)
 
 @api_view(['POST'])
 def login_user(request):

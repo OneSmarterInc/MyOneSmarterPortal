@@ -97,3 +97,16 @@ class NamesAndDeleteTests(TestCase):
         self.assertIn(first, ids)
         self.assertIn(later, ids)
         self.assertTrue(Attendance.objects.filter(pk=early).exists())
+
+    def test_welcome_email_auth_failure_is_not_reported_as_delivery(self):
+        from unittest.mock import patch
+        import smtplib
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {issue_letter_token(self.manager)}')
+        with patch('attendance.views.send_mail', side_effect=smtplib.SMTPSenderRefused(530, b'Authentication required', 'sender@example.com')):
+            response = self.client.post('/manager/create-user/', {'username': 'new-person', 'email': 'new@example.com', 'first_name': 'New', 'last_name': 'Person'})
+        self.assertEqual(response.status_code, 201)
+        self.assertFalse(response.data['email_sent'])
+        self.assertIn('Email settings', response.data['message'])
+        self.assertNotIn(response.data['temporary_password'], response.data['message'])
+        created = User.objects.get(username='new-person')
+        self.assertTrue(created.check_password(response.data['temporary_password']))

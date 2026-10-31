@@ -18,6 +18,7 @@ export default function AddEmployeeDialog({ onClose, onCreated }) {
   
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
+  const [deliveryWarning, setDeliveryWarning] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const handleCreateAccount = async (e) => {
@@ -25,6 +26,7 @@ export default function AddEmployeeDialog({ onClose, onCreated }) {
     setLoading(true);
     setError('');
     setSuccess('');
+    setDeliveryWarning(null);
 
     try {
       const res = await managerCreateUser({ 
@@ -38,7 +40,8 @@ export default function AddEmployeeDialog({ onClose, onCreated }) {
         joining_date: joiningDate,
         date_of_birth: birthDate || null 
       });
-      setSuccess(`${res.data.message}${res.data.employee_id ? ` ID: ${res.data.employee_id}` : ''}`);
+      if (res.data.email_sent === false) setDeliveryWarning(res.data);
+      else setSuccess(`${res.data.message}${res.data.employee_id ? ` ID: ${res.data.employee_id}` : ''}`);
       setDesignation('');
       setTags(''); 
       setUsername(''); 
@@ -66,6 +69,7 @@ export default function AddEmployeeDialog({ onClose, onCreated }) {
         {error && <div className="bg-red-50 border border-red-200 text-red-700 p-2 rounded text-xs font-bold mb-3">{error}</div>}
         {success && <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 p-2 rounded text-xs font-bold mb-3">{success}</div>}
 
+        {deliveryWarning && <div role="alert" className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"><p>{deliveryWarning.message}</p><p className="mt-2">Employee ID: {deliveryWarning.employee_id || 'Pending'}</p><details className="mt-2"><summary className="cursor-pointer font-semibold">Show temporary password for secure handover</summary><code className="mt-2 block select-all">{deliveryWarning.temporary_password}</code><p>The person must change this password on first login.</p></details></div>}
         <form onSubmit={handleCreateAccount} className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-end">
           <div>
             <label htmlFor="managerdashboard-field-1" className="block text-xs font-bold normal-case text-slate-600 mb-1">Emp ID</label>
