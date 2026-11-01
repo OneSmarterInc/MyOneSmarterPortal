@@ -540,7 +540,10 @@ def upcoming_calendar(request):
 
 
 @api_view(['POST'])
+@authentication_classes([LetterAuthentication])
 def save_schedule(request):
+    if not is_manager(request.user):
+        return Response({'error': 'Manager access required.'}, status=403)
     date = request.data.get('date')
     day_type = request.data.get('day_type')
     start_time = request.data.get('start_time') or None
@@ -572,7 +575,10 @@ def save_schedule(request):
     return Response({'message': 'Schedule saved successfully!'}, status=status.HTTP_200_OK)
 
 @api_view(['DELETE'])
+@authentication_classes([LetterAuthentication])
 def delete_schedule(request, date_str):
+    if not is_manager(request.user):
+        return Response({'error': 'Manager access required.'}, status=403)
     try:
         schedule = CompanySchedule.objects.get(date=date_str)
         if schedule.day_type in ('Holiday', 'Half-Day'):
@@ -597,60 +603,24 @@ class AttendanceViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(date__gte=Subquery(first_checkin))
         return queryset
 
-@api_view(['GET', 'POST'])
-@authentication_classes([LetterAuthentication])
-def leave_requests_list(request):
-    if request.method == 'GET':
-        if not request.user.is_authenticated:
-            return Response({'error': 'Please sign in again.'}, status=401)
-        leaves = LeaveRequest.objects.all().order_by('-applied_on')
-        if not is_manager(request.user):
-            leaves = leaves.filter(user=request.user)
-        data = [{
-            'id': l.id,
-            'user_id': l.user.id,
-            'username': l.user.username,
-            'full_name': l.user.get_full_name().strip(),
-            'request_type': l.request_type,
-            'start_date': str(l.start_date),
-            'end_date': str(l.end_date),
-            'reason': l.reason,
-            'status': l.status,
-            'applied_on': str(l.applied_on)
-        } for l in leaves]
-        return Response(data, status=status.HTTP_200_OK)
-    
-    if request.method == 'POST':
-        user_id = request.data.get('user_id')
-        request_type = request.data.get('request_type', 'Leave')
-        start_date = request.data.get('start_date')
-        end_date = request.data.get('end_date')
-        reason = request.data.get('reason')
-        
-        try:
-            user = User.objects.get(id=user_id)
-            LeaveRequest.objects.create(
-                user=user, 
-                request_type=request_type,
-                start_date=start_date, 
-                end_date=end_date, 
-                reason=reason
-            )
-            return Response({'message': f'{request_type} request submitted successfully!'}, status=status.HTTP_201_CREATED)
-        except User.DoesNotExist:
-            return Response({'error': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
-    
 @api_view(['PATCH', 'DELETE'])
+@authentication_classes([LetterAuthentication])
 @transaction.atomic
 def update_leave_request(request, pk):
+    if not request.user.is_authenticated:
+        return Response({'error': 'Please sign in again.'}, status=401)
     try:
         leave = LeaveRequest.objects.select_for_update().get(pk=pk)
         
+        if not is_manager(request.user) and (request.method != 'DELETE' or leave.user_id != request.user.pk or leave.status != 'Pending'):
+            return Response({'error': 'Manager access required, except to withdraw your own pending request.'}, status=403)
         if request.method == 'DELETE':
             leave.delete()
             return Response({'message': 'Leave request deleted successfully.'}, status=status.HTTP_200_OK)
             
         # Existing PATCH logic
+        if request.data.get('status', leave.status) not in ('Pending', 'Approved', 'Rejected'):
+            return Response({'error': 'Invalid leave status.'}, status=400)
         previous_status = leave.status
         leave.status = request.data.get('status', leave.status)
         leave.save()
@@ -663,9 +633,16 @@ def update_leave_request(request, pk):
         return Response({'error': 'Leave request not found.'}, status=status.HTTP_404_NOT_FOUND)
     
 @api_view(['GET', 'POST'])
+@authentication_classes([LetterAuthentication])
 def leave_allocation_view(request):
+    if not request.user.is_authenticated:
+        return Response({'error': 'Please sign in again.'}, status=401)
+    if request.method == 'POST' and not is_manager(request.user):
+        return Response({'error': 'Manager access required.'}, status=403)
     if request.method == 'GET':
         allocations = LeaveAllocation.objects.all().order_by('-allocated_on')
+        if not is_manager(request.user):
+            allocations = allocations.filter(user=request.user)
         data = [{
             'id': a.id,
             'user_id': a.user.id,
@@ -694,7 +671,10 @@ def leave_allocation_view(request):
             return Response({'error': 'Employee not found.'}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['DELETE'])
+@authentication_classes([LetterAuthentication])
 def delete_leave_allocation(request, pk):
+    if not is_manager(request.user):
+        return Response({'error': 'Manager access required.'}, status=403)
     try:
         allocation = LeaveAllocation.objects.get(pk=pk)
         allocation.delete()
@@ -726,13 +706,20 @@ def leave_requests_list(request):
         return Response(data, status=status.HTTP_200_OK)
     
     if request.method == 'POST':
+        if str(request.data.get('request_type', '')).strip().lower() in ('wfh', 'work from home'):
+            from .wfh import submit_request
+            return submit_request(request)
+        if not request.user.is_authenticated:
+            return Response({'error': 'Please sign in again.'}, status=401)
         user_id = request.data.get('user_id')
+        if not is_manager(request.user) and str(user_id) != str(request.user.pk):
+            return Response({'error': 'You can only request leave for yourself.'}, status=403)
         request_type = request.data.get('request_type', 'Leave')
         start_date = request.data.get('start_date')
         end_date = request.data.get('end_date')
         reason = request.data.get('reason')
         # ADD THIS LINE to accept custom status (defaulting to 'Pending')
-        status_val = request.data.get('status', 'Pending') 
+        status_val = request.data.get('status', 'Pending') if is_manager(request.user) else 'Pending'
         
         try:
             user = User.objects.get(id=user_id)

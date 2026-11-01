@@ -129,13 +129,13 @@ export default function Navbar({ user, onLogout }) {
           {user && <button type="button" aria-label="Toggle navigation menu" aria-controls="workspace-navigation" aria-expanded={adminMenuOpen} onClick={() => window.dispatchEvent(new Event('toggleMobileMenu'))} className={`shrink-0 rounded-xl border border-zinc-200 p-2.5 text-zinc-800 transition hover:border-red-200 hover:bg-red-50`}>
             <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" d="M4 7h16M4 12h16M4 17h16"/></svg>
           </button>}
-          <div className="hidden sm:flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-red-100 bg-white p-1 shadow-sm sm:h-11 sm:w-11">
+          <a href={user ? `#/${user.role === 'manager' ? 'manager' : 'employee'}/dashboard` : '#'} aria-label="Go to dashboard" className="hidden sm:flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-red-100 bg-white p-1 shadow-sm sm:h-11 sm:w-11">
             <img src="/images/logo.png" alt="MyOnesmarterPortal logo" className="h-full w-full object-contain" onError={e => { e.currentTarget.style.display = 'none'; }} />
-          </div>
-          <div className="min-w-0">
+          </a>
+          <a href={user ? `#/${user.role === 'manager' ? 'manager' : 'employee'}/dashboard` : '#'} aria-label="Go to dashboard" className="min-w-0">
             <p className="truncate text-sm font-extrabold sm:text-lg leading-tight tracking-[-.045em] text-zinc-950 sm:text-xl">My<span className="text-[#c7192d]">OneSmarter</span></p>
             <p className="hidden sm:block mt-0.5 text-[9px] font-bold uppercase tracking-[.22em] text-zinc-500 sm:text-[10px]">Company workspace</p>
-          </div>
+          </a>
         </div>
         {user ? <div className="flex shrink-0 items-center gap-1.5 sm:gap-4">
           {isEmployee && <div className="relative">

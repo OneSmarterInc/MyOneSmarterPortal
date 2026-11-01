@@ -32,15 +32,15 @@ export const updateUser = (id, data) => API.put(`users/${id}/`, data, letterConf
 export const deleteUser = (id) => API.delete(`users/${id}/`, letterConfig());
 // Append these to your api.js exports
 export const getSchedules = () => API.get('schedules/');
-export const saveSchedule = (data) => API.post('schedules/save/', data);
-export const deleteSchedule = (dateStr) => API.delete(`schedules/${dateStr}/`);
+export const saveSchedule = (data) => API.post('schedules/save/', data, letterConfig());
+export const deleteSchedule = (dateStr) => API.delete(`schedules/${dateStr}/`, letterConfig());
 export const getLeaveRequests = () => API.get('leaves/', letterConfig());
-export const createLeaveRequest = (data) => API.post('leaves/', data);
-export const updateLeaveRequest = (id, data) => API.patch(`leaves/${id}/`, data);
-export const getLeaveAllocations = () => API.get('leave-allocations/');
-export const createLeaveAllocation = (data) => API.post('leave-allocations/', data);
-export const deleteLeaveAllocation = (id) => API.delete(`leave-allocations/${id}/`);
-export const deleteLeaveRequest = (id) => API.delete(`leaves/${id}/`);
+export const createLeaveRequest = (data) => API.post('leaves/', data, letterConfig());
+export const updateLeaveRequest = (id, data) => API.patch(`leaves/${id}/`, data, letterConfig());
+export const getLeaveAllocations = () => API.get('leave-allocations/', letterConfig());
+export const createLeaveAllocation = (data) => API.post('leave-allocations/', data, letterConfig());
+export const deleteLeaveAllocation = (id) => API.delete(`leave-allocations/${id}/`, letterConfig());
+export const deleteLeaveRequest = (id) => API.delete(`leaves/${id}/`, letterConfig());
 
 
 
@@ -63,3 +63,6 @@ export const rejectRecommendation = (id, reason) => API.post(`recommendations/${
 
 
 export const getUpcomingCalendar = () => API.get('upcoming-calendar/', letterConfig());
+
+export const getWFHAllowances = () => API.get('wfh-allowances/', letterConfig());
+export const addWFHAllowance = data => API.post('wfh-allowances/', data, letterConfig());

@@ -1,9 +1,14 @@
+import { istCalendarDate } from '../services/attendanceClock';
 import { personName } from '../utils/personName';
 import React, { useState, useEffect } from 'react';
-import { getUsers, getLeaveRequests, updateLeaveRequest } from '../services/api';
+import { getUsers, getLeaveRequests, updateLeaveRequest, getWFHAllowances, addWFHAllowance } from '../services/api';
 
 export default function ManageWFH() {
   const [users, setUsers] = useState([]);
+  const [allowances, setAllowances] = useState([]);
+  const [allocation, setAllocation] = useState({ user_id: '', days: '' });
+  const [allocating, setAllocating] = useState(false);
+  const [allocationMessage, setAllocationMessage] = useState('');
   const [wfhRecords, setWfhRecords] = useState([]);
   
   // Table Filter & Pagination State
@@ -27,13 +32,27 @@ export default function ManageWFH() {
   async function fetchData() {
     setFetching(true);setFetchError('');
     try {
-      const [userRes, reqRes] = await Promise.all([getUsers(), getLeaveRequests()]);
-      setUsers(userRes.data.filter(u => u.role !== 'manager'));
+      const [userRes, reqRes, allowanceRes] = await Promise.all([getUsers(), getLeaveRequests(), getWFHAllowances()]);
+      setAllowances(allowanceRes.data);
+      setUsers(userRes.data.filter(u => ['employee', 'intern'].includes(u.role)));
       setWfhRecords(reqRes.data.filter(item => ['Work From Home','WFH'].includes(item.request_type)));
     } catch (err) {
       setFetchError('Unable to load this page. Please try again.');
     } finally {setFetching(false);}
   };
+
+  async function allocateDays(e) {
+    e.preventDefault();
+    if (allocating) return;
+    setAllocating(true); setAllocationMessage('');
+    try {
+      await addWFHAllowance({ user_id: Number(allocation.user_id), days: Number(allocation.days) });
+      setAllocationMessage('Work from home days allocated successfully.');
+      setAllocation({ user_id: '', days: '' });
+      await fetchData();
+    } catch (err) { setAllocationMessage(err.response?.data?.error || 'Could not allocate days. Please try again.'); }
+    finally { setAllocating(false); }
+  }
 
   const handleStatusUpdate = async (id, status) => {
     try {
@@ -49,7 +68,7 @@ export default function ManageWFH() {
   };
 
   const getTodayString = () => {
-    const d = new Date();
+    const d = istCalendarDate(new Date());
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
   const todayStr = getTodayString();
@@ -73,7 +92,7 @@ export default function ManageWFH() {
     return matchesText && matchesDate;
   });
 
-  const totalPages = Math.ceil(filteredRecords.length / itemsPerPage);
+  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / itemsPerPage));
   const indexOfLastRecord = currentPage * itemsPerPage;
   const indexOfFirstRecord = indexOfLastRecord - itemsPerPage;
   const currentRecords = filteredRecords.slice(indexOfFirstRecord, indexOfLastRecord);
@@ -91,6 +110,17 @@ export default function ManageWFH() {
       {fetching && <p role="status" className="admin-loading">Loading…</p>}
       <div className="flex flex-col gap-6">
         
+        <section className="admin-panel p-5" aria-labelledby="wfh-allocation-heading">
+          <h2 id="wfh-allocation-heading" className="text-base font-semibold">Allocate work from home days</h2>
+          <p className="text-sm text-slate-500 mt-2">Add an allowance for an employee or intern. They can request dates within their remaining allowance. Each calendar day in a request uses one day; pending requests reserve days.</p>
+          {allocationMessage && <p role="status" className="admin-notice mt-3">{allocationMessage}</p>}
+          <form onSubmit={allocateDays} className="flex flex-wrap items-end gap-3 mt-4">
+            <label className="text-sm">Employee / intern<select required aria-label="WFH allocation employee" className="block border border-slate-300 rounded-lg p-2 mt-1" value={allocation.user_id} onChange={e => setAllocation({ ...allocation, user_id: e.target.value })}><option value="">Select a person</option>{users.map(u => <option key={u.id} value={u.id}>{personName(u)} · {u.role} · {u.employee_id}</option>)}</select></label>
+            <label className="text-sm">Days to add<input required aria-label="WFH days to add" type="number" min="1" max="366" step="1" className="block border border-slate-300 rounded-lg p-2 mt-1 w-32" value={allocation.days} onChange={e => setAllocation({ ...allocation, days: e.target.value })} /></label>
+            <button className="admin-button primary" disabled={allocating || fetching}>{allocating ? 'Allocating…' : 'Allocate days'}</button>
+          </form>
+          <div className="admin-table-scroll mt-5"><table className="admin-table"><thead><tr><th>Team member</th><th>Allocated days</th><th>Used / reserved</th><th>Remaining</th></tr></thead><tbody>{users.map(u => { const a = allowances.find(item => item.user_id === u.id); return <tr key={u.id}><td>{personName(u)} <small className="block text-slate-500">{u.role}</small></td><td>{a?.allocated ?? '—'}</td><td>{a?.reserved ?? '—'}</td><td>{a?.remaining ?? '—'}</td></tr>; })}</tbody></table></div>
+        </section>
         {/* BOTTOM ROW: WFH RECORDS TABLE */}
         <div className="bg-white rounded-lg border border-slate-200 flex flex-col min-h-[260px] shadow-none z-10">
           <div className="p-4 border-b border-slate-100 shrink-0 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

@@ -61,3 +61,12 @@ class UpcomingCalendarTests(TestCase):
         self.assertTrue(all(row['user_id'] == self.employee.pk for row in response.data))
         self.client.credentials()
         self.assertEqual(self.client.get('/leaves/').status_code, 401)
+
+    def test_only_manager_can_change_company_calendar(self):
+        payload = {'date': str(self.today), 'day_type': 'Holiday', 'description': 'Holiday'}
+        self.fetch(self.employee)
+        self.assertEqual(self.client.post('/schedules/save/', payload).status_code, 403)
+        self.assertEqual(self.client.delete(f'/schedules/{self.today}/').status_code, 403)
+        self.fetch(self.manager)
+        self.assertEqual(self.client.post('/schedules/save/', payload).status_code, 200)
+        self.assertEqual(self.client.delete(f'/schedules/{self.today}/').status_code, 200)

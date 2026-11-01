@@ -3,7 +3,8 @@ from django.contrib.auth.models import User
 from django.test import TestCase
 from rest_framework.test import APIClient
 from .letter_auth import issue_letter_token
-from .models import Attendance, LeaveRequest, Notification
+from .models import Attendance, LeaveRequest, Notification, LeaveAllocation
+from .attendance_time import current_ist
 
 
 class NotificationTests(TestCase):
@@ -11,6 +12,11 @@ class NotificationTests(TestCase):
         self.user = User.objects.create_user('owner')
         self.other = User.objects.create_user('other')
         self.client = APIClient()
+        self.manager = User.objects.create_user('manager')
+        self.manager.profile.role = 'manager'
+        self.manager.profile.save()
+        self.user.profile.role = 'employee'
+        self.user.profile.save()
 
     def test_inbox_requires_auth_and_read_is_scoped_to_owner(self):
         mine = Notification.objects.create(user=self.user, title='Approved', message='Your request', destination='leave')
@@ -40,6 +46,7 @@ class NotificationTests(TestCase):
         self.assertEqual(Notification.objects.first().title, 'Check-out approved')
 
     def test_checkin_rejection_and_leave_wfh_decisions(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer '+issue_letter_token(self.manager))
         item = Attendance.objects.create(user=self.user, check_in=time(13), status='Pending')
         self.client.patch(f'/attendance/{item.pk}/', {'status':'Absent'}, format='json')
         self.assertEqual(Notification.objects.first().title, 'Check-in rejected')
@@ -66,7 +73,9 @@ class NotificationTests(TestCase):
         self.assertEqual(data['unread_count'],1)
 
     def test_preapproved_wfh_assignment_notifies_recipient(self):
+        self.client.credentials(HTTP_AUTHORIZATION='Bearer '+issue_letter_token(self.manager))
+        LeaveAllocation.objects.create(user=self.user, leave_type='Work From Home', total_days=1)
         response = self.client.post('/leaves/', {'user_id':self.user.pk, 'request_type':'Work From Home',
-            'start_date':'2026-10-28', 'end_date':'2026-10-28', 'reason':'Assigned by manager', 'status':'Approved'}, format='json')
+            'start_date':str(current_ist().date()), 'end_date':str(current_ist().date()), 'reason':'Assigned by manager', 'status':'Approved'}, format='json')
         self.assertEqual(response.status_code,201)
         self.assertEqual(Notification.objects.get(user=self.user).destination,'wfh')

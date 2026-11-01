@@ -1,6 +1,6 @@
 import UpcomingCalendar from './UpcomingCalendar';
 import './UpcomingCalendar.css';
-import { portalAlert, portalConfirm } from './PortalDialog';
+import { portalAlert } from './PortalDialog';
 import { formatAttendanceTime } from '../utils/attendanceTime';
 import React, { useState, useEffect } from 'react';
 import { getSchedules, saveSchedule, deleteSchedule } from '../services/api';
@@ -80,8 +80,8 @@ export default function ManagerSchedule() {
       await deleteSchedule(editingDate.toLocaleDateString('en-CA'));
       fetchSchedules();
       setEditingDate(null);
-    } catch (err) {
-      setEditingDate(null);
+    } catch {
+      setFetchError('Could not reset the day. Please try again.');
     } finally {
       setIsSaving(false);
     }
