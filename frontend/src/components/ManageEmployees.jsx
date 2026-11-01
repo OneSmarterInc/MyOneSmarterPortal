@@ -1,22 +1,31 @@
+import ManagerDialog from './ManagerDialog';
+import './LeaveManagement.css';
 import RecordTable from './RecordTable';
 import { personName } from '../utils/personName';
 import { portalAlert, portalConfirm } from './PortalDialog';
 import './PeopleDirectory.css';
 import { Avatar, Icon, Status } from './AdminUI';
 import React, { useState, useEffect } from 'react';
-import { getUsers, updateUser, deleteUser, getProfile } from '../services/api';
+import { getUsers, updateUser, deleteUser, getProfile, setUserAccess } from '../services/api';
 
 export default function ManageEmployees({ onAddEmployee, initialUserId = null }) {
   const [users, setUsers] = useState([]);
+  const [accessFilter, setAccessFilter] = useState('active');
+  const [viewerId] = useState(() => { try { return JSON.parse(localStorage.getItem('user') || '{}').user_id; } catch { return null; } });
+  const [accessBusy, setAccessBusy] = useState(null);
+  const [passwordTarget, setPasswordTarget] = useState(null);
+  const [passwordForm, setPasswordForm] = useState({ password: '', confirmation: '', show: false });
+  const [passwordBusy, setPasswordBusy] = useState(false);
+  const [passwordError, setPasswordError] = useState('');
   const [copiedEmail, setCopiedEmail] = useState('');
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('');
   const [tagFilter, setTagFilter] = useState('');
   const [fetching, setFetching] = useState(true);
   const [fetchError, setFetchError] = useState('');
-  const team = users.filter(u=>['employee','intern','student'].includes(u.role));
+  const team = users;
   const tagOptions = [...new Set(team.flatMap(u=>u.tags||[]))].sort();
-  const visible = team.filter(u=>(!roleFilter||u.role===roleFilter)&&(!tagFilter||(u.tags||[]).includes(tagFilter))&&[personName(u),u.employee_id,u.email,u.designation,u.role,u.date_of_birth,u.monthly_attendance ? `${u.monthly_attendance.attended_days}/${u.monthly_attendance.total_working_days}` : '',...(u.tags||[])].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
+  const visible = team.filter(u=>(accessFilter === 'all' || (u.is_active !== false) === (accessFilter === 'active'))&&(!roleFilter||u.role===roleFilter)&&(!tagFilter||(u.tags||[]).includes(tagFilter))&&[personName(u),u.employee_id,u.email,u.designation,u.role,u.date_of_birth,u.monthly_attendance ? `${u.monthly_attendance.attended_days}/${u.monthly_attendance.total_working_days}` : '',...(u.tags||[])].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
 
   const [editingUser, setEditingUser] = useState(null);
   const [email, setEmail] = useState('');
@@ -47,12 +56,33 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
   async function fetchUsers() {
     setFetching(true);setFetchError('');
     try {
-      const res = await getUsers();
+      const res = await getUsers({ include_inactive: true });
       setUsers(res.data);
     } catch {
       setFetchError('Unable to load people. Please try again.');
     } finally {setFetching(false);}
   };
+
+  async function toggleAccess(user) {
+    const active = user.is_active !== false;
+    if (!await portalConfirm(`${active ? 'Revoke access for' : 'Restore access for'} ${personName(user)}?${active ? ' Sign-in will be disabled. Existing records will be kept.' : ''}`, active)) return;
+    setAccessBusy(user.id);
+    try { const {data} = await setUserAccess(user.id, !active); setMsg({text:data.message,type:'success'}); await fetchUsers(); }
+    catch(e) { setMsg({text:e.response?.data?.error || 'Could not change access.',type:'error'}); }
+    finally { setAccessBusy(null); }
+  }
+  async function resetPersonPassword(e) {
+    e.preventDefault();
+    if (passwordBusy) return;
+    if (passwordForm.password !== passwordForm.confirmation) { setPasswordError('Passwords do not match.'); return; }
+    setPasswordBusy(true);setPasswordError('');
+    try {
+      const {data} = await updateUser(passwordTarget.id, {reset_password:true,password:passwordForm.password});
+      if (data.letter_token) { const saved=JSON.parse(localStorage.getItem('user') || '{}'); localStorage.setItem('user',JSON.stringify({...saved,letter_token:data.letter_token}));window.dispatchEvent(new Event('userUpdated')); }
+      setMsg({text:'Password reset. Share the temporary password securely; the user must change it at next login.',type:'success'});setPasswordTarget(null);setPasswordForm({password:'',confirmation:'',show:false});
+    } catch(e) { setPasswordError(e.response?.data?.error || 'Could not reset password.'); }
+    finally { setPasswordBusy(false); }
+  }
 
   const copyEmail = async address => {
     if (!address) return;
@@ -153,7 +183,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
   return (
     <div className="w-full max-w-7xl space-y-5 relative">
       <header className="admin-page-heading"><div><h1>People directory</h1><p>Manage your team’s profiles and monthly attendance.</p></div><button className="admin-button primary" onClick={onAddEmployee}>+ Onboard employee</button></header>
-      <div className="admin-toolbar"><input type="search" aria-label="Search people" placeholder="Search name, ID, email, birthday, designation or tag…" value={query} onChange={e=>{setQuery(e.target.value);}}/><select aria-label="Filter by role" value={roleFilter} onChange={e=>{setRoleFilter(e.target.value);}}><option value="">All roles</option><option value="employee">Employees</option><option value="intern">Interns</option></select><select aria-label="Filter by tag" value={tagFilter} onChange={e=>{setTagFilter(e.target.value);}}><option value="">All tags</option>{tagOptions.map(t=><option key={t}>{t}</option>)}</select><span className="text-xs text-slate-500">{visible.length} people</span></div>
+      <div className="admin-toolbar"><input type="search" aria-label="Search people" placeholder="Search name, ID, email, birthday, designation or tag…" value={query} onChange={e=>{setQuery(e.target.value);}}/><select aria-label="Filter by role" value={roleFilter} onChange={e=>{setRoleFilter(e.target.value);}}><option value="">All roles</option><option value="employee">Employees</option><option value="intern">Interns</option><option value="manager">Managers</option></select><select aria-label="Filter by tag" value={tagFilter} onChange={e=>{setTagFilter(e.target.value);}}><option value="">All tags</option>{tagOptions.map(t=><option key={t}>{t}</option>)}</select><select aria-label="Filter by access" value={accessFilter} onChange={e=>setAccessFilter(e.target.value)}><option value="active">Active access</option><option value="revoked">Revoked access</option><option value="all">All access</option></select><span className="text-xs text-slate-500">{visible.length} people</span></div>
       {fetchError && <p role="alert" className="admin-error">{fetchError} <button onClick={fetchUsers}>Try again</button></p>}
       {msg.type === 'success' && msg.text && <p role="status" className="text-sm text-emerald-700">{msg.text}</p>}
       {copiedEmail && <p role="status" className="text-sm text-emerald-700">Copied email: {copiedEmail}</p>}
@@ -161,7 +191,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
       {fetching ? <p className="admin-empty">Loading people…</p> : <div className="admin-panel overflow-hidden">
         <div className="overflow-x-auto">
           <RecordTable label="People directory" searchable={false}><table className="admin-table people-directory-table w-full">
-            <thead><tr><th>Employee</th><th>Employee ID</th><th>Role</th><th>Email (click to copy)</th><th>Date of birth</th><th>Attendance this month</th><th className="text-right">Actions</th></tr></thead>
+            <thead><tr><th>Employee</th><th>Employee ID</th><th>Role</th><th>Email (click to copy)</th><th>Date of birth</th><th>Attendance this month</th><th>Access</th><th className="text-right">Actions</th></tr></thead>
             <tbody>{visible.map(u => <tr key={u.id}>
               <td><button type="button" onClick={() => openProfileView(u)} className="admin-person text-left hover:text-red-700" aria-label={`View profile for ${personName(u)}`}><Avatar person={u}/><span><span className="font-semibold">{personName(u)}</span></span></button></td>
               <td>{u.employee_id || '—'}</td>
@@ -169,13 +199,16 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
               <td>{u.email ? <button type="button" title="Copy email address" aria-label={`Copy email address ${u.email}`} className="text-red-700 hover:underline break-all text-left" onClick={() => copyEmail(u.email)}>{u.email} {copiedEmail === u.email ? '✓ Copied' : '⧉'}</button> : <span className="text-slate-400">No email</span>}</td>
               <td data-sort-value={u.date_of_birth || ''}>{u.date_of_birth ? new Date(`${u.date_of_birth}T12:00:00`).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) : '—'}</td>
               <td data-sort-value={u.monthly_attendance?.attended_days ?? ''}>{u.monthly_attendance ? <span title="Approved Present/Late check-ins on scheduled working days. Full current month, excluding dates before joining. Holidays excluded; half-days count as one working day."><strong>{u.monthly_attendance.attended_days}/{u.monthly_attendance.total_working_days}</strong><small className="block text-slate-500">{u.monthly_attendance.month}</small></span> : '—'}</td>
-              <td><div className="people-directory-actions"><button type="button" className="people-icon-button" title="View profile" aria-label={`View profile for ${personName(u)}`} onClick={() => openProfileView(u)}><Icon name="eye" /></button><button type="button" className="people-icon-button" title="Edit employee" aria-label={`Edit ${personName(u)}`} onClick={() => startEdit(u)}><Icon name="edit" /></button><button type="button" className="people-icon-button people-icon-delete" title="Delete employee" aria-label={`Delete ${personName(u)}`} onClick={() => handleDelete(u.id)}><Icon name="trash" /></button></div></td>
+              <td><span className={`admin-badge ${u.is_active === false ? 'text-red-700' : 'text-emerald-700'}`}>{u.is_active === false ? 'Revoked' : 'Active'}</span></td>
+              <td><div className="people-directory-actions"><button type="button" className="people-icon-button" title="View profile" aria-label={`View profile for ${personName(u)}`} onClick={() => openProfileView(u)}><Icon name="eye" /></button><button type="button" className="people-icon-button" title="Edit employee" aria-label={`Edit ${personName(u)}`} onClick={() => startEdit(u)}><Icon name="edit" /></button><button type="button" className="people-icon-button" title="Reset password" aria-label={`Reset password for ${personName(u)}`} onClick={()=>{setPasswordTarget(u);setPasswordForm({password:'',confirmation:'',show:false});setPasswordError('');}}><Icon name="key" /></button><button type="button" className="people-icon-button" disabled={accessBusy === u.id || u.id === viewerId} title={u.id === viewerId ? 'You cannot revoke your own access' : u.is_active === false ? 'Restore access' : 'Revoke access'} aria-label={`${u.is_active === false ? 'Restore' : 'Revoke'} access for ${personName(u)}`} onClick={()=>toggleAccess(u)}><Icon name={u.is_active === false ? 'unlock' : 'lock'} /></button><button type="button" className="people-icon-button people-icon-delete" title="Delete employee" aria-label={`Delete ${personName(u)}`} onClick={() => handleDelete(u.id)}><Icon name="trash" /></button></div></td>
             </tr>)}</tbody>
           </table></RecordTable>
         </div>
 
       </div>}
       {!fetching&&!fetchError&&!visible.length&&<p className="admin-empty">No people match your filters.</p>}
+
+      {passwordTarget && <ManagerDialog title={`Reset password · ${personName(passwordTarget)}`} busy={passwordBusy} onClose={()=>{setPasswordTarget(null);setPasswordForm({password:'',confirmation:'',show:false});}}>{passwordError && <p className="admin-error" role="alert">{passwordError}</p>}<form className="leave-type-form" onSubmit={resetPersonPassword}><label>Temporary password<input type={passwordForm.show ? 'text' : 'password'} autoComplete="new-password" required minLength={8} value={passwordForm.password} onChange={e=>setPasswordForm({...passwordForm,password:e.target.value})}/></label><label>Confirm temporary password<input type={passwordForm.show ? 'text' : 'password'} autoComplete="new-password" required minLength={8} value={passwordForm.confirmation} onChange={e=>setPasswordForm({...passwordForm,confirmation:e.target.value})}/></label><label><span><input type="checkbox" checked={passwordForm.show} onChange={e=>setPasswordForm({...passwordForm,show:e.target.checked})}/> Show password</span></label><p className="text-sm text-slate-500">Share the temporary password securely. The person must change it when they next sign in.</p><button className="admin-button primary" disabled={passwordBusy}>{passwordBusy ? 'Resetting…' : 'Reset password'}</button></form></ManagerDialog>}
 
       {viewingProfile && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[80] p-4">

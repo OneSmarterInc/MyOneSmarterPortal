@@ -27,7 +27,7 @@ export const saveSMTPSettings = (data) => API.post('smtp-settings/', data);
 // Add this line to your existing exports
 export const changePassword = (data) => API.post('change-password/', data);
 // Add these exports at the bottom of the file
-export const getUsers = () => API.get('users/', letterConfig());
+export const getUsers = (params) => API.get('users/', { ...letterConfig(), params });
 export const updateUser = (id, data) => API.put(`users/${id}/`, data, letterConfig());
 export const deleteUser = (id) => API.delete(`users/${id}/`, letterConfig());
 // Append these to your api.js exports
@@ -66,3 +66,11 @@ export const getUpcomingCalendar = () => API.get('upcoming-calendar/', letterCon
 
 export const getWFHAllowances = () => API.get('wfh-allowances/', letterConfig());
 export const addWFHAllowance = data => API.post('wfh-allowances/', data, letterConfig());
+
+export const getLeaveTypes = () => API.get('leave-types/', letterConfig());
+export const createLeaveType = data => API.post('leave-types/', data, letterConfig());
+export const editLeaveType = (id, data) => API.patch(`leave-types/${id}/`, data, letterConfig());
+export const deleteLeaveType = id => API.delete(`leave-types/${id}/`, letterConfig());
+export const allocateLeaveType = (id, user_ids) => API.post(`leave-types/${id}/allocate/`, { user_ids }, letterConfig());
+
+export const setUserAccess = (id, is_active) => API.patch(`users/${id}/access/`, { is_active }, letterConfig());

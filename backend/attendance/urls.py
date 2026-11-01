@@ -3,6 +3,7 @@ from django.urls import path, include
 from . import recommendations
 from . import notifications
 from . import wfh
+from . import leave_types
 from . import attendance_clock
 from rest_framework.routers import DefaultRouter
 from .views import (
@@ -15,6 +16,7 @@ from .views import (
     change_password, 
     get_all_users, 
     manage_user,
+    user_access,
     employee_profile, 
     calendar_announcements,
     upcoming_calendar,
@@ -54,10 +56,14 @@ urlpatterns = [
     path('smtp-settings/', smtp_settings_view, name='smtp_settings'),
     path('change-password/', change_password, name='change_password'),
     path('users/', get_all_users, name='get_all_users'),
+    path('users/<int:pk>/access/', user_access),
     path('users/<int:pk>/', manage_user, name='manage_user'),
     path('profile/<int:user_id>/', employee_profile, name='employee_profile'),
     
     # Scheduled Calendar URLs
+    path('leave-types/', leave_types.types),
+    path('leave-types/<int:pk>/', leave_types.type_detail),
+    path('leave-types/<int:pk>/allocate/', leave_types.allocate),
     path('wfh-allowances/', wfh.allowances, name='wfh_allowances'),
     path('upcoming-calendar/', upcoming_calendar, name='upcoming_calendar'),
     path('calendar-announcements/', calendar_announcements, name='calendar_announcements'),

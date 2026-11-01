@@ -13,6 +13,7 @@ class UserProfile(models.Model):
     )
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='student')
+    access_version = models.PositiveIntegerField(default=0)
     is_first_login = models.BooleanField(default=True)
     
     # Personal Info Fields
@@ -160,7 +161,7 @@ class LeaveRequest(models.Model):
 class LeaveAllocation(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='leave_allocations')
     leave_type = models.CharField(max_length=100) # e.g., 'Sick Leave', 'Hospitalization Leave'
-    total_days = models.PositiveIntegerField(default=0)
+    total_days = models.DecimalField(max_digits=6, decimal_places=1, default=0)
     allocated_on = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -185,3 +186,13 @@ class RecommendationRequest(models.Model):
 
     class Meta:
         ordering = ['-created_at', '-id']
+
+
+class LeaveType(models.Model):
+    name = models.CharField(max_length=100, unique=True)
+    days = models.DecimalField(max_digits=6, decimal_places=1)
+    description = models.TextField(blank=True, default='')
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ['name', 'id']

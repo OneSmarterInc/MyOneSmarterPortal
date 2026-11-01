@@ -1,12 +1,13 @@
-.admin-workspace .people-directory-table { table-layout: fixed; min-width: 960px; }
+.admin-workspace .people-directory-table { table-layout: fixed; min-width: 1100px; }
 .admin-workspace .people-directory-table th,
 .admin-workspace .people-directory-table td { padding: 12px; white-space: normal; vertical-align: middle; }
-.people-directory-table th:first-child { width: 23%; }
+.people-directory-table th:first-child { width: 20%; }
 .people-directory-table th:nth-child(2) { width: 150px; }
 .people-directory-table th:nth-child(3) { width: 90px; }
 .people-directory-table th:nth-child(5) { width: 130px; }
 .people-directory-table th:nth-child(6) { width: 140px; }
-.people-directory-table th:last-child { width: 128px; }
+.people-directory-table th:nth-child(7) { width: 88px; }
+.people-directory-table th:last-child { width: 208px; }
 .people-directory-table .admin-person { width: 100%; }
 .people-directory-table .admin-person > span:last-child { min-width: 0; overflow-wrap: anywhere; }
 .people-directory-table .admin-avatar { flex-shrink: 0; }
@@ -18,3 +19,5 @@
 .people-icon-delete:hover { background: #fff1f2; border-color: #fda4af; }
 .people-icon-button:focus-visible { outline: 2px solid #c7192d; outline-offset: 2px; }
 @media (pointer: coarse) { .people-icon-button { height: 44px; } }
+
+.people-icon-button:disabled { opacity: .45; cursor: not-allowed; }
