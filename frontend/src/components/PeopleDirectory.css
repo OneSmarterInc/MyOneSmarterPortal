@@ -1,0 +1,20 @@
+.admin-workspace .people-directory-table { table-layout: fixed; min-width: 960px; }
+.admin-workspace .people-directory-table th,
+.admin-workspace .people-directory-table td { padding: 12px; white-space: normal; vertical-align: middle; }
+.people-directory-table th:first-child { width: 23%; }
+.people-directory-table th:nth-child(2) { width: 150px; }
+.people-directory-table th:nth-child(3) { width: 90px; }
+.people-directory-table th:nth-child(5) { width: 130px; }
+.people-directory-table th:nth-child(6) { width: 140px; }
+.people-directory-table th:last-child { width: 128px; }
+.people-directory-table .admin-person { width: 100%; }
+.people-directory-table .admin-person > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.people-directory-table .admin-avatar { flex-shrink: 0; }
+.people-directory-table td:nth-child(4) button { overflow-wrap: anywhere; word-break: normal; }
+.people-directory-actions { display: flex; flex-wrap: nowrap; justify-content: flex-end; gap: 4px; }
+.people-icon-button { display: inline-flex; flex: 0 0 32px; align-items: center; justify-content: center; width: 32px; height: 34px; padding: 0; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; color: #475569; }
+.people-icon-button:hover { background: #f8fafc; border-color: #94a3b8; }
+.people-icon-delete { color: #b91c32; }
+.people-icon-delete:hover { background: #fff1f2; border-color: #fda4af; }
+.people-icon-button:focus-visible { outline: 2px solid #c7192d; outline-offset: 2px; }
+@media (pointer: coarse) { .people-icon-button { height: 44px; } }

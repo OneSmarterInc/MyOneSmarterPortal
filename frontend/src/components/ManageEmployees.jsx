@@ -1,7 +1,8 @@
 import RecordTable from './RecordTable';
 import { personName } from '../utils/personName';
 import { portalAlert, portalConfirm } from './PortalDialog';
-import { Avatar, Status } from './AdminUI';
+import './PeopleDirectory.css';
+import { Avatar, Icon, Status } from './AdminUI';
 import React, { useState, useEffect } from 'react';
 import { getUsers, updateUser, deleteUser, getProfile } from '../services/api';
 
@@ -151,7 +152,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
 
   return (
     <div className="w-full max-w-7xl space-y-5 relative">
-      <header className="admin-page-heading"><div><h1>People directory</h1><p>Manage your team’s profiles, designations and tags.</p></div><button className="admin-button primary" onClick={onAddEmployee}>+ Onboard employee</button></header>
+      <header className="admin-page-heading"><div><h1>People directory</h1><p>Manage your team’s profiles and monthly attendance.</p></div><button className="admin-button primary" onClick={onAddEmployee}>+ Onboard employee</button></header>
       <div className="admin-toolbar"><input type="search" aria-label="Search people" placeholder="Search name, ID, email, birthday, designation or tag…" value={query} onChange={e=>{setQuery(e.target.value);}}/><select aria-label="Filter by role" value={roleFilter} onChange={e=>{setRoleFilter(e.target.value);}}><option value="">All roles</option><option value="employee">Employees</option><option value="intern">Interns</option></select><select aria-label="Filter by tag" value={tagFilter} onChange={e=>{setTagFilter(e.target.value);}}><option value="">All tags</option>{tagOptions.map(t=><option key={t}>{t}</option>)}</select><span className="text-xs text-slate-500">{visible.length} people</span></div>
       {fetchError && <p role="alert" className="admin-error">{fetchError} <button onClick={fetchUsers}>Try again</button></p>}
       {msg.type === 'success' && msg.text && <p role="status" className="text-sm text-emerald-700">{msg.text}</p>}
@@ -159,18 +160,16 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
       {msg.type === 'error' && msg.text && <p role="alert" className="admin-error">{msg.text}</p>}
       {fetching ? <p className="admin-empty">Loading people…</p> : <div className="admin-panel overflow-hidden">
         <div className="overflow-x-auto">
-          <RecordTable label="People directory" searchable={false}><table className="admin-table w-full">
-            <thead><tr><th>Employee</th><th>Employee ID</th><th>Role</th><th>Designation</th><th>Email (click to copy)</th><th>Tags</th><th>Date of birth</th><th>Attendance this month</th><th className="text-right">Actions</th></tr></thead>
+          <RecordTable label="People directory" searchable={false}><table className="admin-table people-directory-table w-full">
+            <thead><tr><th>Employee</th><th>Employee ID</th><th>Role</th><th>Email (click to copy)</th><th>Date of birth</th><th>Attendance this month</th><th className="text-right">Actions</th></tr></thead>
             <tbody>{visible.map(u => <tr key={u.id}>
-              <td><button type="button" onClick={() => openProfileView(u)} className="admin-person text-left hover:text-red-700" aria-label={`View profile for ${personName(u)}`}><Avatar person={u}/><span><span className="font-semibold">{personName(u)}</span><span className="block text-xs text-slate-500 mt-1">{u.employee_id}</span></span></button></td>
+              <td><button type="button" onClick={() => openProfileView(u)} className="admin-person text-left hover:text-red-700" aria-label={`View profile for ${personName(u)}`}><Avatar person={u}/><span><span className="font-semibold">{personName(u)}</span></span></button></td>
               <td>{u.employee_id || '—'}</td>
               <td><Status value={u.role}/></td>
-              <td>{u.designation || '—'}</td>
               <td>{u.email ? <button type="button" title="Copy email address" aria-label={`Copy email address ${u.email}`} className="text-red-700 hover:underline break-all text-left" onClick={() => copyEmail(u.email)}>{u.email} {copiedEmail === u.email ? '✓ Copied' : '⧉'}</button> : <span className="text-slate-400">No email</span>}</td>
-              <td><div className="flex flex-wrap gap-1">{(u.tags || []).length ? u.tags.map(tag => <span key={tag} className="admin-badge">{tag}</span>) : '—'}</div></td>
               <td data-sort-value={u.date_of_birth || ''}>{u.date_of_birth ? new Date(`${u.date_of_birth}T12:00:00`).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) : '—'}</td>
               <td data-sort-value={u.monthly_attendance?.attended_days ?? ''}>{u.monthly_attendance ? <span title="Approved Present/Late check-ins on scheduled working days. Full current month, excluding dates before joining. Holidays excluded; half-days count as one working day."><strong>{u.monthly_attendance.attended_days}/{u.monthly_attendance.total_working_days}</strong><small className="block text-slate-500">{u.monthly_attendance.month}</small></span> : '—'}</td>
-              <td><div className="flex flex-wrap justify-end gap-2"><button type="button" className="admin-button" onClick={() => openProfileView(u)}>View profile</button><button type="button" className="admin-button" onClick={() => startEdit(u)}>Edit</button><button type="button" className="admin-link" aria-label={`Delete ${personName(u)}`} onClick={() => handleDelete(u.id)}>Delete</button></div></td>
+              <td><div className="people-directory-actions"><button type="button" className="people-icon-button" title="View profile" aria-label={`View profile for ${personName(u)}`} onClick={() => openProfileView(u)}><Icon name="eye" /></button><button type="button" className="people-icon-button" title="Edit employee" aria-label={`Edit ${personName(u)}`} onClick={() => startEdit(u)}><Icon name="edit" /></button><button type="button" className="people-icon-button people-icon-delete" title="Delete employee" aria-label={`Delete ${personName(u)}`} onClick={() => handleDelete(u.id)}><Icon name="trash" /></button></div></td>
             </tr>)}</tbody>
           </table></RecordTable>
         </div>
