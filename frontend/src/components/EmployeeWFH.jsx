@@ -1,3 +1,4 @@
+import RecordTable from './RecordTable';
 import { istCalendarDate } from '../services/attendanceClock';
 import { portalAlert, portalConfirm } from './PortalDialog';
 import React, { useState, useEffect } from 'react';
@@ -7,30 +8,23 @@ export default function EmployeeWFH({ user }) {
   const [history, setHistory] = useState([]);
   const [allowance, setAllowance] = useState(null);
   const [fetchError, setFetchError] = useState('');
-  
+
   const [formData, setFormData] = useState({
     start_date: '',
     end_date: '',
     reason: ''
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ text: '', type: '' });
 
   // Table Filter & Pagination State
-  const [searchQuery, setSearchQuery] = useState('');
   const [filterDate, setFilterDate] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchData();
   }, []);
 
-  // Reset to page 1 when any filter changes
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [searchQuery, filterDate]);
 
   const fetchData = async () => {
     try {
@@ -62,7 +56,7 @@ export default function EmployeeWFH({ user }) {
       setMsg({ text: 'Select a start date, then an end date on or after it.', type: 'error' });
       return;
     }
-    
+
     const hasDuplicate = history.some(record => 
       record.status !== 'Rejected' && 
       (newStart <= record.end_date && newEnd >= record.start_date)
@@ -89,7 +83,7 @@ export default function EmployeeWFH({ user }) {
         reason: formData.reason,
         status: 'Pending' // Explicitly starts as Pending for employees
       });
-      
+
       setMsg({ text: 'WFH REQUEST SUBMITTED SUCCESSFULLY.', type: 'success' });
       setFormData({ start_date: '', end_date: '', reason: '' });
       fetchData(); 
@@ -113,30 +107,13 @@ export default function EmployeeWFH({ user }) {
 
   // --- Filtering & Pagination Logic ---
   const filteredRecords = history.filter(item => {
-    const searchLower = searchQuery.toLowerCase();
-    
-    // 1. Text match (Reason or Status)
-    const matchesText = 
-      item.reason.toLowerCase().includes(searchLower) ||
-      item.status.toLowerCase().includes(searchLower);
-
-    // 2. Single Date Filter (checks if chosen date falls between start and end)
     const matchesDate = filterDate 
       ? (item.start_date <= filterDate && item.end_date >= filterDate) 
       : true;
 
-    return matchesText && matchesDate;
+    return matchesDate;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / itemsPerPage));
-  const indexOfLastRecord = currentPage * itemsPerPage;
-  const indexOfFirstRecord = indexOfLastRecord - itemsPerPage;
-  const currentRecords = filteredRecords.slice(indexOfFirstRecord, indexOfLastRecord);
-
-  const handlePageChange = (direction) => {
-    if (direction === 'next' && currentPage < totalPages) setCurrentPage(prev => prev + 1);
-    if (direction === 'prev' && currentPage > 1) setCurrentPage(prev => prev - 1);
-  };
 
   const summary = {
     pending: history.filter(item => item.status === 'Pending').length,
@@ -145,7 +122,7 @@ export default function EmployeeWFH({ user }) {
   };
   return (
     <div className="w-full min-w-0 max-w-7xl flex flex-col gap-5 relative">
-      
+
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <p className="mb-1 text-xs font-semibold uppercase tracking-[.14em] text-red-700">Employee workspace / Flexible work</p>
@@ -165,13 +142,13 @@ export default function EmployeeWFH({ user }) {
         </div>)}
       </div>
       <div className="flex flex-col gap-6 flex-grow min-h-0">
-        
+
         {/* TOP ROW: Application Form */}
         <div className="bg-white rounded-xl border border-slate-200 flex flex-col shrink-0">
           <div className="px-5 py-4 border-b border-slate-100">
             <h3 className="text-base font-semibold text-zinc-900">Request work from home</h3>
           </div>
-          
+
           <div className="p-5">
             {msg.text && (
               <div className={`p-3 mb-5 rounded-lg text-[10px] font-bold uppercase tracking-wide ${msg.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
@@ -180,7 +157,7 @@ export default function EmployeeWFH({ user }) {
             )}
 
             <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-5 items-end">
-              
+
               {/* Dates Block */}
               <div className="min-w-0 w-full grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
@@ -212,16 +189,9 @@ export default function EmployeeWFH({ user }) {
         <div className="bg-white rounded-xl border border-slate-200 flex flex-col flex-grow min-h-[360px]">
           <div className="p-5 border-b border-slate-100 shrink-0 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <h3 className="text-base font-semibold text-zinc-900 shrink-0">Request history</h3>
-            
+
             {/* Filter Controls */}
             <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-              <input 
-                type="text" 
-                placeholder="Search reason..." 
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                className="border border-slate-300 p-2 rounded-lg text-xs w-full md:w-48 outline-none focus:border-red-500 bg-slate-50"
-              />
               <div className="flex items-center gap-2">
                 <span className="text-[9px] font-bold text-slate-400 uppercase">Date</span>
                 <input 
@@ -233,11 +203,11 @@ export default function EmployeeWFH({ user }) {
               </div>
             </div>
           </div>
-          
+
           <div className="overflow-x-auto flex-grow p-4 sm:p-5">
             <div className="border border-slate-200 rounded-xl overflow-hidden flex flex-col">
               <div className="overflow-x-auto flex-grow">
-                <table className="w-full min-w-[650px] text-left text-sm border-collapse bg-white">
+                <RecordTable label="My WFH requests"><table className="w-full min-w-[650px] text-left text-sm border-collapse bg-white">
                   <thead className="bg-slate-50">
                     <tr className="border-b border-slate-200 text-slate-600 text-xs">
                       <th className="p-4 font-semibold">Start Date</th>
@@ -247,9 +217,9 @@ export default function EmployeeWFH({ user }) {
                     </tr>
                   </thead>
                   <tbody>
-                    {currentRecords.length > 0 ? currentRecords.map(item => {
+                    {filteredRecords.length > 0 ? filteredRecords.map(item => {
                       const isPast = item.end_date < todayStr;
-                      
+
                       let displayStatus = item.status;
                       if (item.status === 'Approved' && isPast) {
                         displayStatus = 'Completed';
@@ -295,35 +265,8 @@ export default function EmployeeWFH({ user }) {
                       <tr><td colSpan="4" className="p-10 text-center text-slate-400 text-xs border-dashed">No WFH applications found matching your filters.</td></tr>
                     )}
                   </tbody>
-                </table>
+                </table></RecordTable>
               </div>
-
-              {/* Pagination Controls */}
-              {filteredRecords.length > 0 && (
-                <div className="p-4 border-t border-slate-100 flex flex-wrap justify-between items-center gap-3 bg-white shrink-0">
-                  <span className="text-sm text-slate-600">
-                    Showing {indexOfFirstRecord + 1} to {Math.min(indexOfLastRecord, filteredRecords.length)} of {filteredRecords.length}
-                  </span>
-                  <div className="flex gap-2">
-                    <button 
-                      type="button"
-                      onClick={() => handlePageChange('prev')} 
-                      disabled={currentPage === 1}
-                      className="admin-button"
-                    >
-                      Prev
-                    </button>
-                    <button 
-                      type="button"
-                      onClick={() => handlePageChange('next')} 
-                      disabled={currentPage === totalPages || totalPages === 0}
-                      className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-[10px] font-bold uppercase tracking-wider disabled:opacity-50 hover:bg-slate-100 transition shadow-sm"
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>

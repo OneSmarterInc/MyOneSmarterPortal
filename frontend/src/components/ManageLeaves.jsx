@@ -1,3 +1,4 @@
+import RecordTable from './RecordTable';
 import { personName } from '../utils/personName';
 import React, { useState, useEffect } from 'react';
 import { getUsers, getLeaveAllocations, createLeaveAllocation, deleteLeaveAllocation, getLeaveRequests } from '../services/api';
@@ -6,13 +7,13 @@ export default function ManageLeaves() {
   const [users, setUsers] = useState([]);
   const [allocations, setAllocations] = useState([]);
   const [history, setHistory] = useState([]); 
-  
+
   // -- POLICY MANAGEMENT STATE --
   const [policies, setPolicies] = useState([
     { id: '1', name: 'Permanent Annual Leave', days: 12, description: '12 days per year' },
     { id: '2', name: 'Casual Half-Day', days: 0.5, description: 'Flexible half-day leave' }
   ]);
-  
+
   const [isCreatingPolicy, setIsCreatingPolicy] = useState(false);
   const [policyForm, setPolicyForm] = useState({ name: '', description: '', days: '' });
 
@@ -123,7 +124,7 @@ export default function ManageLeaves() {
       setMsg({ text: 'Please select at least one employee.', type: 'error' });
       return;
     }
-    
+
     setLoading(true);
     try {
       await Promise.all(selectedUsers.map(userId => 
@@ -133,7 +134,7 @@ export default function ManageLeaves() {
           total_days: assignModal.policy.days
         })
       ));
-      
+
       setMsg({ text: `Assigned to ${selectedUsers.length} employee(s).`, type: 'success' });
       setTimeout(() => setAssignModal({ isOpen: false, policy: null }), 1500);
       fetchData();
@@ -160,12 +161,12 @@ export default function ManageLeaves() {
 
   return (
     <div className="admin-legacy w-full max-w-7xl flex flex-col gap-6 relative">
-      
+
       <header className="admin-page-heading"><div><h1>Leave quotas</h1><p>Assign leave allowances and review each person’s balance.</p></div></header>
       {fetchError && <div className="admin-error" role="alert">{fetchError} <button onClick={fetchData}>Try again</button></div>}
       {fetching && <p role="status" className="admin-loading">Loading…</p>}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        
+
         {/* LEFT COLUMN: LEAVE POLICIES */}
         <div className="bg-slate-50 rounded-lg border border-slate-200 flex flex-col max-h-[720px]">
           <div className="p-5 flex justify-between items-center shrink-0">
@@ -178,7 +179,7 @@ export default function ManageLeaves() {
           </div>
 
           <div className="px-5 pb-5 flex-grow overflow-auto space-y-4">
-            
+
             {isCreatingPolicy && (
               <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-none mb-2 animate-fade-in">
                 <h4 className="text-xs font-semibold normal-case text-slate-800 mb-4 border-b border-slate-100 pb-2">Create leave</h4>
@@ -187,7 +188,7 @@ export default function ManageLeaves() {
                     <label htmlFor="manageleaves-field-1" className="block text-xs font-bold normal-case text-slate-500 mb-1.5">Leave name</label>
                     <input id="manageleaves-field-1" type="text" required placeholder="e.g. Summer Break, Maternity" value={policyForm.name} onChange={e => setPolicyForm({...policyForm, name: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded-lg" />
                   </div>
-                  
+
                   <div>
                     <label htmlFor="leave-description" className="block text-sm text-slate-600 mb-1.5">Description</label>
                     <textarea id="leave-description" rows={3} maxLength={1000} value={policyForm.description} onChange={e => setPolicyForm({...policyForm, description: e.target.value})} placeholder="Describe when this leave can be used" className="w-full border border-slate-300 p-2.5 rounded-lg resize-y" />
@@ -215,7 +216,7 @@ export default function ManageLeaves() {
                   </div>
                   <span className="text-sm font-semibold text-emerald-600">{p.days} Day{p.days !== 1 ? 's' : ''}</span>
                 </div>
-                
+
                 <div className="flex justify-end items-center gap-5">
                   <button onClick={() => handleDeletePolicy(p.id)} className="admin-button danger ">
                     Delete
@@ -226,7 +227,7 @@ export default function ManageLeaves() {
                 </div>
               </div>
             ))}
-            
+
             {policies.length === 0 && !isCreatingPolicy && (
               <div className="text-center p-8 text-slate-400 text-xs font-medium bg-white rounded-xl border border-slate-200 border-dashed">No leave types created yet. Create leave to get started.</div>
             )}
@@ -235,7 +236,7 @@ export default function ManageLeaves() {
 
         {/* RIGHT COLUMN: EMPLOYEE DIRECTORY & RECORDS */}
         <div className="lg:col-span-2 bg-slate-50 rounded-lg border border-slate-200 flex flex-col max-h-[720px]">
-          
+
           <div className="p-5 shrink-0 flex justify-between items-center">
             <div className="flex items-center gap-3">
               {viewingEmployee && (
@@ -247,50 +248,24 @@ export default function ManageLeaves() {
                 {viewingEmployee ? "Employee Leave Record" : "Employee balances"}
               </h3>
             </div>
-            
+
             {viewingEmployee && (
               <span className="bg-white border border-slate-200 px-3 py-1 rounded-md text-xs font-semibold text-slate-500 normal-case tracking-normal shadow-none">
                 {personName(viewingEmployee)} • {viewingEmployee.role}
               </span>
             )}
           </div>
-          
+
           <div className="px-5 pb-5 overflow-auto flex-grow">
-            
+
             {/* VIEW 1: EMPLOYEE LIST */}
             {!viewingEmployee ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {users.length > 0 ? users.map(u => {
-                  const userPoliciesCount = allocations.filter(a => a.user_id === u.id).length;
-                  return (
-                    <div key={u.id} className="bg-white border border-slate-200 p-5 rounded-xl flex justify-between items-center shadow-none hover:border-slate-300 transition">
-                      <div>
-                        <div className="font-semibold text-zinc-900 text-[15px]">{personName(u)}</div>
-                        <div className="text-xs font-bold text-slate-400 normal-case tracking-normal mt-1.5">{u.role}</div>
-                      </div>
-                      <div className="flex flex-col items-end gap-3">
-                        {userPoliciesCount > 0 ? (
-                          <span className="bg-emerald-50 text-emerald-600 px-2 py-0.5 rounded text-xs font-semibold normal-case tracking-normal border border-emerald-200">
-                            {userPoliciesCount} Assigned leaves
-                          </span>
-                        ) : (
-                          <span className="h-4"></span>
-                        )}
-                        <button onClick={() => setViewingEmployee(u)} className="admin-button">
-                          View balance
-                        </button>
-                      </div>
-                    </div>
-                  );
-                }) : (
-                   <div className="col-span-full text-center p-8 text-slate-400 text-xs bg-white border border-dashed border-slate-200 rounded-xl">No employees found.</div>
-                )}
-              </div>
+              <RecordTable label="Leave balances"><table className="admin-table"><thead><tr><th>Team member</th><th>Role</th><th>Assigned leave quotas</th><th>Action</th></tr></thead><tbody>{users.map(u => <tr key={u.id}><td>{personName(u)}</td><td>{u.role}</td><td>{allocations.filter(a => a.user_id === u.id).length}</td><td><button onClick={() => setViewingEmployee(u)} className="admin-button">View balance</button></td></tr>)}</tbody></table></RecordTable>
             ) : (
 
             /* VIEW 2: SPECIFIC EMPLOYEE RECORD */
               <div className="space-y-6 animate-fade-in bg-white p-5 rounded-xl border border-slate-200 shadow-none min-h-full">
-                
+
                 {/* Section A: Quotas & Remaining Balances */}
                 <div>
                   <h4 className="text-xs font-semibold normal-case tracking-normal text-slate-400 mb-4 border-b border-slate-100 pb-2">Assigned Quotas</h4>
@@ -308,12 +283,12 @@ export default function ManageLeaves() {
                               <span className="font-semibold text-zinc-900 text-sm truncate pr-2">{a.leave_type}</span>
                               <button onClick={() => handleDeleteAllocation(a.id)} className="admin-button danger shrink-0">Revoke</button>
                             </div>
-                            
+
                             <div className="flex justify-between items-end mb-2">
                               <span className="text-3xl font-semibold text-zinc-900 leading-none tracking-tight">{remaining} <span className="text-xs text-slate-400 font-bold normal-case tracking-normal">Left</span></span>
                               <span className="text-xs font-bold normal-case tracking-normal text-slate-500">{takenDays} taken / {totalDays} total</span>
                             </div>
-                            
+
                             <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden mt-3">
                               <div className={`h-full rounded-full transition-all ${usagePercent > 80 ? 'bg-red-500' : 'bg-emerald-500'}`} style={{ width: `${usagePercent}%` }}></div>
                             </div>
@@ -331,7 +306,7 @@ export default function ManageLeaves() {
                   <h4 className="text-xs font-semibold normal-case tracking-normal text-slate-400 mb-4 border-b border-slate-100 pb-2">History & Dates Taken</h4>
                   {userHistory.length > 0 ? (
                     <div className="border border-slate-200 rounded-xl overflow-hidden">
-                      <table className="w-full text-left text-xs border-collapse">
+                      <RecordTable label="Employee leave history"><table className="w-full text-left text-xs border-collapse">
                         <thead>
                           <tr className="border-b border-slate-200 text-slate-400 normal-case text-xs tracking-normal bg-slate-50">
                             <th className="p-3 font-bold">Type</th>
@@ -357,13 +332,13 @@ export default function ManageLeaves() {
                                   {h.status}
                                 </span>
                               </td>
-                              <td className="p-3 text-right text-xs text-slate-500 font-bold">
+                              <td className="p-3 text-right text-xs text-slate-500 font-bold" data-sort-value={h.applied_on}>
                                 {new Date(h.applied_on).toLocaleDateString()}
                               </td>
                             </tr>
                           ))}
                         </tbody>
-                      </table>
+                      </table></RecordTable>
                     </div>
                   ) : (
                     <div className="text-xs font-medium text-slate-400 p-6 bg-slate-50 rounded-xl border border-slate-200 border-dashed text-center">No leave history found for this employee.</div>
@@ -381,7 +356,7 @@ export default function ManageLeaves() {
       {assignModal.isOpen && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-[80] p-4 backdrop-blur-sm">
           <div className="bg-white p-6 rounded-2xl shadow-2xl w-full max-w-xl border border-slate-200 flex flex-col max-h-[90vh] overflow-y-auto">
-            
+
             <div className="mb-5 shrink-0">
               <h3 className="text-base font-semibold text-zinc-900 normal-case tracking-normal">Assign leave</h3>
               <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 mt-3 flex justify-between items-center">
@@ -416,25 +391,9 @@ export default function ManageLeaves() {
                 {allVisibleSelected ? 'Deselect visible' : 'Select visible'}
               </button>
             </div>
-            
+
             <div className="overflow-y-auto border border-slate-200 rounded-xl p-3 bg-slate-50 space-y-2 no-scrollbar flex-grow shadow-inner min-h-[150px]">
-              {filteredUsers.length > 0 ? filteredUsers.map(u => (
-                <label key={u.id} className="flex items-center gap-4 p-3 hover:bg-white rounded-lg cursor-pointer transition border border-transparent hover:border-slate-200">
-                  <input 
-                    type="checkbox"
-                    disabled={loading} 
-                    checked={selectedUsers.includes(u.id)}
-                    onChange={() => toggleUser(u.id)}
-                    className="w-4 h-4 text-red-600 rounded border-slate-300 focus:ring-red-500 cursor-pointer"
-                  />
-                  <div className="flex flex-col">
-                    <span className="text-sm font-bold text-zinc-900">{personName(u)}</span>
-                    <span className="text-xs font-bold text-slate-400 normal-case tracking-normal mt-0.5">{u.role}</span>
-                  </div>
-                </label>
-              )) : (
-                <div className="text-xs text-slate-400 text-center p-6">No people match these filters.</div>
-              )}
+              <RecordTable label="Leave assignment people" searchable={false}><table className="admin-table"><thead><tr><th data-nosort>Select</th><th>Person</th><th>Role</th></tr></thead><tbody>{filteredUsers.map(u => <tr key={u.id}><td><input type="checkbox" aria-label={`Select ${personName(u)}`} disabled={loading} checked={selectedUsers.includes(u.id)} onChange={() => toggleUser(u.id)} /></td><td>{personName(u)}</td><td>{u.role}</td></tr>)}</tbody></table></RecordTable>
             </div>
 
             <div className="flex flex-wrap gap-3 justify-between items-center mt-5 pt-5 border-t border-slate-100 shrink-0">

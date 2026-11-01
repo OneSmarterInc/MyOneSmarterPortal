@@ -1,3 +1,4 @@
+import RecordTable from './RecordTable';
 import React, { useState, useEffect } from 'react';
 import { formatAttendanceTime } from '../utils/attendanceTime';
 import { getAttendance } from '../services/api';
@@ -15,7 +16,7 @@ export default function EmployeeHistory({ user }) {
     try {
       const res = await getAttendance();
       const userRecords = res.data.filter(item => item.user === user.user_id);
-      
+
       // Calculate totals for the chart
       const counts = { Present: 0, Absent: 0, Late: 0, Pending: 0 };
       userRecords.forEach(record => {
@@ -39,7 +40,7 @@ export default function EmployeeHistory({ user }) {
 
   return (
     <div className="w-full max-w-5xl space-y-6">
-      
+
       {/* Top Banner */}
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm flex justify-between items-center">
         <div>
@@ -75,7 +76,7 @@ export default function EmployeeHistory({ user }) {
       <div className="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
         <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-900 mb-4">Detailed Records</h3>
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-sm">
+          <RecordTable label="My attendance history"><table className="w-full text-left border-collapse text-sm">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 text-xs uppercase">
                 <th className="p-3 font-bold">Date</th>
@@ -87,7 +88,7 @@ export default function EmployeeHistory({ user }) {
               {history.length > 0 ? history.map(item => (
                 <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50">
                   <td className="p-3 font-medium text-zinc-900">{item.date}</td>
-                  <td className="p-3 text-slate-600">{formatAttendanceTime(item.check_in)}</td>
+                  <td className="p-3 text-slate-600" data-sort-value={item.check_in || ''}>{formatAttendanceTime(item.check_in)}</td>
                   <td className="p-3">
                     <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                       item.status === 'Present' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
@@ -102,7 +103,7 @@ export default function EmployeeHistory({ user }) {
                 <tr><td colSpan="3" className="p-8 text-center text-slate-400 text-sm">No attendance records found.</td></tr>
               )}
             </tbody>
-          </table>
+          </table></RecordTable>
         </div>
       </div>
 

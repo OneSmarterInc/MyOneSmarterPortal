@@ -57,6 +57,9 @@ jobs:
             attendance.test_employee_details \
             attendance.test_employee_ids \
             attendance.test_notifications \
+            attendance.test_upcoming_calendar \
+            attendance.test_wfh \
+            attendance.test_directory \
             attendance.test_policy_documents \
             attendance.test_birthdays \
             attendance.test_recommendations \

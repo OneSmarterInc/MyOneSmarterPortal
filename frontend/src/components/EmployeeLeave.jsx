@@ -1,10 +1,11 @@
+import RecordTable from './RecordTable';
 import React, { useState, useEffect } from 'react';
 import { getLeaveRequests, createLeaveRequest, getLeaveAllocations } from '../services/api';
 
 export default function EmployeeLeave({ user }) {
   const [history, setHistory] = useState([]);
   const [allocations, setAllocations] = useState([]);
-  
+
   const [formData, setFormData] = useState({
     request_type: '',
     start_date: '',
@@ -12,7 +13,7 @@ export default function EmployeeLeave({ user }) {
     reason: '',
     other_type: ''
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ text: '', type: '' });
 
@@ -35,7 +36,7 @@ export default function EmployeeLeave({ user }) {
 
   // --- CALCULATE DYNAMIC LEAVE BALANCES ---
   const balanceMap = {};
-  
+
   // 1. Sum up total assigned days from manager
   allocations.forEach(a => {
     if (!balanceMap[a.leave_type]) {
@@ -49,7 +50,7 @@ export default function EmployeeLeave({ user }) {
     if (h.status !== 'Rejected' && balanceMap[h.request_type]) {
       const isHalfDay = h.request_type.toLowerCase().includes('half-day');
       let requestedDays = 0;
-      
+
       if (isHalfDay) {
         requestedDays = 0.5;
       } else {
@@ -57,7 +58,7 @@ export default function EmployeeLeave({ user }) {
         const d2 = new Date(h.end_date);
         requestedDays = Math.ceil(Math.abs(d2 - d1) / (1000 * 60 * 60 * 24)) + 1;
       }
-      
+
       balanceMap[h.request_type].taken += requestedDays;
     }
   });
@@ -104,7 +105,7 @@ export default function EmployeeLeave({ user }) {
         end_date: isHalfDaySelected ? formData.start_date : formData.end_date,
         reason: formData.reason
       });
-      
+
       setMsg({ text: 'Leave request submitted successfully.', type: 'success' });
       setFormData({ request_type: '', start_date: '', end_date: '', reason: '', other_type: '' });
       fetchData(); // Refresh dynamic balances instantly
@@ -117,7 +118,7 @@ export default function EmployeeLeave({ user }) {
 
   return (
     <div className="w-full min-w-0 max-w-7xl flex flex-col gap-5 relative">
-      
+
       <header>
         <p className="mb-1 text-xs font-semibold uppercase tracking-[.14em] text-red-700">Employee workspace / Time off</p>
         <h1 className="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-900">Leave & time off</h1>
@@ -161,11 +162,11 @@ export default function EmployeeLeave({ user }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-5 items-start">
-        
+
         {/* Leave Application Form */}
         <div className="min-w-0 lg:col-span-2 bg-white p-5 sm:p-6 rounded-xl border border-slate-200 h-fit">
           <h3 className="text-base font-semibold text-zinc-900 mb-4">Apply for leave</h3>
-          
+
           {msg.text && (
             <div className={`p-2.5 mb-4 rounded text-[10px] font-bold uppercase tracking-wide ${msg.type === 'success' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-red-50 text-red-700 border border-red-200'}`}>
               {msg.text}
@@ -228,7 +229,7 @@ export default function EmployeeLeave({ user }) {
         <div className="min-w-0 lg:col-span-3 bg-white p-5 sm:p-6 rounded-xl border border-slate-200 flex flex-col min-h-[390px]">
           <h3 className="text-base font-semibold text-zinc-900 mb-4 shrink-0">Request history</h3>
           <div className="overflow-x-auto flex-grow border border-slate-200 rounded-xl">
-            <table className="w-full min-w-[540px] text-left border-collapse text-sm">
+            <RecordTable label="My leave history"><table className="w-full min-w-[540px] text-left border-collapse text-sm">
               <thead className="bg-slate-50">
                 <tr className="border-b border-slate-200 text-slate-600 text-xs">
                   <th className="p-3 font-bold">Type</th>
@@ -266,7 +267,7 @@ export default function EmployeeLeave({ user }) {
                   <tr><td colSpan="4" className="p-6 text-center text-slate-400 text-xs">No leave applications found.</td></tr>
                 )}
               </tbody>
-            </table>
+            </table></RecordTable>
           </div>
         </div>
 

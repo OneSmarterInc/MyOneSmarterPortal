@@ -327,7 +327,9 @@ def visible_tags(request, user, profile):
 @api_view(['GET'])
 @authentication_classes([LetterAuthentication])
 def get_all_users(request):
-    users = User.objects.filter(is_active=True).order_by('-date_joined')
+    users = list(User.objects.filter(is_active=True).select_related('profile').order_by('-date_joined'))
+    from .monthly_attendance import summaries
+    attendance_summary = summaries(users if is_manager(request.user) else [u for u in users if u.pk == request.user.pk])
     data = []
     for u in users:
         profile = u.profile if hasattr(u, 'profile') else None
@@ -343,6 +345,8 @@ def get_all_users(request):
             'role': role,
             'employee_id': profile.employee_id if profile else '',
             'joining_date': joining_date,
+            'date_of_birth': profile.date_of_birth if profile and (is_manager(request.user) or request.user.pk == u.pk) else None,
+            'monthly_attendance': attendance_summary.get(u.pk),
             'designation': profile.designation if profile else '',
             'tags': visible_tags(request, u, profile),
             'profile_photo': photo_url
