@@ -6,7 +6,7 @@ from rest_framework.exceptions import AuthenticationFailed
 
 
 def issue_letter_token(user):
-    return signing.dumps({'id': user.pk, 'stamp': salted_hmac('letter-password', user.password).hexdigest()}, salt='recommendation-access')
+    return signing.dumps({'id': user.pk, 'access_version': getattr(getattr(user, 'profile', None), 'access_version', 0), 'stamp': salted_hmac('letter-password', user.password).hexdigest()}, salt='recommendation-access')
 
 
 class LetterAuthentication(BaseAuthentication):
@@ -20,6 +20,8 @@ class LetterAuthentication(BaseAuthentication):
         try:
             data = signing.loads(value[7:], salt='recommendation-access', max_age=86400)
             user = User.objects.select_related('profile').get(pk=data['id'], is_active=True)
+            if data.get('access_version', 0) != getattr(getattr(user, 'profile', None), 'access_version', 0):
+                raise ValueError()
             if not constant_time_compare(data['stamp'], salted_hmac('letter-password', user.password).hexdigest()):
                 raise ValueError()
             return (user, None)

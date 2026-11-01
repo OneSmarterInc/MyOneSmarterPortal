@@ -28,6 +28,12 @@ export function Icon({ name = 'dashboard' }) {
     check: 'M9 12l2 2 4-4 M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0',
     report: 'M4 21V3 M4 21h17 M9 17v-5 M14 17V7 M19 17V4',
     mail: 'M3 5h18v14H3z M3 5l9 7 9-7',
+    key: 'M15 7a5 5 0 1 1-10 0 5 5 0 0 1 10 0 M6 11L2 15v4h4v-3h3l3-3',
+    lock: 'M6 10V6a6 6 0 0 1 12 0v4 M4 10h16v12H4z M12 14v4',
+    unlock: 'M6 10V6a6 6 0 0 1 11-3 M4 10h16v12H4z M12 14v4',
+    eye: 'M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12 M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0',
+    edit: 'M16 3l5 5 M4 20l4-1 13-13a2.8 2.8 0 0 0-4-4L4 15z',
+    trash: 'M3 6h18 M9 6V3h6v3 M5 6l1 15h12l1-15 M10 10v7 M14 10v7',
     home: 'M3 10l9-7 9 7 M5 9v12h14V9 M9 21v-7h6v7',
   };
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name] || paths.dashboard} /></svg>;

@@ -60,6 +60,8 @@ jobs:
             attendance.test_upcoming_calendar \
             attendance.test_wfh \
             attendance.test_directory \
+            attendance.test_leave_management \
+            attendance.test_user_access \
             attendance.test_policy_documents \
             attendance.test_birthdays \
             attendance.test_recommendations \

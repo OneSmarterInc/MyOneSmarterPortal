@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import IntegrityError, transaction
 from django.db.models.deletion import ProtectedError
@@ -327,7 +328,8 @@ def visible_tags(request, user, profile):
 @api_view(['GET'])
 @authentication_classes([LetterAuthentication])
 def get_all_users(request):
-    users = list(User.objects.filter(is_active=True).select_related('profile').order_by('-date_joined'))
+    queryset = User.objects.all() if is_manager(request.user) and request.query_params.get('include_inactive') == 'true' else User.objects.filter(is_active=True)
+    users = list(queryset.select_related('profile').order_by('-date_joined'))
     from .monthly_attendance import summaries
     attendance_summary = summaries(users if is_manager(request.user) else [u for u in users if u.pk == request.user.pk])
     data = []
@@ -339,6 +341,7 @@ def get_all_users(request):
         
         data.append({
             'id': u.id,
+            'is_active': u.is_active,
             'username': u.username,
             'first_name': u.first_name, 'last_name': u.last_name, 'full_name': u.get_full_name().strip(),
             'email': u.email,
@@ -379,6 +382,8 @@ def manage_user(request, pk):
             return Response({'error': 'Only the account owner can change their username from their profile.'}, status=status.HTTP_403_FORBIDDEN)
         if 'employee_id' in request.data and request.data['employee_id'] != user.profile.employee_id:
             return Response({'error': 'Employee IDs are assigned automatically and cannot be edited.'}, status=status.HTTP_400_BAD_REQUEST)
+        if user.is_superuser and not request.user.is_superuser and request.data.get('reset_password'):
+            return Response({'error': 'Only a superuser can reset another superuser’s password.'}, status=403)
         details = employee_details(request.data)
         reset_password = request.data.get('reset_password') is True
         new_password = request.data.get('password')
@@ -410,7 +415,7 @@ def manage_user(request, pk):
                 user.profile.date_of_birth = birth_date
             user.profile.save()
 
-        return Response({'message': 'Password reset successful. Employee must change it at next login.' if reset_password else 'User updated successfully', 'password_reset': reset_password}, status=status.HTTP_200_OK)
+        return Response({'message': 'Password reset successful. Employee must change it at next login.' if reset_password else 'User updated successfully', 'password_reset': reset_password, **({'letter_token': issue_letter_token(user)} if reset_password and user.pk == request.user.pk else {})}, status=status.HTTP_200_OK)
     
 @api_view(['GET', 'PUT'])
 @authentication_classes([LetterAuthentication])
@@ -765,3 +770,27 @@ def complete_name(request):
     user.first_name, user.last_name = first, last
     user.save(update_fields=['first_name', 'last_name'])
     return Response({'first_name': first, 'last_name': last, 'full_name': user.get_full_name(), 'needs_name': False})
+
+
+@api_view(['PATCH'])
+@authentication_classes([LetterAuthentication])
+@transaction.atomic
+def user_access(request, pk):
+    if not is_manager(request.user):
+        return Response({'error': 'Manager access required.'}, status=403)
+    user = get_object_or_404(User.objects.select_for_update(), pk=pk)
+    class AccessInput(serializers.Serializer):
+        is_active = serializers.BooleanField()
+    form = AccessInput(data=request.data)
+    form.is_valid(raise_exception=True)
+    active = form.validated_data['is_active']
+    if not active and user.pk == request.user.pk:
+        return Response({'error': 'You cannot revoke your own access.'}, status=400)
+    if user.is_superuser and not request.user.is_superuser:
+        return Response({'error': 'Only a superuser can change another superuser’s access.'}, status=403)
+    user.is_active = active
+    user.save(update_fields=['is_active'])
+    if not active and hasattr(user, 'profile'):
+        user.profile.access_version += 1
+        user.profile.save(update_fields=['access_version'])
+    return Response({'message': 'Access restored.' if active else 'Access revoked. Existing records retained.', 'is_active': active})
