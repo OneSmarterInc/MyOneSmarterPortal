@@ -1,3 +1,4 @@
+import RecordTable from './RecordTable';
 import { personName } from '../utils/personName';
 import React, { useState, useEffect } from 'react';
 import { getAttendance, updateAttendance, getLeaveRequests, updateLeaveRequest, getUsers } from '../services/api';
@@ -64,7 +65,7 @@ export default function ManagerApprovals() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-grow min-h-0">
-        
+
         {/* Pending Leaves / WFH Table */}
         <div className="bg-white p-4 sm:p-5 rounded-xl shadow-sm border border-slate-200 border-t-4 border-t-purple-500 flex flex-col h-[550px]">
           <div className="flex justify-between items-center mb-4 shrink-0">
@@ -72,7 +73,7 @@ export default function ManagerApprovals() {
             <span className="bg-purple-50 text-purple-700 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border border-purple-200">{pendingLeaves.length} Requests</span>
           </div>
           <div className="overflow-y-auto no-scrollbar flex-grow border border-slate-100 rounded">
-            <table className="w-full text-left border-collapse text-xs">
+            <RecordTable label="Attendance decisions"><table className="w-full text-left border-collapse text-xs">
               <thead className="sticky top-0 bg-slate-50 z-10 shadow-sm">
                 <tr className="border-b border-slate-200 text-slate-500 uppercase">
                   <th className="p-3 font-bold">Employee</th>
@@ -108,7 +109,7 @@ export default function ManagerApprovals() {
                   <tr><td colSpan="3" className="p-8 text-center text-slate-400 text-xs">No pending leave requests.</td></tr>
                 )}
               </tbody>
-            </table>
+            </table></RecordTable>
           </div>
         </div>
 
@@ -119,7 +120,7 @@ export default function ManagerApprovals() {
             <span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-[9px] font-bold uppercase tracking-widest border border-blue-200">{pendingRequests.length} Requests</span>
           </div>
           <div className="overflow-y-auto no-scrollbar flex-grow border border-slate-100 rounded">
-            <table className="w-full text-left border-collapse text-xs">
+            <RecordTable label="Attendance decisions"><table className="w-full text-left border-collapse text-xs">
               <thead className="sticky top-0 bg-slate-50 z-10 shadow-sm">
                 <tr className="border-b border-slate-200 text-slate-500 uppercase">
                   <th className="p-3 font-bold">Employee</th>
@@ -152,10 +153,10 @@ export default function ManagerApprovals() {
                   <tr><td colSpan="3" className="p-8 text-center text-slate-400 text-xs">No pending attendance approvals required.</td></tr>
                 )}
               </tbody>
-            </table>
+            </table></RecordTable>
           </div>
         </div>
-        
+
       </div>
     </div>
   );

@@ -1,3 +1,4 @@
+import RecordTable from './RecordTable';
 import { istCalendarDate } from '../services/attendanceClock';
 import { localDate } from './AdminUI';
 import { personName } from '../utils/personName';
@@ -13,10 +14,9 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
   const [allRecords, setAllRecords] = useState([]);
   const todayDate = () => localDate(istCalendarDate(new Date()));
   const [historyDate, setHistoryDate] = useState(todayDate);
-  const [historyPage, setHistoryPage] = useState(1);
   const [leaves, setLeaves] = useState([]);
   const [usersList, setUsersList] = useState([]);
-  
+
   const [dataBusy, setDataBusy] = useState(true);
   const [dataError, setDataError] = useState('');
   // Edit Modal State
@@ -31,7 +31,7 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
   }, []);
 
   async function fetchAllData() {
-    setHistoryDate(todayDate()); setHistoryPage(1);
+    setHistoryDate(todayDate());
     setDataBusy(true); setDataError('');
     try {
       const [attRes, leaveRes, usersRes] = await Promise.all([
@@ -68,11 +68,6 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
   };
 
   const historicalLogs = allRecords.filter(r => r.status !== 'Pending' && r.date === historyDate);
-  const historyPageSize = 10;
-  const historyTotalPages = Math.max(1, Math.ceil(historicalLogs.length / historyPageSize));
-  const currentHistoryPage = Math.min(historyPage, historyTotalPages);
-  const historyStart = (currentHistoryPage - 1) * historyPageSize;
-  const visibleHistory = historicalLogs.slice(historyStart, historyStart + historyPageSize);
   const pendingLeaves = leaves.filter(l => l.status === 'Pending');
 
   const getUserDetails = (userId) => {
@@ -81,16 +76,16 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
 
   return (
     <div className="w-full max-w-7xl flex flex-col gap-4 relative">
-      
+
       <AdminOverview records={allRecords} users={usersList} pendingLeaves={pendingLeaves.length} leaveRequests={pendingLeaves} busy={dataBusy} error={dataError} retry={fetchAllData} navigate={navigate || setActiveTab} onSelectEmployee={onSelectEmployee} addEmployee={()=>onCreateMode(true)} />
 
       <details className="admin-panel admin-history">
       <summary>Attendance history · {historicalLogs.length} resolved records</summary>
       {/* Resolved Attendance Logs */}
       <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-none flex-grow flex flex-col min-h-[300px]">
-        <div className="admin-toolbar mb-4"><h3 className="text-sm font-semibold text-zinc-900">Resolved Attendance Logs</h3><label className="text-sm text-slate-600">Date <input aria-label="Attendance history date" type="date" value={historyDate} onChange={e => { setHistoryDate(e.target.value || todayDate()); setHistoryPage(1); }} /></label><button className="admin-button" onClick={fetchAllData} disabled={dataBusy}>Reset to today</button><button className="admin-button" onClick={fetchAllData} disabled={dataBusy}>Refresh</button></div>
+        <div className="admin-toolbar mb-4"><h3 className="text-sm font-semibold text-zinc-900">Resolved Attendance Logs</h3><label className="text-sm text-slate-600">Date <input aria-label="Attendance history date" type="date" value={historyDate} onChange={e => { setHistoryDate(e.target.value || todayDate());  }} /></label><button className="admin-button" onClick={fetchAllData} disabled={dataBusy}>Reset to today</button><button className="admin-button" onClick={fetchAllData} disabled={dataBusy}>Refresh</button></div>
         <div className="overflow-auto no-scrollbar flex-grow border border-slate-100 rounded">
-          <table className="w-full text-left border-collapse text-xs">
+          <RecordTable label="Attendance history"><table className="w-full text-left border-collapse text-xs">
             <thead className="sticky top-0 bg-slate-50 z-10 shadow-none">
               <tr className="border-b border-slate-200 text-slate-500 normal-case">
                 <th className="p-2.5 font-bold">Employee</th>
@@ -102,7 +97,7 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
               </tr>
             </thead>
             <tbody>
-              {visibleHistory.length > 0 ? visibleHistory.map(item => {
+              {historicalLogs.length > 0 ? historicalLogs.map(item => {
                 const emp = getUserDetails(item.user);
                 return (
                   <tr key={item.id} className="border-b border-slate-100 hover:bg-slate-50/50">
@@ -111,8 +106,8 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
                       <div className="text-xs font-bold text-slate-400 normal-case tracking-normal mt-0.5">{emp.role}</div>
                     </td>
                     <td className="p-2.5 text-slate-600 font-medium">{item.date}</td>
-                    <td className="p-2.5 text-slate-600">{formatAttendanceTime(item.check_in)}</td>
-                    <td className="p-2.5 text-slate-600">{formatAttendanceTime(item.check_out)}</td>
+                    <td className="p-2.5 text-slate-600" data-sort-value={item.check_in || ''}>{formatAttendanceTime(item.check_in)}</td>
+                    <td className="p-2.5 text-slate-600" data-sort-value={item.check_out || ''}>{formatAttendanceTime(item.check_out)}</td>
                     <td className="p-2.5">
                       <span className={`px-2 py-0.5 rounded text-xs font-bold normal-case tracking-normal ${
                         item.status === 'Present' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
@@ -135,16 +130,9 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
                 <tr><td colSpan="6" className="p-6 text-center text-slate-400 text-xs">No resolved records found for {historyDate}.</td></tr>
               )}
             </tbody>
-          </table>
+          </table></RecordTable>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4 mt-4 text-sm">
-          <span className="text-slate-600">Showing {historicalLogs.length ? historyStart + 1 : 0}–{Math.min(historyStart + historyPageSize, historicalLogs.length)} of {historicalLogs.length} records</span>
-          <nav aria-label="Attendance history pages" className="flex items-center gap-3">
-            <button type="button" className="admin-button" disabled={currentHistoryPage === 1} onClick={() => setHistoryPage(currentHistoryPage - 1)}>Previous</button>
-            <span aria-live="polite">Page {currentHistoryPage} of {historyTotalPages}</span>
-            <button type="button" className="admin-button" disabled={currentHistoryPage === historyTotalPages} onClick={() => setHistoryPage(currentHistoryPage + 1)}>Next</button>
-          </nav>
-        </div>
+
       </div>
 
       </details>

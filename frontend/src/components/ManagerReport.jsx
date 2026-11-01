@@ -1,9 +1,9 @@
+import RecordTable from './RecordTable';
 import { personName } from '../utils/personName';
 import AttendanceTimeEditor from './AttendanceTimeEditor';
 import React, { useState, useEffect } from 'react';
 import { getUsers, getAttendance } from '../services/api';
 
-const PAGE_SIZE = 10; // On-screen pagination only
 // Print capacities are based on usable A4 height and leave room for the final signature.
 const FIRST_PRINT_ROWS = 14;
 const CONTINUATION_PRINT_ROWS = 24;
@@ -43,7 +43,6 @@ export default function ManagerReport() {
   const [selectedUser, setSelectedUser] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [page, setPage] = useState(1);
   const [fetchError, setFetchError] = useState('');
   const [fetching, setFetching] = useState(true);
   const [generatedAt, setGeneratedAt] = useState(() => new Date());
@@ -79,9 +78,6 @@ export default function ManagerReport() {
     return true;
   }).sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
   const selectedUserInfo = users.find(u => String(u.id) === selectedUser);
-  const totalPages = Math.max(1, Math.ceil(filteredRecords.length / PAGE_SIZE));
-  const currentPage = Math.min(page, totalPages);
-  const visibleRecords = filteredRecords.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
   const printPages = paginateForPrint(filteredRecords);
   const firstDate = filteredRecords.length ? filteredRecords[filteredRecords.length - 1].date : '';
   const lastDate = filteredRecords.length ? filteredRecords[0].date : '';
@@ -93,7 +89,7 @@ export default function ManagerReport() {
     // Let React commit the timestamp before opening the browser print dialog.
     requestAnimationFrame(() => window.print());
   };
-  const resetPage = setter => value => { setter(value); setPage(1); };
+  const resetPage = setter => value => { setter(value); };
 
   return (
     <div className="attendance-report admin-legacy w-full max-w-6xl space-y-6">
@@ -149,28 +145,21 @@ export default function ManagerReport() {
         </div>
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse text-sm">
+            <RecordTable label="Attendance report"><table className="w-full text-left border-collapse text-sm">
               <thead><tr className="bg-slate-50 border-b border-slate-200 text-slate-600">
                 <th className="p-4">Employee</th><th className="p-4">Date</th><th className="p-4">Start Time</th><th className="p-4">End Time</th><th className="p-4">Status</th><th className="p-4">Actions</th>
               </tr></thead>
-              <tbody>{fetching ? <tr><td colSpan="6" className="p-8 text-center text-slate-500">Loading attendance records…</td></tr> : visibleRecords.length ? visibleRecords.map(item => <tr key={item.id} className="border-b border-slate-100">
+              <tbody>{fetching ? <tr><td colSpan="6" className="p-8 text-center text-slate-500">Loading attendance records…</td></tr> : filteredRecords.length ? filteredRecords.map(item => <tr key={item.id} className="border-b border-slate-100">
                 <td className="p-4">{personName(users.find(u => String(u.id) === String(item.user)))}</td>
                 <td className="p-4 font-semibold">{item.date}</td>
-                <td className="p-4">{formatTime(item.check_in)}</td>
-                <td className="p-4">{formatTime(item.check_out)}</td>
+                <td className="p-4" data-sort-value={item.check_in || ''}>{formatTime(item.check_in)}</td>
+                <td className="p-4" data-sort-value={item.check_out || ''}>{formatTime(item.check_out)}</td>
                 <td className="p-4"><span className={`px-3 py-1 rounded-full text-xs font-semibold border ${item.status === 'Present' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : item.status === 'Late' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-50 text-slate-700 border-slate-200'}`}>{item.status}</span></td>
                 <td className="p-4"><AttendanceTimeEditor record={item} name={personName(users.find(u => String(u.id) === String(item.user)))} onSaved={updated => setAllRecords(previous => previous.map(record => record.id === updated.id ? updated : record))}/></td>
               </tr>) : <tr><td colSpan="6" className="p-8 text-center text-slate-500">No attendance records found for the selected criteria.</td></tr>}</tbody>
-            </table>
+            </table></RecordTable>
           </div>
-          <div className="flex flex-wrap items-center justify-between gap-3 p-4 border-t border-slate-200 text-sm">
-            <span className="text-slate-600">Showing {filteredRecords.length ? (currentPage - 1) * PAGE_SIZE + 1 : 0}–{Math.min(currentPage * PAGE_SIZE, filteredRecords.length)} of {filteredRecords.length} records</span>
-            <nav aria-label="Attendance report pages" className="flex items-center gap-3">
-              <button type="button" className="admin-button" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>Previous</button>
-              <span aria-live="polite">Page {currentPage} of {totalPages}</span>
-              <button type="button" className="admin-button" disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)}>Next</button>
-            </nav>
-          </div>
+
         </div>
       </div>
       {filteredRecords.length > 0 && <div className="report-print-document" aria-hidden="true">
@@ -185,7 +174,7 @@ export default function ManagerReport() {
           </>}
           <table className="report-table"><thead><tr><th style={{width:'12%'}}>Sr. No.</th>{!selectedUserInfo && <th>Employee</th>}<th>Date</th><th>Start Time</th><th>End Time</th><th>Status</th></tr></thead>
             <tbody>{records.map((record, row) => <tr key={record.id}>
-              <td>{start + row + 1}</td>{!selectedUserInfo && <td>{personName(users.find(u => String(u.id) === String(record.user)))}</td>}<td>{formatDate(record.date)}</td><td>{formatTime(record.check_in)}</td><td>{formatTime(record.check_out)}</td><td>{record.status}</td>
+              <td>{start + row + 1}</td>{!selectedUserInfo && <td>{personName(users.find(u => String(u.id) === String(record.user)))}</td>}<td>{formatDate(record.date)}</td><td data-sort-value={record.check_in || ''}>{formatTime(record.check_in)}</td><td data-sort-value={record.check_out || ''}>{formatTime(record.check_out)}</td><td>{record.status}</td>
             </tr>)}</tbody>
           </table>
           {index === printPages.length - 1 && <>

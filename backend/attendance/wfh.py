@@ -29,17 +29,27 @@ def allowances(request):
         if not is_manager(request.user):
             return Response({'error': 'Manager access required.'}, status=403)
         class AllocationInput(serializers.Serializer):
-            user_id = serializers.IntegerField(min_value=1)
+            user_id = serializers.IntegerField(min_value=1, required=False)
+            user_ids = serializers.ListField(child=serializers.IntegerField(min_value=1), min_length=1, max_length=500, required=False)
             days = serializers.IntegerField(min_value=1, max_value=366)
+
+            def validate(self, values):
+                if ('user_id' in values) == ('user_ids' in values):
+                    raise serializers.ValidationError('Provide either user_id or user_ids.')
+                return values
         form = AllocationInput(data=request.data)
         form.is_valid(raise_exception=True)
-        user = User.objects.select_for_update().filter(pk=form.validated_data['user_id'], is_active=True, profile__role__in=['employee', 'intern']).first()
-        if not user:
-            return Response({'error': 'Select an active employee or intern.'}, status=400)
-        days = form.validated_data['days']
-        LeaveAllocation.objects.create(user=user, leave_type='Work From Home', total_days=days)
-        notify(user.pk, 'Work from home days allocated', f'Management added {days} work from home days to your allowance.', 'wfh')
-        return Response(balance(user), status=201)
+        values = form.validated_data
+        ids = sorted(set(values.get('user_ids', [values.get('user_id')])))
+        people = list(User.objects.select_for_update().filter(pk__in=ids, is_active=True, profile__role__in=['employee', 'intern']).order_by('pk'))
+        if len(people) != len(ids):
+            return Response({'error': 'Select active employees or interns only. No days were allocated.'}, status=400)
+        days = values['days']
+        for user in people:
+            LeaveAllocation.objects.create(user=user, leave_type='Work From Home', total_days=days)
+            notify(user.pk, 'Work from home days allocated', f'Management added {days} work from home days to your allowance.', 'wfh')
+        results = [balance(user) for user in people]
+        return Response(results if 'user_ids' in values else results[0], status=201)
     people = User.objects.filter(is_active=True, profile__role__in=['employee', 'intern']) if is_manager(request.user) else [request.user]
     return Response([balance(user) for user in people], headers={'Cache-Control': 'private, no-store'})
 

@@ -1,3 +1,4 @@
+import RecordTable from './RecordTable';
 import React, { useEffect, useState } from 'react';
 import { getRecommendations, requestRecommendation, saveRecommendation, getRecommendationPDF, sendRecommendation, rejectRecommendation } from '../services/api';
 import './RecommendationLetters.css';
@@ -46,8 +47,6 @@ export default function RecommendationLetters({ admin = false, documentType = 'r
   const [reason, setReason] = useState('');
   const [filter, setFilter] = useState('open');
   const [search, setSearch] = useState('');
-  const [historyPage, setHistoryPage] = useState(1);
-  const historyPageSize = 10;
   const [fileCheck, setFileCheck] = useState(null);
 
   useEffect(() => { load(); }, []);
@@ -133,10 +132,6 @@ export default function RecommendationLetters({ admin = false, documentType = 'r
       item.sent_at ? new Date(item.sent_at).toLocaleDateString() : ''
     ].some(value => String(value || '').toLowerCase().includes(query))
   ).sort((a,b) => new Date(b.sent_at || b.created_at || 0) - new Date(a.sent_at || a.created_at || 0));
-  const totalHistoryPages = Math.max(1, Math.ceil(visible.length / historyPageSize));
-  const safeHistoryPage = Math.min(historyPage, totalHistoryPages);
-  const firstHistoryRecord = (safeHistoryPage - 1) * historyPageSize;
-  const pageRecords = visible.slice(firstHistoryRecord, firstHistoryRecord + historyPageSize);
   return <div className="lor-page w-full min-w-0 max-w-6xl">
     {onBack && <button type="button" className="admin-button mb-4" disabled={busy} onClick={onBack}>← All documents</button>}
     <header className="admin-page-heading"><div><h1>{title}</h1><p>{admin ? 'Review requests, prepare a letter, and approve it for email delivery.' : 'Request an official letter and follow its progress.'}</p></div><button className="admin-button" disabled={busy || loading} onClick={load}>Refresh</button></header>
@@ -145,20 +140,13 @@ export default function RecommendationLetters({ admin = false, documentType = 'r
     {!admin && <form className="admin-panel lor-form" onSubmit={submit}><h2>{attendance ? 'Request attendance consideration' : 'Request a recommendation'}</h2><label>What will you use the letter for?<input required maxLength={500} value={purpose} onChange={e => setPurpose(e.target.value)} placeholder={attendance ? 'e.g. College attendance consideration' : 'e.g. Graduate program or job application'} /></label><label>Additional details (optional)<textarea maxLength={2000} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Mention relevant projects or the application deadline." /></label><p>Your name and joining date will be taken from your account. The approved letter will be emailed to your account email address.</p><button className="admin-button primary" disabled={busy || loading || !!error || openItems.length > 0}>{busy ? 'Submitting…' : 'Submit request'}</button>{openItems.length > 0 && <p>You already have a request under review.</p>}</form>}
     <section className="admin-panel">
       {admin && <div className="admin-tabs">
-        <button aria-pressed={filter === 'open'} onClick={() => { setFilter('open'); setHistoryPage(1); }}>Open requests ({openItems.length})</button>
-        <button aria-pressed={filter === 'sent'} onClick={() => { setFilter('sent'); setHistoryPage(1); }}>Sent history ({sentItems.length})</button>
-        <button aria-pressed={filter === 'all'} onClick={() => { setFilter('all'); setHistoryPage(1); }}>All requests ({items.length})</button>
+        <button aria-pressed={filter === 'open'} onClick={() => { setFilter('open');  }}>Open requests ({openItems.length})</button>
+        <button aria-pressed={filter === 'sent'} onClick={() => { setFilter('sent');  }}>Sent history ({sentItems.length})</button>
+        <button aria-pressed={filter === 'all'} onClick={() => { setFilter('all');  }}>All requests ({items.length})</button>
       </div>}
-      {admin && <div className="lor-search"><label htmlFor="lor-search">Search documents</label><input id="lor-search" type="search" value={search} onChange={e => { setSearch(e.target.value); setHistoryPage(1); }} placeholder="Search name, purpose, status, date or verification ID" /></div>}
-      <div className="admin-table-scroll"><table className={`admin-table lor-history-table ${admin ? "lor-history-admin" : "lor-history-employee"}`}><colgroup>{(admin ? [22, 23, 16, 14, 25] : [29, 17, 15, 39]).map((width, index) => <col key={index} style={{ width: `${width}%` }} />)}</colgroup><thead><tr>{admin && <th>Team member</th>}<th>Purpose</th><th>Requested</th><th>Status</th><th>Actions</th></tr></thead><tbody>{pageRecords.map(item => <tr key={item.id}>{admin && <td>{item.name}</td>}<td className="lor-purpose">{item.purpose}{item.rejection_reason && <p>Reason: {item.rejection_reason}</p>}</td><td>{new Date(item.created_at).toLocaleDateString()}</td><td><span className={`lor-status lor-status-${item.status.toLowerCase().replace(/[^a-z]+/g, "-")}`}>{item.status}</span></td><td>{admin ? <button className="admin-button" disabled={busy} onClick={() => open(item)}>Open request</button> : item.can_download ? <div className="lor-row-actions"><button className="admin-button" disabled={busy} onClick={async () => { setBusy(true); setError(''); try { open(item); await pdf(item); } catch (e) { setError(errorMessage(e)); } finally { setBusy(false); } }}>View letter</button><button type="button" className="admin-button" disabled={busy} onClick={() => downloadLetter(item)}>Download letter</button></div> : 'Under review'}</td></tr>)}</tbody></table></div>{loading ? <p className="admin-empty">Loading requests…</p> : !visible.length && <p className="admin-empty">No requests match the selected view or search.</p>}
-      <div className="lor-history-pagination">
-        <span role="status">Showing {visible.length ? firstHistoryRecord + 1 : 0}–{Math.min(firstHistoryRecord + historyPageSize, visible.length)} of {visible.length} records</span>
-        <nav aria-label="Documents pagination" className="lor-history-pagination-controls">
-          <button type="button" className="admin-button" disabled={safeHistoryPage <= 1} onClick={() => setHistoryPage(p => Math.max(1, p - 1))}>Previous</button>
-          <span>Page {safeHistoryPage} of {totalHistoryPages}</span>
-          <button type="button" className="admin-button" disabled={safeHistoryPage >= totalHistoryPages} onClick={() => setHistoryPage(p => Math.min(totalHistoryPages, p + 1))}>Next</button>
-        </nav>
-      </div>
+      {admin && <div className="lor-search"><label htmlFor="lor-search">Search documents</label><input id="lor-search" type="search" value={search} onChange={e => { setSearch(e.target.value);  }} placeholder="Search name, purpose, status, date or verification ID" /></div>}
+      <div className="admin-table-scroll"><RecordTable label="Document requests" searchable={!admin}><table className={`admin-table lor-history-table ${admin ? "lor-history-admin" : "lor-history-employee"}`}><colgroup>{(admin ? [22, 23, 16, 14, 25] : [29, 17, 15, 39]).map((width, index) => <col key={index} style={{ width: `${width}%` }} />)}</colgroup><thead><tr>{admin && <th>Team member</th>}<th>Purpose</th><th>Requested</th><th>Status</th><th>Actions</th></tr></thead><tbody>{visible.map(item => <tr key={item.id}>{admin && <td>{item.name}</td>}<td className="lor-purpose">{item.purpose}{item.rejection_reason && <p>Reason: {item.rejection_reason}</p>}</td><td data-sort-value={item.created_at}>{new Date(item.created_at).toLocaleDateString()}</td><td><span className={`lor-status lor-status-${item.status.toLowerCase().replace(/[^a-z]+/g, "-")}`}>{item.status}</span></td><td>{admin ? <button className="admin-button" disabled={busy} onClick={() => open(item)}>Open request</button> : item.can_download ? <div className="lor-row-actions"><button className="admin-button" disabled={busy} onClick={async () => { setBusy(true); setError(''); try { open(item); await pdf(item); } catch (e) { setError(errorMessage(e)); } finally { setBusy(false); } }}>View letter</button><button type="button" className="admin-button" disabled={busy} onClick={() => downloadLetter(item)}>Download letter</button></div> : 'Under review'}</td></tr>)}</tbody></table></RecordTable></div>{loading ? <p className="admin-empty">Loading requests…</p> : !visible.length && <p className="admin-empty">No requests match the selected view or search.</p>}
+
     </section>
     {selected && <section className="admin-panel lor-form"><div className="lor-section-heading"><h2>{admin ? `Letter for ${selected.name}` : 'Your letter'}</h2><button className="admin-button" disabled={busy} onClick={() => { setSelected(null); setPreview(''); }}>Close</button></div>
       {selected.verification_id && <p><strong>Verification ID:</strong> <code>{selected.verification_id}</code></p>}

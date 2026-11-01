@@ -94,3 +94,25 @@ class WorkFromHomeTests(TestCase):
         self.assertEqual(self.submit().status_code, 401)
         self.assertEqual(self.allocate(self.employee, 0).status_code, 400)
         self.assertEqual(self.allocate(self.employee, -1).status_code, 400)
+
+    def test_bulk_allocation_is_deduplicated_and_notifies_each_person(self):
+        self.login(self.manager)
+        response = self.client.post('/wfh-allowances/', {'user_ids': [self.employee.pk, self.intern.pk, self.employee.pk], 'days': 4}, format='json')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(len(response.data), 2)
+        self.assertEqual(LeaveAllocation.objects.count(), 2)
+        self.assertTrue(all(row['remaining'] == 4 for row in response.data))
+        self.assertEqual(self.employee.portal_notifications.count(), 1)
+        self.assertEqual(self.intern.portal_notifications.count(), 1)
+
+    def test_invalid_bulk_recipient_rolls_back_entire_allocation(self):
+        self.login(self.manager)
+        response = self.client.post('/wfh-allowances/', {'user_ids': [self.employee.pk, self.manager.pk], 'days': 4}, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(LeaveAllocation.objects.exists())
+        self.assertEqual(self.employee.portal_notifications.count(), 0)
+
+    def test_empty_or_ambiguous_bulk_selection_is_rejected(self):
+        self.login(self.manager)
+        for payload in [{'user_ids': [], 'days': 2}, {'user_ids': [self.employee.pk], 'user_id': self.employee.pk, 'days': 2}, {'days': 2}]:
+            self.assertEqual(self.client.post('/wfh-allowances/', payload, format='json').status_code, 400)

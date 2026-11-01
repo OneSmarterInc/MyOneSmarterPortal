@@ -15,7 +15,7 @@ export default function AddEmployeeDialog({ onClose, onCreated }) {
   const [birthDate, setBirthDate] = useState('');
   const [today] = useState(() => new Date().toLocaleDateString('en-CA'));
   const [joiningDate, setJoiningDate] = useState('');
-  
+
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [deliveryWarning, setDeliveryWarning] = useState(null);
@@ -59,7 +59,7 @@ export default function AddEmployeeDialog({ onClose, onCreated }) {
     }
   };
 
-  return <dialog ref={dialog} onCancel={event => { event.preventDefault(); if (!loading) onClose(); }} onClick={event => { if (event.target === event.currentTarget && !loading) onClose(); }} aria-label="Add employee" className="m-auto w-[min(720px,95vw)] max-h-[85vh] overflow-y-auto rounded-xl p-0 backdrop:bg-black/40">
+  return <dialog ref={dialog} onCancel={event => { event.preventDefault(); if (!loading) onClose(); }} onClick={event => { if (event.target === event.currentTarget && !loading) onClose(); }} aria-label="Onboard employee" className="m-auto w-[min(720px,95vw)] max-h-[85vh] overflow-y-auto rounded-xl p-0 backdrop:bg-black/40">
       <div id="create-employee-panel"  className="bg-white p-4 sm:px-6 sm:py-4 rounded-xl shadow-none border border-slate-200 shrink-0">
         <div className="mb-3">
           <div className="flex justify-between gap-3"><h3 className="text-xs font-bold normal-case tracking-normal text-zinc-900">Create Employee Account</h3><button type="button" disabled={loading} className="admin-link" onClick={()=>onClose()}>Close</button></div>

@@ -1,3 +1,4 @@
+import RecordTable from './RecordTable';
 import { personName } from '../utils/personName';
 import React, { useState, useEffect } from 'react';
 import { getLeaveRequests, updateLeaveRequest, getUsers } from '../services/api';
@@ -21,7 +22,7 @@ export default function PendingLeaves() {
   useEffect(()=>{refresh();},[]);
   const remote = r => ['WFH','Work From Home'].includes(r.request_type);
   const person = r => users.find(u=>u.id===r.user_id || u.username===r.username) || {username:r.username};
-  const visible=leaves.filter(r=>(filter==='all'||(filter==='remote'?remote(r):!remote(r)))&&[personName(person(r)),r.reason,r.request_type].join(' ').toLowerCase().includes(query.toLowerCase().trim()));
+  const visible=leaves.filter(r=>(filter==='all'||(filter==='remote'?remote(r):!remote(r)))&&[personName(person(r)),r.reason,r.request_type,r.start_date,r.end_date,r.status].join(' ').toLowerCase().includes(query.toLowerCase().trim()));
   async function review(record,status) {
     setSaving(record.id);setError('');setNotice('');
     try {await updateLeaveRequest(record.id,{status});setLeaves(p=>p.filter(r=>r.id!==record.id));setNotice(`${personName(record)}’s request ${status.toLowerCase()}.`);}
@@ -35,10 +36,10 @@ export default function PendingLeaves() {
     <section className="admin-panel">
       <div className="admin-tabs">{[['all','All requests'],['leave','Time off'],['remote','Work from home']].map(([key,label])=><button key={key} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{label}</button>)}</div>
       <div className="admin-toolbar p-4"><input type="search" aria-label="Search leave requests" placeholder="Search person, leave type or reason" value={query} onChange={e=>setQuery(e.target.value)}/><span className="text-sm text-slate-500">{visible.length} pending</span></div>
-      <div className="admin-table-scroll"><table className="admin-table"><thead><tr><th>Employee</th><th>Dates</th><th>Request & reason</th><th>Status</th><th>Decision</th></tr></thead><tbody>
+      <div className="admin-table-scroll"><RecordTable label="Leave requests" searchable={false}><table className="admin-table"><thead><tr><th>Employee</th><th>Dates</th><th>Request & reason</th><th>Status</th><th>Decision</th></tr></thead><tbody>
       {!busy&&visible.map(r=><tr key={r.id}><td><Person person={person(r)}/></td><td>{r.start_date}<span className="block text-slate-500 mt-1">{r.end_date!==r.start_date?'to '+r.end_date:'One day'}</span></td><td className="admin-request-reason"><strong>{remote(r)?'Work from home':r.request_type}</strong><p>{r.reason || 'No reason provided'}</p></td><td><Status value="Pending"/></td><td><div className="flex gap-2"><button className="admin-button primary" disabled={saving!==null} onClick={()=>review(r,'Approved')}>{saving===r.id?'Saving…':'Approve'}</button><button className="admin-button danger" disabled={saving!==null} onClick={()=>review(r,'Rejected')}>Reject</button></div></td></tr>)}
       {(busy||!visible.length)&&<tr><td colSpan="5" className="admin-empty">{busy?'Loading requests…':error?'Requests unavailable.':'No pending requests match your filters.'}</td></tr>}
-      </tbody></table></div>
+      </tbody></table></RecordTable></div>
     </section>
   </div>;
 }

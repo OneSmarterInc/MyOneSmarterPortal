@@ -1,3 +1,4 @@
+import RecordTable from './RecordTable';
 import { personName } from '../utils/personName';
 import { portalAlert, portalConfirm } from './PortalDialog';
 import { Avatar, Status } from './AdminUI';
@@ -8,20 +9,13 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
   const [users, setUsers] = useState([]);
   const [copiedEmail, setCopiedEmail] = useState('');
   const [query, setQuery] = useState('');
-  const [page, setPage] = useState(1);
-  const pageSize = 10;
   const [roleFilter, setRoleFilter] = useState('');
   const [tagFilter, setTagFilter] = useState('');
   const [fetching, setFetching] = useState(true);
   const [fetchError, setFetchError] = useState('');
   const team = users.filter(u=>['employee','intern','student'].includes(u.role));
   const tagOptions = [...new Set(team.flatMap(u=>u.tags||[]))].sort();
-  const visible = team.filter(u=>(!roleFilter||u.role===roleFilter)&&(!tagFilter||(u.tags||[]).includes(tagFilter))&&[personName(u),u.employee_id,u.email,u.designation,...(u.tags||[])].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
-  
-  const totalPages = Math.max(1, Math.ceil(visible.length / pageSize));
-  const currentPage = Math.min(page, totalPages);
-  const startIndex = (currentPage - 1) * pageSize;
-  const paginatedPeople = visible.slice(startIndex, startIndex + pageSize);
+  const visible = team.filter(u=>(!roleFilter||u.role===roleFilter)&&(!tagFilter||(u.tags||[]).includes(tagFilter))&&[personName(u),u.employee_id,u.email,u.designation,u.role,u.date_of_birth,u.monthly_attendance ? `${u.monthly_attendance.attended_days}/${u.monthly_attendance.total_working_days}` : '',...(u.tags||[])].join(' ').toLowerCase().includes(query.trim().toLowerCase()));
 
   const [editingUser, setEditingUser] = useState(null);
   const [email, setEmail] = useState('');
@@ -37,9 +31,9 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
   const [confirmResetPassword, setConfirmResetPassword] = useState('');
   const [showResetPassword, setShowResetPassword] = useState(false);
   const [photoPreview, setPhotoPreview] = useState(null);
-  
+
   const [viewingProfile, setViewingProfile] = useState(null);
-  
+
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ text: '', type: '' });
 
@@ -157,41 +151,37 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
 
   return (
     <div className="w-full max-w-7xl space-y-5 relative">
-      <header className="admin-page-heading"><div><h1>People directory</h1><p>Manage your team’s profiles, designations and tags.</p></div><button className="admin-button primary" onClick={onAddEmployee}>+ Add employee</button></header>
-      <div className="admin-toolbar"><input type="search" aria-label="Search people" placeholder="Search name, email, designation or tag…" value={query} onChange={e=>{setQuery(e.target.value);setPage(1);}}/><select aria-label="Filter by role" value={roleFilter} onChange={e=>{setRoleFilter(e.target.value);setPage(1);}}><option value="">All roles</option><option value="employee">Employees</option><option value="intern">Interns</option></select><select aria-label="Filter by tag" value={tagFilter} onChange={e=>{setTagFilter(e.target.value);setPage(1);}}><option value="">All tags</option>{tagOptions.map(t=><option key={t}>{t}</option>)}</select><span className="text-xs text-slate-500">{visible.length} people</span></div>
+      <header className="admin-page-heading"><div><h1>People directory</h1><p>Manage your team’s profiles, designations and tags.</p></div><button className="admin-button primary" onClick={onAddEmployee}>+ Onboard employee</button></header>
+      <div className="admin-toolbar"><input type="search" aria-label="Search people" placeholder="Search name, ID, email, birthday, designation or tag…" value={query} onChange={e=>{setQuery(e.target.value);}}/><select aria-label="Filter by role" value={roleFilter} onChange={e=>{setRoleFilter(e.target.value);}}><option value="">All roles</option><option value="employee">Employees</option><option value="intern">Interns</option></select><select aria-label="Filter by tag" value={tagFilter} onChange={e=>{setTagFilter(e.target.value);}}><option value="">All tags</option>{tagOptions.map(t=><option key={t}>{t}</option>)}</select><span className="text-xs text-slate-500">{visible.length} people</span></div>
       {fetchError && <p role="alert" className="admin-error">{fetchError} <button onClick={fetchUsers}>Try again</button></p>}
       {msg.type === 'success' && msg.text && <p role="status" className="text-sm text-emerald-700">{msg.text}</p>}
       {copiedEmail && <p role="status" className="text-sm text-emerald-700">Copied email: {copiedEmail}</p>}
       {msg.type === 'error' && msg.text && <p role="alert" className="admin-error">{msg.text}</p>}
       {fetching ? <p className="admin-empty">Loading people…</p> : <div className="admin-panel overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="admin-table w-full">
-            <thead><tr><th>Employee</th><th>Role</th><th>Designation</th><th>Email (click to copy)</th><th>Tags</th><th className="text-right">Actions</th></tr></thead>
-            <tbody>{paginatedPeople.map(u => <tr key={u.id}>
+          <RecordTable label="People directory" searchable={false}><table className="admin-table w-full">
+            <thead><tr><th>Employee</th><th>Employee ID</th><th>Role</th><th>Designation</th><th>Email (click to copy)</th><th>Tags</th><th>Date of birth</th><th>Attendance this month</th><th className="text-right">Actions</th></tr></thead>
+            <tbody>{visible.map(u => <tr key={u.id}>
               <td><button type="button" onClick={() => openProfileView(u)} className="admin-person text-left hover:text-red-700" aria-label={`View profile for ${personName(u)}`}><Avatar person={u}/><span><span className="font-semibold">{personName(u)}</span><span className="block text-xs text-slate-500 mt-1">{u.employee_id}</span></span></button></td>
+              <td>{u.employee_id || '—'}</td>
               <td><Status value={u.role}/></td>
               <td>{u.designation || '—'}</td>
               <td>{u.email ? <button type="button" title="Copy email address" aria-label={`Copy email address ${u.email}`} className="text-red-700 hover:underline break-all text-left" onClick={() => copyEmail(u.email)}>{u.email} {copiedEmail === u.email ? '✓ Copied' : '⧉'}</button> : <span className="text-slate-400">No email</span>}</td>
               <td><div className="flex flex-wrap gap-1">{(u.tags || []).length ? u.tags.map(tag => <span key={tag} className="admin-badge">{tag}</span>) : '—'}</div></td>
+              <td data-sort-value={u.date_of_birth || ''}>{u.date_of_birth ? new Date(`${u.date_of_birth}T12:00:00`).toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) : '—'}</td>
+              <td data-sort-value={u.monthly_attendance?.attended_days ?? ''}>{u.monthly_attendance ? <span title="Approved Present/Late check-ins on scheduled working days. Full current month, excluding dates before joining. Holidays excluded; half-days count as one working day."><strong>{u.monthly_attendance.attended_days}/{u.monthly_attendance.total_working_days}</strong><small className="block text-slate-500">{u.monthly_attendance.month}</small></span> : '—'}</td>
               <td><div className="flex flex-wrap justify-end gap-2"><button type="button" className="admin-button" onClick={() => openProfileView(u)}>View profile</button><button type="button" className="admin-button" onClick={() => startEdit(u)}>Edit</button><button type="button" className="admin-link" aria-label={`Delete ${personName(u)}`} onClick={() => handleDelete(u.id)}>Delete</button></div></td>
             </tr>)}</tbody>
-          </table>
+          </table></RecordTable>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 p-4 text-sm">
-          <span className="text-slate-600">Showing {visible.length ? startIndex + 1 : 0}–{Math.min(startIndex + pageSize, visible.length)} of {visible.length} people</span>
-          <nav aria-label="People directory pagination" className="flex items-center gap-3">
-            <button type="button" className="admin-button" disabled={currentPage <= 1} onClick={() => setPage(currentPage - 1)}>Previous</button>
-            <span aria-live="polite">Page {currentPage} of {totalPages}</span>
-            <button type="button" className="admin-button" disabled={currentPage >= totalPages} onClick={() => setPage(currentPage + 1)}>Next</button>
-          </nav>
-        </div>
+
       </div>}
       {!fetching&&!fetchError&&!visible.length&&<p className="admin-empty">No people match your filters.</p>}
 
       {viewingProfile && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[80] p-4">
           <div className="bg-white p-8 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200">
-            
+
             <div className="flex justify-between items-start mb-6 pb-6 border-b border-slate-100">
               <div className="flex items-center gap-5">
                 <div className="w-20 h-20 rounded-full bg-slate-100 border border-slate-300 overflow-hidden shrink-0">
@@ -211,7 +201,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
               </button>
             </div>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-4">
               <div><p className="text-xs text-slate-500">Designation</p><p className="font-semibold">{viewingProfile.designation || '-'}</p></div>
               <div><p className="text-xs text-slate-500">Tags</p><p className="break-words">{(viewingProfile.tags || []).join(', ') || '-'}</p></div>
@@ -259,7 +249,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
       {editingUser && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[80] p-4 sm:p-6">
           <div role="dialog" aria-modal="true" aria-label="Edit employee" className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[calc(100dvh-32px)] sm:max-h-[min(780px,calc(100dvh-48px))] flex flex-col overflow-hidden border border-slate-200">
-            
+
             <div className="flex items-center gap-4 px-6 py-4 border-b border-slate-100 shrink-0">
               <div className="w-14 h-14 rounded-full bg-slate-200 border border-slate-300 overflow-hidden shrink-0">
                 {photoPreview ? (
@@ -273,7 +263,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
                 <p className="text-xs font-medium text-slate-500">{personName(editingUser)}</p>
               </div>
             </div>
-            
+
             {msg.text && (
               <div className={`mx-6 mt-4 p-3 rounded text-xs font-medium ${msg.type === 'success' ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
                 {msg.text}
@@ -301,7 +291,7 @@ export default function ManageEmployees({ onAddEmployee, initialUserId = null })
                 <label htmlFor="manageemployees-field-3" className="block text-xs font-bold normal-case tracking-normal text-slate-600 mb-1">Email</label>
                 <input id="manageemployees-field-3" type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full border border-slate-300 p-2 text-sm outline-none focus:border-red-500 rounded" required />
               </div>
-              
+
               <div>
                 <label htmlFor="manageemployees-field-4" className="block text-xs font-bold normal-case tracking-normal text-slate-600 mb-1">Role</label>
                 <select id="manageemployees-field-4" value={role} onChange={e => setRole(e.target.value)} className="w-full border border-slate-300 p-2 text-sm outline-none focus:border-red-500 rounded bg-white">
