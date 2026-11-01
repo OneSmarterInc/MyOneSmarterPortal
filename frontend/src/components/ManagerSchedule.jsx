@@ -1,10 +1,13 @@
-import { portalAlert, portalConfirm } from './PortalDialog';
+import UpcomingCalendar from './UpcomingCalendar';
+import './UpcomingCalendar.css';
+import { portalAlert } from './PortalDialog';
 import { formatAttendanceTime } from '../utils/attendanceTime';
 import React, { useState, useEffect } from 'react';
 import { getSchedules, saveSchedule, deleteSchedule } from '../services/api';
 
 export default function ManagerSchedule() {
   const [schedules, setSchedules] = useState([]);
+  const [calendarRevision, setCalendarRevision] = useState(0);
   const [currentDate, setCurrentDate] = useState(new Date());
   
   // Modal State
@@ -24,6 +27,7 @@ export default function ManagerSchedule() {
     try {
       const res = await getSchedules();
       setSchedules(res.data);
+      setCalendarRevision(value => value + 1);
     } catch (err) {
       setFetchError('Unable to load this page. Please try again.');
     } finally {setFetching(false);}
@@ -76,8 +80,8 @@ export default function ManagerSchedule() {
       await deleteSchedule(editingDate.toLocaleDateString('en-CA'));
       fetchSchedules();
       setEditingDate(null);
-    } catch (err) {
-      setEditingDate(null);
+    } catch {
+      setFetchError('Could not reset the day. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -97,7 +101,8 @@ export default function ManagerSchedule() {
       <header className="admin-page-heading"><div><h1>Company calendar</h1><p>Select a day to change working hours, holidays or half-days.</p></div><button className="admin-button" onClick={()=>setCurrentDate(new Date())}>Today</button></header>
       {fetchError && <div className="admin-error" role="alert">{fetchError} <button onClick={fetchSchedules}>Try again</button></div>}
       {fetching && <p role="status" className="admin-loading">Loading…</p>}
-      <div className="bg-white p-3 sm:p-6 rounded-2xl border border-slate-200 shadow-none flex-grow flex flex-col overflow-hidden">
+      <div className="calendar-with-upcoming">
+      <div className="compact-company-calendar bg-white p-3 sm:p-6 rounded-2xl border border-slate-200 shadow-none flex-grow flex flex-col overflow-hidden">
         
         {/* Calendar Header */}
         <div className="flex flex-wrap gap-3 justify-between items-center mb-5 pb-5 border-b border-slate-100 shrink-0">
@@ -124,7 +129,7 @@ export default function ManagerSchedule() {
         </div>
         
         {/* Calendar Grid */}
-        <div className="admin-calendar-grid grid grid-cols-7 gap-1.5 sm:gap-2 flex-grow auto-rows-[minmax(76px,_1fr)] sm:auto-rows-[minmax(118px,_1fr)]">
+        <div className="admin-calendar-grid grid grid-cols-7 gap-1.5 sm:gap-2 flex-grow auto-rows-[minmax(76px,_1fr)] sm:auto-rows-[minmax(96px,_1fr)]">
           {blanks.map(b => <div key={`blank-${b}`} className="p-2 bg-transparent"></div>)}
           
           {daysArray.map(day => {
@@ -170,6 +175,9 @@ export default function ManagerSchedule() {
             );
           })}
         </div>
+      </div>
+
+      <UpcomingCalendar refreshKey={calendarRevision} />
       </div>
 
       {/* Configuration Modal */}

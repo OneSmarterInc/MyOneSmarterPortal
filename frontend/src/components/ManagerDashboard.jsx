@@ -1,3 +1,5 @@
+import { istCalendarDate } from '../services/attendanceClock';
+import { localDate } from './AdminUI';
 import { personName } from '../utils/personName';
 import { editAttendanceTimes } from '../services/attendanceClock';
 import { portalAlert, portalConfirm } from './PortalDialog';
@@ -9,6 +11,8 @@ import { getAttendance, managerCreateUser, getLeaveRequests, getUsers, updateAtt
 
 export default function ManagerDashboard({ setActiveTab, createMode = false, onCreateMode, navigate, onSelectEmployee }) {
   const [allRecords, setAllRecords] = useState([]);
+  const todayDate = () => localDate(istCalendarDate(new Date()));
+  const [historyDate, setHistoryDate] = useState(todayDate);
   const [historyPage, setHistoryPage] = useState(1);
   const [leaves, setLeaves] = useState([]);
   const [usersList, setUsersList] = useState([]);
@@ -27,6 +31,7 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
   }, []);
 
   async function fetchAllData() {
+    setHistoryDate(todayDate()); setHistoryPage(1);
     setDataBusy(true); setDataError('');
     try {
       const [attRes, leaveRes, usersRes] = await Promise.all([
@@ -62,7 +67,7 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
     }
   };
 
-  const historicalLogs = allRecords.filter(r => r.status !== 'Pending');
+  const historicalLogs = allRecords.filter(r => r.status !== 'Pending' && r.date === historyDate);
   const historyPageSize = 10;
   const historyTotalPages = Math.max(1, Math.ceil(historicalLogs.length / historyPageSize));
   const currentHistoryPage = Math.min(historyPage, historyTotalPages);
@@ -83,7 +88,7 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
       <summary>Attendance history · {historicalLogs.length} resolved records</summary>
       {/* Resolved Attendance Logs */}
       <div className="bg-white p-4 sm:p-5 rounded-xl border border-slate-200 shadow-none flex-grow flex flex-col min-h-[300px]">
-        <h3 className="text-xs font-bold normal-case tracking-normal text-zinc-900 mb-3 shrink-0">Resolved Attendance Logs</h3>
+        <div className="admin-toolbar mb-4"><h3 className="text-sm font-semibold text-zinc-900">Resolved Attendance Logs</h3><label className="text-sm text-slate-600">Date <input aria-label="Attendance history date" type="date" value={historyDate} onChange={e => { setHistoryDate(e.target.value || todayDate()); setHistoryPage(1); }} /></label><button className="admin-button" onClick={fetchAllData} disabled={dataBusy}>Reset to today</button><button className="admin-button" onClick={fetchAllData} disabled={dataBusy}>Refresh</button></div>
         <div className="overflow-auto no-scrollbar flex-grow border border-slate-100 rounded">
           <table className="w-full text-left border-collapse text-xs">
             <thead className="sticky top-0 bg-slate-50 z-10 shadow-none">
@@ -127,7 +132,7 @@ export default function ManagerDashboard({ setActiveTab, createMode = false, onC
                   </tr>
                 );
               }) : (
-                <tr><td colSpan="6" className="p-6 text-center text-slate-400 text-xs">No resolved records found.</td></tr>
+                <tr><td colSpan="6" className="p-6 text-center text-slate-400 text-xs">No resolved records found for {historyDate}.</td></tr>
               )}
             </tbody>
           </table>

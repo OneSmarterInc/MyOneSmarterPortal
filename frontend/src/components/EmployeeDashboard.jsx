@@ -1,3 +1,5 @@
+import UpcomingCalendar from './UpcomingCalendar';
+import './UpcomingCalendar.css';
 import { personName } from '../utils/personName';
 import React, { useState, useEffect, useRef } from 'react';
 import { getAttendance, getSchedules, getProfile, getLeaveRequests, getLeaveAllocations, getRecommendations } from '../services/api';
@@ -128,7 +130,7 @@ export default function EmployeeDashboard({ user, onNavigate }) {
       <section className="employee-card"><div className="employee-card-heading"><h2>Your profile</h2><button className="admin-link" onClick={() => onNavigate('profile')}>View →</button></div><div className="employee-profile"><div className="employee-profile-person"><Avatar large person={{ ...profile, username: name }}/><div><strong>{name}</strong><span>{user.role === 'intern' ? 'Intern' : 'Employee'}{profile.designation ? ` · ${profile.designation}` : ''}</span></div></div><dl><div><dt>Employee ID</dt><dd>{profile.employee_id || '—'}</dd></div><div><dt>Joining date</dt><dd>{dateLabel(profile.joining_date)}</dd></div></dl></div></section>
       </aside>
     </div>
-    <section className="employee-card"><div className="employee-card-heading"><h2>Week of {dateLabel(localDate(weekStart))}</h2><div className="employee-week-actions"><button className="admin-button" onClick={() => setWeekOffset(weekOffset - 1)} aria-label="Previous week">←</button><button className="admin-button" onClick={() => setWeekOffset(0)}>Today</button><button className="admin-button" onClick={() => setWeekOffset(weekOffset + 1)} aria-label="Next week">→</button></div></div><div className="employee-week">{week.map(day => { const date = localDate(day), entry = history.find(r => r.date === date), dayConfig = configFor(day);
+    <div className="calendar-with-upcoming employee-calendar-layout"><section className="employee-card"><div className="employee-card-heading"><h2>Week of {dateLabel(localDate(weekStart))}</h2><div className="employee-week-actions"><button className="admin-button" onClick={() => setWeekOffset(weekOffset - 1)} aria-label="Previous week">←</button><button className="admin-button" onClick={() => setWeekOffset(0)}>Today</button><button className="admin-button" onClick={() => setWeekOffset(weekOffset + 1)} aria-label="Next week">→</button></div></div><div className="employee-week">{week.map(day => { const date = localDate(day), entry = history.find(r => r.date === date), dayConfig = configFor(day);
       const status = !data.attendance || !data.schedules || !data.leaves ? 'Unavailable'
         : (!firstCheckin || date < firstCheckin) && date < today ? 'Not applicable'
         : approvedLeave(date) ? 'On leave'
@@ -140,10 +142,10 @@ export default function EmployeeDashboard({ user, onNavigate }) {
         : date < today ? 'Absent'
         : date > today ? 'Upcoming'
         : 'Not checked in';
-      const tone = status === 'Holiday' ? 'holiday'
+      const tone = status === 'On leave' ? 'leave' : status === 'Holiday' ? 'holiday'
         : status === 'Half-day' ? 'halfday'
         : ['Present', 'Late', 'Completed'].includes(status) ? 'present'
         : 'other';
-      return <div key={date} className={`${date === today ? 'is-today ' : ''}week-tone-${tone}`}><small>{day.toLocaleDateString('en-GB', { weekday: 'short' })}</small><strong>{day.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</strong><span>{status}</span><small>{entry?.check_in ? `${formatAttendanceTime(entry.check_in)} – ${formatAttendanceTime(entry.check_out)}` : '—'}</small></div>; })}</div></section>
+      return <div key={date} className={`${date === today ? 'is-today ' : ''}week-tone-${tone}`}><small>{day.toLocaleDateString('en-GB', { weekday: 'short' })}</small><strong>{day.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}</strong><span>{status}</span><small>{entry?.check_in ? `${formatAttendanceTime(entry.check_in)} – ${formatAttendanceTime(entry.check_out)}` : '—'}</small></div>; })}</div></section><UpcomingCalendar key={user.user_id} refreshKey={data.leaves} /></div>
   </div>;
 }

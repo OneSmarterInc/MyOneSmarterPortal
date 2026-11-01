@@ -2,6 +2,7 @@ from .policy_views import policy_documents
 from django.urls import path, include
 from . import recommendations
 from . import notifications
+from . import wfh
 from . import attendance_clock
 from rest_framework.routers import DefaultRouter
 from .views import (
@@ -16,6 +17,7 @@ from .views import (
     manage_user,
     employee_profile, 
     calendar_announcements,
+    upcoming_calendar,
     get_schedules,       # Ensure this is imported
     save_schedule,       # Ensure this is imported
     delete_schedule,
@@ -56,6 +58,8 @@ urlpatterns = [
     path('profile/<int:user_id>/', employee_profile, name='employee_profile'),
     
     # Scheduled Calendar URLs
+    path('wfh-allowances/', wfh.allowances, name='wfh_allowances'),
+    path('upcoming-calendar/', upcoming_calendar, name='upcoming_calendar'),
     path('calendar-announcements/', calendar_announcements, name='calendar_announcements'),
     path('schedules/', get_schedules, name='get_schedules'),
     path('schedules/save/', save_schedule, name='save_schedule'),

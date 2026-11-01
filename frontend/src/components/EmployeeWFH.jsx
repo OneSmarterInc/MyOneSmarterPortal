@@ -1,9 +1,12 @@
+import { istCalendarDate } from '../services/attendanceClock';
 import { portalAlert, portalConfirm } from './PortalDialog';
 import React, { useState, useEffect } from 'react';
-import { getLeaveRequests, createLeaveRequest, deleteLeaveRequest } from '../services/api';
+import { getLeaveRequests, createLeaveRequest, deleteLeaveRequest, getWFHAllowances } from '../services/api';
 
 export default function EmployeeWFH({ user }) {
   const [history, setHistory] = useState([]);
+  const [allowance, setAllowance] = useState(null);
+  const [fetchError, setFetchError] = useState('');
   
   const [formData, setFormData] = useState({
     start_date: '',
@@ -31,16 +34,19 @@ export default function EmployeeWFH({ user }) {
 
   const fetchData = async () => {
     try {
-      const reqRes = await getLeaveRequests();
+      setFetchError('');
+      const [reqRes, allowanceRes] = await Promise.all([getLeaveRequests(), getWFHAllowances()]);
+      setAllowance(allowanceRes.data.find(a => a.user_id === user.user_id) || null);
       // Filter strictly for WFH requests belonging to this user
-      setHistory(reqRes.data.filter(item => item.user_id === user.user_id && item.request_type === 'Work From Home'));
+      setHistory(reqRes.data.filter(item => item.user_id === user.user_id && ['Work From Home', 'WFH'].includes(item.request_type)));
     } catch (err) {
-      console.error(err);
+      setFetchError('Could not load work from home days. Refresh to try again.');
+      setAllowance(null);
     }
   };
 
   const getTodayString = () => {
-    const d = new Date();
+    const d = istCalendarDate(new Date());
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
   const todayStr = getTodayString();
@@ -67,6 +73,11 @@ export default function EmployeeWFH({ user }) {
       return;
     }
 
+    const days = Math.round((new Date(newEnd) - new Date(newStart)) / 86400000) + 1;
+    if (!allowance || days > allowance.remaining) {
+      setMsg({ text: 'Not enough allocated work from home days. Contact your manager.', type: 'error' });
+      return;
+    }
     setLoading(true);
 
     try {
@@ -83,7 +94,7 @@ export default function EmployeeWFH({ user }) {
       setFormData({ start_date: '', end_date: '', reason: '' });
       fetchData(); 
     } catch (err) {
-      setMsg({ text: 'Failed to submit WFH request.', type: 'error' });
+      setMsg({ text: err.response?.data?.error || 'Failed to submit WFH request.', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -142,6 +153,7 @@ export default function EmployeeWFH({ user }) {
           <p className="mt-2 text-sm text-slate-600">Request remote work, review approvals, and manage upcoming plans.</p>
         </div>
       </header>
+      <section className="rounded-xl border border-slate-200 bg-white p-5"><div className="flex justify-between items-center gap-3"><h2 className="font-semibold">My work from home allowance</h2><button className="admin-button" onClick={fetchData}>Refresh</button></div>{fetchError && <p role="alert" className="admin-error">{fetchError}</p>}<p className="mt-3 text-sm">Allocated: <strong>{allowance?.allocated ?? '—'}</strong> · Used / reserved: <strong>{allowance?.reserved ?? '—'}</strong> · Remaining: <strong>{allowance?.remaining ?? '—'}</strong> days</p><p className="mt-2 text-xs text-slate-500">Your manager allocates days. Each calendar day requested uses one day. Pending requests reserve days; rejected or withdrawn requests release them.</p></section>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {[
           {label:'Awaiting approval',value:summary.pending,accent:'text-amber-700',background:'bg-amber-50'},
@@ -187,7 +199,7 @@ export default function EmployeeWFH({ user }) {
                   <label className="block text-[10px] font-bold uppercase text-slate-500 mb-1.5">Reason / Deliverables</label>
                   <input type="text" required placeholder="Brief reason or tasks planned..." value={formData.reason} onChange={e => setFormData({...formData, reason: e.target.value})} className="w-full border border-slate-300 p-2.5 text-xs outline-none focus:border-red-500 rounded-lg bg-slate-50" />
                 </div>
-                <button type="submit" disabled={loading} className="admin-button primary w-full xl:w-auto h-[42px] shrink-0">
+                <button type="submit" disabled={loading || !allowance || allowance.remaining < 1} className="admin-button primary w-full xl:w-auto h-[42px] shrink-0">
                   {loading ? 'Submitting...' : 'Submit Request'}
                 </button>
               </div>
