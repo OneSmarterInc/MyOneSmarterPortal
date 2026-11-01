@@ -1,0 +1,18 @@
+.calendar-with-upcoming { display: grid; grid-template-columns: minmax(0, 7fr) minmax(280px, 3fr); gap: 20px; align-items: start; }
+.calendar-with-upcoming > * { min-width: 0; }
+.upcoming-calendar { padding: 24px; border: 1px solid #e2e8f0; border-radius: 16px; background: white; color: #334155; }
+.upcoming-calendar h2 { margin: 0; font-size: 17px; font-weight: 600; color: #18181b; }
+.upcoming-subtitle { margin: 6px 0 16px; font-size: 12px; color: #64748b; }
+.upcoming-legend { display: flex; flex-wrap: wrap; gap: 8px 14px; font-size: 11px; margin-bottom: 18px; }
+.upcoming-event-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; max-height: 560px; overflow-y: auto; }
+.upcoming-event { padding: 12px 14px; border-radius: 8px; border-left: 3px solid; display: grid; gap: 5px; font-size: 13px; }
+.upcoming-event strong { overflow-wrap: anywhere; }
+.upcoming-event time { font-size: 12px; }
+.upcoming-event-type { font-size: 10px; font-weight: 600; }
+.upcoming-holiday { border-color: #3b82f6; background: #eff6ff; color: #1d4ed8; }
+.upcoming-leave { border-color: #a855f7; background: #faf5ff; color: #7e22ce; }
+.upcoming-empty { color: #64748b; font-size: 13px; }
+.employee-calendar-layout .employee-week { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.employee-calendar-layout .week-tone-leave { background: #faf5ff; color: #7e22ce; border-color: #d8b4fe; }
+@media (max-width: 1100px) { .calendar-with-upcoming { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 700px) { .employee-calendar-layout .employee-week { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

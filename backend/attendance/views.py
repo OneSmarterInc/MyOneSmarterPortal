@@ -511,6 +511,34 @@ def calendar_announcements(request):
     } for event in events])
 
 
+@api_view(['GET'])
+@authentication_classes([LetterAuthentication])
+def upcoming_calendar(request):
+    if not request.user.is_authenticated:
+        return Response({'error': 'Please sign in again.'}, status=401)
+    today = current_ist().date()
+    events = [{
+        'id': f'holiday-{day.pk}', 'kind': 'holiday',
+        'start_date': str(day.date), 'end_date': str(day.date),
+        'title': day.description or 'Company holiday',
+    } for day in CompanySchedule.objects.filter(date__gte=today, day_type='Holiday')]
+    leaves = LeaveRequest.objects.filter(status='Approved', end_date__gte=today).select_related('user')
+    manager = is_manager(request.user)
+    if not manager:
+        leaves = leaves.filter(user=request.user)
+    for leave in leaves:
+        if leave.request_type.strip().lower() in ('wfh', 'work from home'):
+            continue
+        events.append({
+            'id': f'leave-{leave.pk}', 'kind': 'leave',
+            'start_date': str(leave.start_date), 'end_date': str(leave.end_date),
+            'title': leave.request_type,
+            'employee_name': (leave.user.get_full_name().strip() or leave.user.username) if manager else '',
+        })
+    events.sort(key=lambda event: (event['start_date'], event['end_date'], event['id']))
+    return Response(events, headers={'Cache-Control': 'private, no-store'})
+
+
 @api_view(['POST'])
 def save_schedule(request):
     date = request.data.get('date')
@@ -570,9 +598,14 @@ class AttendanceViewSet(viewsets.ModelViewSet):
         return queryset
 
 @api_view(['GET', 'POST'])
+@authentication_classes([LetterAuthentication])
 def leave_requests_list(request):
     if request.method == 'GET':
+        if not request.user.is_authenticated:
+            return Response({'error': 'Please sign in again.'}, status=401)
         leaves = LeaveRequest.objects.all().order_by('-applied_on')
+        if not is_manager(request.user):
+            leaves = leaves.filter(user=request.user)
         data = [{
             'id': l.id,
             'user_id': l.user.id,
@@ -670,9 +703,14 @@ def delete_leave_allocation(request, pk):
         return Response({'error': 'Allocation not found.'}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['GET', 'POST'])
+@authentication_classes([LetterAuthentication])
 def leave_requests_list(request):
     if request.method == 'GET':
+        if not request.user.is_authenticated:
+            return Response({'error': 'Please sign in again.'}, status=401)
         leaves = LeaveRequest.objects.all().order_by('-applied_on')
+        if not is_manager(request.user):
+            leaves = leaves.filter(user=request.user)
         data = [{
             'id': l.id,
             'user_id': l.user.id,

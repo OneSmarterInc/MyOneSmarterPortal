@@ -16,6 +16,7 @@ from .views import (
     manage_user,
     employee_profile, 
     calendar_announcements,
+    upcoming_calendar,
     get_schedules,       # Ensure this is imported
     save_schedule,       # Ensure this is imported
     delete_schedule,
@@ -56,6 +57,7 @@ urlpatterns = [
     path('profile/<int:user_id>/', employee_profile, name='employee_profile'),
     
     # Scheduled Calendar URLs
+    path('upcoming-calendar/', upcoming_calendar, name='upcoming_calendar'),
     path('calendar-announcements/', calendar_announcements, name='calendar_announcements'),
     path('schedules/', get_schedules, name='get_schedules'),
     path('schedules/save/', save_schedule, name='save_schedule'),

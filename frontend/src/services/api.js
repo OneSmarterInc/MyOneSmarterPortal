@@ -34,7 +34,7 @@ export const deleteUser = (id) => API.delete(`users/${id}/`, letterConfig());
 export const getSchedules = () => API.get('schedules/');
 export const saveSchedule = (data) => API.post('schedules/save/', data);
 export const deleteSchedule = (dateStr) => API.delete(`schedules/${dateStr}/`);
-export const getLeaveRequests = () => API.get('leaves/');
+export const getLeaveRequests = () => API.get('leaves/', letterConfig());
 export const createLeaveRequest = (data) => API.post('leaves/', data);
 export const updateLeaveRequest = (id, data) => API.patch(`leaves/${id}/`, data);
 export const getLeaveAllocations = () => API.get('leave-allocations/');
@@ -61,3 +61,5 @@ export const getRecommendationPDF = id => API.get(`recommendations/${id}/pdf/`, 
 export const sendRecommendation = (id, revision) => API.post(`recommendations/${id}/send/`, { revision }, letterConfig());
 export const rejectRecommendation = (id, reason) => API.post(`recommendations/${id}/reject/`, { reason }, letterConfig());
 
+
+export const getUpcomingCalendar = () => API.get('upcoming-calendar/', letterConfig());
