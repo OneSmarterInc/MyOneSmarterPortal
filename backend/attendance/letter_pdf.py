@@ -18,7 +18,7 @@ from pyhanko.pdf_utils.generic import pdf_name, pdf_string
 
 CONTACT = 'akshay.kumar@onesmarter.com'
 SIGNATORY = 'Akshay Agrawal'
-TITLE = 'Global Delivery Manager'
+TITLE = 'Global Service Delivery Manager'
 SIGNATURE_FIELD = 'OneSmarterApproval'
 SIGNATURE_WIDTH, SIGNATURE_HEIGHT = 220, 118
 
